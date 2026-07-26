@@ -1,0 +1,21 @@
+model Project {
+  id             String     @id @default(uuid())
+  orgId          String     @map("org_id") @db.Uuid
+  name           String
+  code           String
+  client         String?
+  location       String?
+  plantName      String?    @map("plant_name")
+  status         String     @default("Planning")
+  plannedSdDate  DateTime?  @map("planned_sd_date")
+  plannedSuDate  DateTime?  @map("planned_su_date")
+  forecastSdDate DateTime?  @map("forecast_sd_date")
+  forecastSuDate DateTime?  @map("forecast_su_date")
+  actualSdDate   DateTime?  @map("actual_sd_date")
+  actualSuDate   DateTime?  @map("actual_su_date")
+  description    String?
+  createdBy      String?    @map("created_by")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  workpacks      Workpack[]
+}

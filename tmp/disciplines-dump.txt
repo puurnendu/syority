@@ -1,0 +1,19 @@
+Found 18 disciplines total.
+DISC: ELEC | NAME: Electrical | ORG: 8add6a1a-52d9-4535-b854-f75f4ac5027e
+DISC: INST | NAME: Instrumentation | ORG: 8add6a1a-52d9-4535-b854-f75f4ac5027e
+DISC: CIVIL | NAME: Civil | ORG: 8add6a1a-52d9-4535-b854-f75f4ac5027e
+DISC: PIPING | NAME: Piping | ORG: 8add6a1a-52d9-4535-b854-f75f4ac5027e
+DISC: STRUCT | NAME: Structural | ORG: 8add6a1a-52d9-4535-b854-f75f4ac5027e
+DISC: MECH | NAME: Mechanical | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+DISC: ELEC | NAME: Electrical | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+DISC: INST | NAME: Instrumentation | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+DISC: CIVIL | NAME: Civil | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+DISC: PIPING | NAME: Piping | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+DISC: STRUCT | NAME: Structural | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+DISC: MECH | NAME: Mechanical | ORG: 23661409-e520-4cf8-99e0-fb5053d46706
+DISC: ELEC | NAME: Electrical | ORG: 23661409-e520-4cf8-99e0-fb5053d46706
+DISC: INST | NAME: Instrumentation | ORG: 23661409-e520-4cf8-99e0-fb5053d46706
+DISC: CIVIL | NAME: Civil | ORG: 23661409-e520-4cf8-99e0-fb5053d46706
+DISC: PIPING | NAME: Piping | ORG: 23661409-e520-4cf8-99e0-fb5053d46706
+DISC: STRUCT | NAME: Structural | ORG: 23661409-e520-4cf8-99e0-fb5053d46706
+DISC: MECH | NAME: Mechanical | ORG: 8add6a1a-52d9-4535-b854-f75f4ac5027e

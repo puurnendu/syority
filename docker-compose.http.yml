@@ -1,0 +1,17 @@
+# HTTP-only override — for serving directly on an IP address without a domain
+# or SSL certificate. Add AFTER the prod file:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.http.yml up -d
+#
+# When a domain is ready: stop using this file, set DOMAIN in .env, and run
+# scripts/init-letsencrypt.sh to switch to HTTPS.
+services:
+  nginx:
+    volumes:
+      # Same container target as the prod mount, so this REPLACES the SSL
+      # template with the HTTP-only one (compose merges volumes by target).
+      - ./nginx/templates-http:/etc/nginx/templates:ro
+
+  certbot:
+    # Hidden behind a profile so the renewal loop doesn't run (and log errors)
+    # while there is no certificate.
+    profiles: ["ssl"]

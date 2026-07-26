@@ -1,0 +1,29 @@
+name: Deploy to Production (SYORITY)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Lint and Type-check
+        run: |
+          npm ci
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Deploy to Production via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/syority
+            git pull origin main
+            ./scripts/deploy.sh

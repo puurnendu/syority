@@ -1,0 +1,74 @@
+services:
+  # One-shot schema migrator (Prisma CLI). Completes before `app` starts.
+  # Runtime app image stays lean — no prisma CLI / full node_modules.
+  migrator:
+    build:
+      context: .
+      target: migrator
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      # Public URL users open in the browser (must match host + port + scheme).
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-${NEXTAUTH_URL}}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=syority
+    ports:
+      # Bound to loopback only — never expose Postgres publicly on a VPS.
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d syority"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      # Loopback only — required by BullMQ workers; not publicly reachable.
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:

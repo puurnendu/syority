@@ -1,0 +1,2 @@
+"LineNumber","Line","Path"
+"114","  const wpsWithAtLeastOneActivity = totalWps === 0 ? 0 : await prisma.Workpack.count({","C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\src\lib\planningProgress.ts"

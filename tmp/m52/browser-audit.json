@@ -1,0 +1,191 @@
+{
+  "results": [
+    {
+      "path": "/platform/dashboard",
+      "finalUrl": "/platform/dashboard",
+      "screenshot": "tmp\\m52\\screenshots\\platform_dashboard.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Dashboard Platform Dashboard Cross-tenant summary of tenants,"
+    },
+    {
+      "path": "/platform/tenants",
+      "finalUrl": "/platform/tenants",
+      "screenshot": "tmp\\m52\\screenshots\\platform_tenants.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Tenants Tenant Management 2 organisations registered on the p"
+    },
+    {
+      "path": "/platform/users",
+      "finalUrl": "/platform/users",
+      "screenshot": "tmp\\m52\\screenshots\\platform_users.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Users All Users Users across all organisations. NAME EMAIL OR"
+    },
+    {
+      "path": "/platform/features",
+      "finalUrl": "/platform/features",
+      "screenshot": "tmp\\m52\\screenshots\\platform_features.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Feature Flags Platform Feature Flags Registered modules only "
+    },
+    {
+      "path": "/platform/billing",
+      "finalUrl": "/platform/billing",
+      "screenshot": "tmp\\m52\\screenshots\\platform_billing.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Billing Platform Billing Intelligence Global financial overvi"
+    },
+    {
+      "path": "/platform/ai-config",
+      "finalUrl": "/platform/ai-config",
+      "screenshot": "tmp\\m52\\screenshots\\platform_ai-config.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform AI Configuration AI Configuration Manage AI providers, custom"
+    },
+    {
+      "path": "/platform/system",
+      "finalUrl": "/platform/system",
+      "screenshot": "tmp\\m52\\screenshots\\platform_system.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform System Health System Health Platform-wide statistics 🏢 2 Org"
+    },
+    {
+      "path": "/platform/storage",
+      "finalUrl": "/platform/storage",
+      "screenshot": "tmp\\m52\\screenshots\\platform_storage.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Storage 🗄️ Coming Soon Platform Storage Object storage confi"
+    },
+    {
+      "path": "/platform/onboarding",
+      "finalUrl": "/platform/onboarding",
+      "screenshot": "tmp\\m52\\screenshots\\platform_onboarding.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Onboarding 📝 Coming Soon Tenant Onboarding Review and approv"
+    },
+    {
+      "path": "/platform-data",
+      "finalUrl": "/platform-data",
+      "screenshot": "tmp\\m52\\screenshots\\platform-data.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Data Management Manage global templates and reference data sh"
+    },
+    {
+      "path": "/platform-data/master-data/equipment-types",
+      "finalUrl": "/platform-data/master-data/equipment-types",
+      "screenshot": "tmp\\m52\\screenshots\\platform-data_master-data_equipment-types.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Data Master Data Equipment Types Equipment Types Master list "
+    },
+    {
+      "path": "/platform-data/master-data/item-catalog",
+      "finalUrl": "/platform-data/master-data/item-catalog",
+      "screenshot": "tmp\\m52\\screenshots\\platform-data_master-data_item-catalog.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Data Master Data Item Catalog 📦 Coming Soon Item Catalog Pla"
+    },
+    {
+      "path": "/platform-data/templates",
+      "finalUrl": "/platform-data/workpack-templates",
+      "screenshot": "tmp\\m52\\screenshots\\platform-data_templates.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Data Workpack Templates Workpack Templates Standardize your e"
+    },
+    {
+      "path": "/platform-data/udf-definitions",
+      "finalUrl": "/platform-data/udf-definitions",
+      "screenshot": "tmp\\m52\\screenshots\\platform-data_udf-definitions.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Data UDF Definitions UDF Definitions Custom fields that appea"
+    },
+    {
+      "path": "/platform-data/print-settings",
+      "finalUrl": "/platform-data/print-settings",
+      "screenshot": "tmp\\m52\\screenshots\\platform-data_print-settings.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Data Print & PDF Settings 🖨️ Coming Soon Print & PDF Setting"
+    },
+    {
+      "path": "/platform-data/certificate-templates",
+      "finalUrl": "/platform-data/certificate-templates",
+      "screenshot": "tmp\\m52\\screenshots\\platform-data_certificate-templates.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Data Certificate Templates Certificate Templates Manage platf"
+    },
+    {
+      "path": "/platform-data/workpack-templates",
+      "finalUrl": "/platform-data/workpack-templates",
+      "screenshot": "tmp\\m52\\screenshots\\platform-data_workpack-templates.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Data Workpack Templates Workpack Templates Standardize your e"
+    }
+  ]
+}

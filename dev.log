@@ -1,0 +1,206 @@
+
+> aurianoa-sto-v2@0.1.0 dev
+> next dev --turbopack -p 3001
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.56.1:3001
+- Environments: .env
+- Experiments (use with caution):
+  · optimizePackageImports
+
+✓ Starting...
+✓ Ready in 2.2s
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].system.findMany()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\[root-of-the-server]__f640b0bf._.js:1099:163
+
+  1096     });
+  1097     systemIds = systems.map((s)=>s.id);
+  1098 }
+→ 1099 const systems = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].system.findMany({
+         where: {
+           id: {
+             in: []
+           }
+         },
+         include: {
+           unit: {
+           ~~~~
+             select: {
+               name: true
+             }
+           },
+       ?   Asset?: true,
+       ?   User?: true,
+       ?   Organization?: true,
+       ?   Site?: true,
+       ?   Unit?: true,
+       ?   Workpack?: true,
+       ?   event_systems?: true,
+       ?   line_lists?: true,
+       ?   system_blinds?: true,
+       ?   system_drawings?: true,
+       ?   system_gaskets?: true,
+       ?   system_procedures?: true,
+       ?   wbs_nodes?: true
+         }
+       })
+
+Unknown field `unit` for include statement on model `System`. Available options are marked with ?.
+⨯ Error [PrismaClientValidationError]: 
+Invalid `{imported module ./src/lib/prisma.ts}["prisma"].system.findMany()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\[root-of-the-server]__f640b0bf._.js:1099:163
+
+  1096     });
+  1097     systemIds = systems.map((s)=>s.id);
+  1098 }
+→ 1099 const systems = await {imported module ./src/lib/prisma.ts}["prisma"].system.findMany({
+         where: {
+           id: {
+             in: []
+           }
+         },
+         include: {
+           unit: {
+           ~~~~
+             select: {
+               name: true
+             }
+           },
+       ?   Asset?: true,
+       ?   User?: true,
+       ?   Organization?: true,
+       ?   Site?: true,
+       ?   Unit?: true,
+       ?   Workpack?: true,
+       ?   event_systems?: true,
+       ?   line_lists?: true,
+       ?   system_blinds?: true,
+       ?   system_drawings?: true,
+       ?   system_gaskets?: true,
+       ?   system_procedures?: true,
+       ?   wbs_nodes?: true
+         }
+       })
+
+Unknown field `unit` for include statement on model `System`. Available options are marked with ?.
+    at <unknown> (app\api\dashboard\system-progress\route.ts:43:39)
+    at async GET (app\api\dashboard\system-progress\route.ts:43:19)
+  41 |   }
+  42 |
+> 43 |   const systems = await prisma.system.findMany({
+     |                                       ^
+  44 |     where: { id: { in: systemIds } },
+  45 |     include: { unit: { select: { name: true } } },
+  46 |   }); {
+  clientVersion: '7.4.1'
+}
+[PortfolioStats] Start for orgId: 72a4defa-a012-4b7e-a4ba-b26b264ce7cb
+[Dashboard API] Promise.all failed: TypeError: Cannot read properties of undefined (reading 'count')
+    at <unknown> (app\api\dashboard\portfolio-stats\route.ts:55:34)
+    at async (src\lib\withTenantGuard.ts:36:16)
+  53 |                 },
+  54 |             }).catch(e => { console.error('Error in workpack.findMany:', e); return []; }),
+> 55 |             prisma.constraintLog.count({
+     |                                  ^
+  56 |                 where: {
+  57 |                     organization_id: orgId,
+  58 |                     status: { in: ['open', 'in_progress'] },
+[PortfolioStats] Start for orgId: 72a4defa-a012-4b7e-a4ba-b26b264ce7cb
+[Dashboard API] Promise.all failed: TypeError: Cannot read properties of undefined (reading 'count')
+    at <unknown> (app\api\dashboard\portfolio-stats\route.ts:55:34)
+    at async (src\lib\withTenantGuard.ts:36:16)
+  53 |                 },
+  54 |             }).catch(e => { console.error('Error in workpack.findMany:', e); return []; }),
+> 55 |             prisma.ConstraintLog.count({
+     |                                  ^
+  56 |                 where: {
+  57 |                     organization_id: orgId,
+  58 |                     status: { in: ['open', 'in_progress'] },
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].System.findMany()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\[root-of-the-server]__f640b0bf._.js:1099:163
+
+  1096     });
+  1097     systemIds = systems.map((s)=>s.id);
+  1098 }
+→ 1099 const systems = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].System.findMany({
+         where: {
+           id: {
+             in: []
+           }
+         },
+         include: {
+           unit: {
+           ~~~~
+             select: {
+               name: true
+             }
+           },
+       ?   Asset?: true,
+       ?   User?: true,
+       ?   Organization?: true,
+       ?   Site?: true,
+       ?   Unit?: true,
+       ?   Workpack?: true,
+       ?   event_systems?: true,
+       ?   line_lists?: true,
+       ?   system_blinds?: true,
+       ?   system_drawings?: true,
+       ?   system_gaskets?: true,
+       ?   system_procedures?: true,
+       ?   wbs_nodes?: true
+         }
+       })
+
+Unknown field `unit` for include statement on model `System`. Available options are marked with ?.
+⨯ Error [PrismaClientValidationError]: 
+Invalid `{imported module ./src/lib/prisma.ts}["prisma"].System.findMany()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\[root-of-the-server]__f640b0bf._.js:1099:163
+
+  1096     });
+  1097     systemIds = systems.map((s)=>s.id);
+  1098 }
+→ 1099 const systems = await {imported module ./src/lib/prisma.ts}["prisma"].System.findMany({
+         where: {
+           id: {
+             in: []
+           }
+         },
+         include: {
+           unit: {
+           ~~~~
+             select: {
+               name: true
+             }
+           },
+       ?   Asset?: true,
+       ?   User?: true,
+       ?   Organization?: true,
+       ?   Site?: true,
+       ?   Unit?: true,
+       ?   Workpack?: true,
+       ?   event_systems?: true,
+       ?   line_lists?: true,
+       ?   system_blinds?: true,
+       ?   system_drawings?: true,
+       ?   system_gaskets?: true,
+       ?   system_procedures?: true,
+       ?   wbs_nodes?: true
+         }
+       })
+
+Unknown field `unit` for include statement on model `System`. Available options are marked with ?.
+    at <unknown> (app\api\dashboard\system-progress\route.ts:43:39)
+    at async GET (app\api\dashboard\system-progress\route.ts:43:19)
+  41 |   }
+  42 |
+> 43 |   const systems = await prisma.System.findMany({
+     |                                       ^
+  44 |     where: { id: { in: systemIds } },
+  45 |     include: { unit: { select: { name: true } } },
+  46 |   }); {
+  clientVersion: '7.4.1'
+}
+[?25h

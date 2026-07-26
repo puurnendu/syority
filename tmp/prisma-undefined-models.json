@@ -1,0 +1,2097 @@
+[
+  {
+    "model": "_runtimeDataModel",
+    "count": 1,
+    "locations": [
+      {
+        "file": "scripts/check-fields.js",
+        "line": 6,
+        "snippet": "const fields = prisma._runtimeDataModel.models.Workpack.fields;"
+      }
+    ]
+  },
+  {
+    "model": "Activity",
+    "count": 1,
+    "locations": [
+      {
+        "file": "test-prisma.js",
+        "line": 7,
+        "snippet": "const count = await prisma.Activity.count();"
+      }
+    ]
+  },
+  {
+    "model": "activityCodeDefaultResource",
+    "count": 1,
+    "locations": [
+      {
+        "file": "src/modules/Activity/Services/ActivityService.ts",
+        "line": 55,
+        "snippet": "const defaults = await prisma.activityCodeDefaultResource.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "aiLog",
+    "count": 8,
+    "locations": [
+      {
+        "file": "app/api/ai-logs/route.ts",
+        "line": 23,
+        "snippet": "prisma.aiLog.findMany({"
+      },
+      {
+        "file": "app/api/ai-logs/route.ts",
+        "line": 43,
+        "snippet": "prisma.aiLog.count({ where }),"
+      },
+      {
+        "file": "app/api/ai-logs/[id]/route.ts",
+        "line": 10,
+        "snippet": "const log = await prisma.aiLog.findFirst({"
+      },
+      {
+        "file": "scratch/dump_ai_logs.js",
+        "line": 11,
+        "snippet": "const logs = await prisma.aiLog.findMany({"
+      },
+      {
+        "file": "scratch/read-logs-js.js",
+        "line": 6,
+        "snippet": "const logs = await prisma.aiLog.findMany({"
+      },
+      {
+        "file": "scratch/read-logs.ts",
+        "line": 6,
+        "snippet": "const logs = await prisma.aiLog.findMany({"
+      },
+      {
+        "file": "src/services/ai/AiLoggingService.ts",
+        "line": 23,
+        "snippet": "await prisma.aiLog.create({"
+      },
+      {
+        "file": "src/services/ai/AiPromptService.ts",
+        "line": 258,
+        "snippet": "await prisma.aiLog.create({ data: entry });"
+      }
+    ]
+  },
+  {
+    "model": "aiPrompt",
+    "count": 5,
+    "locations": [
+      {
+        "file": "src/services/ai/AiPromptService.ts",
+        "line": 165,
+        "snippet": "const record = await prisma.aiPrompt.findUnique({"
+      },
+      {
+        "file": "src/services/ai/AiPromptService.ts",
+        "line": 178,
+        "snippet": "const records = await prisma.aiPrompt.findMany({"
+      },
+      {
+        "file": "src/services/ai/AiPromptService.ts",
+        "line": 207,
+        "snippet": "const existing = await prisma.aiPrompt.findUnique({"
+      },
+      {
+        "file": "src/services/ai/AiPromptService.ts",
+        "line": 211,
+        "snippet": "return prisma.aiPrompt.upsert({"
+      },
+      {
+        "file": "src/services/ai/AiPromptService.ts",
+        "line": 234,
+        "snippet": "await prisma.aiPrompt.deleteMany({"
+      }
+    ]
+  },
+  {
+    "model": "apiKey",
+    "count": 4,
+    "locations": [
+      {
+        "file": "app/api/settings/system/api-keys/route.ts",
+        "line": 14,
+        "snippet": "const keys = await prisma.apiKey.findMany({"
+      },
+      {
+        "file": "app/api/settings/system/api-keys/route.ts",
+        "line": 61,
+        "snippet": "const apiKey = await prisma.apiKey.create({"
+      },
+      {
+        "file": "app/api/settings/system/api-keys/[id]/route.ts",
+        "line": 16,
+        "snippet": "const apiKey = await prisma.apiKey.findUnique({"
+      },
+      {
+        "file": "app/api/settings/system/api-keys/[id]/route.ts",
+        "line": 24,
+        "snippet": "await prisma.apiKey.delete({"
+      }
+    ]
+  },
+  {
+    "model": "certificateTemplate",
+    "count": 18,
+    "locations": [
+      {
+        "file": "app/api/certificate-templates/route.ts",
+        "line": 19,
+        "snippet": "const templates = await prisma.certificateTemplate.findMany({"
+      },
+      {
+        "file": "app/api/settings/certificate-templates/route.ts",
+        "line": 10,
+        "snippet": "const templates = await prisma.certificateTemplate.findMany({"
+      },
+      {
+        "file": "app/api/settings/certificate-templates/route.ts",
+        "line": 32,
+        "snippet": "const template = await prisma.certificateTemplate.create({"
+      },
+      {
+        "file": "app/api/settings/certificate-templates/[templateId]/route.ts",
+        "line": 14,
+        "snippet": "const existing = await prisma.certificateTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/settings/certificate-templates/[templateId]/route.ts",
+        "line": 42,
+        "snippet": "const updated = await prisma.certificateTemplate.update({"
+      },
+      {
+        "file": "app/api/settings/certificate-templates/[templateId]/route.ts",
+        "line": 58,
+        "snippet": "const existing = await prisma.certificateTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/settings/certificate-templates/[templateId]/route.ts",
+        "line": 66,
+        "snippet": "await prisma.certificateTemplate.delete({ where: { id: templateId } });"
+      },
+      {
+        "file": "app/api/workpacks/[id]/certificates/pdf-bulk/route.ts",
+        "line": 37,
+        "snippet": "? await prisma.certificateTemplate.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/certificates/route.ts",
+        "line": 26,
+        "snippet": "? await prisma.certificateTemplate.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/certificates/route.ts",
+        "line": 44,
+        "snippet": "const template = await prisma.certificateTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/certificates/route.ts",
+        "line": 66,
+        "snippet": "const templates = await prisma.certificateTemplate.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/certificates/[certId]/pdf/route.ts",
+        "line": 27,
+        "snippet": "prisma.certificateTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/certificates/[certId]/route.ts",
+        "line": 7,
+        "snippet": "const template = await prisma.certificateTemplate.findFirst({"
+      },
+      {
+        "file": "prisma/seed-certificate-templates.ts",
+        "line": 158,
+        "snippet": "const existing = await prisma.certificateTemplate.findFirst({"
+      },
+      {
+        "file": "prisma/seed-certificate-templates.ts",
+        "line": 167,
+        "snippet": "await prisma.certificateTemplate.update({"
+      },
+      {
+        "file": "prisma/seed-certificate-templates.ts",
+        "line": 179,
+        "snippet": "await prisma.certificateTemplate.create({"
+      },
+      {
+        "file": "prisma/seed-certificate-templates.ts",
+        "line": 195,
+        "snippet": "const count = await prisma.certificateTemplate.count({"
+      },
+      {
+        "file": "src/lib/certificates/autoAttach.ts",
+        "line": 8,
+        "snippet": "const templates = await prisma.certificateTemplate.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "cleaningRecord",
+    "count": 7,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/extract-document/[jobId]/accept/route.ts",
+        "line": 38,
+        "snippet": "const existing = await prisma.cleaningRecord.findFirst({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/extract-document/[jobId]/accept/route.ts",
+        "line": 62,
+        "snippet": "await prisma.cleaningRecord.update({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/extract-document/[jobId]/accept/route.ts",
+        "line": 72,
+        "snippet": "await prisma.cleaningRecord.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/summary-counts/route.ts",
+        "line": 78,
+        "snippet": "prisma.cleaningRecord.count({ where: { workpack_id: id } }).catch(() => 0),"
+      },
+      {
+        "file": "src/modules/checklists/services/CleaningService.ts",
+        "line": 16,
+        "snippet": "return prisma.cleaningRecord.findMany({"
+      },
+      {
+        "file": "src/modules/checklists/services/CleaningService.ts",
+        "line": 23,
+        "snippet": "return prisma.cleaningRecord.create({"
+      },
+      {
+        "file": "src/modules/checklists/services/CleaningService.ts",
+        "line": 39,
+        "snippet": "return prisma.cleaningRecord.update({"
+      }
+    ]
+  },
+  {
+    "model": "clearanceForBoxup",
+    "count": 3,
+    "locations": [
+      {
+        "file": "src/modules/certificates/services/JobCompletionService.ts",
+        "line": 27,
+        "snippet": "const clearance = await prisma.clearanceForBoxup.findUnique({ where: { workpack_id: workpackId } });"
+      },
+      {
+        "file": "src/modules/checklists/services/ClearanceService.ts",
+        "line": 5,
+        "snippet": "const clearance = await prisma.clearanceForBoxup.findUnique({ where: { workpack_id: workpackId } });"
+      },
+      {
+        "file": "src/modules/checklists/services/ClearanceService.ts",
+        "line": 27,
+        "snippet": "const clearance = await prisma.clearanceForBoxup.create({"
+      }
+    ]
+  },
+  {
+    "model": "clearanceSignOff",
+    "count": 6,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/clearance-boxup/sign-off/[signOffId]/waiver/route.ts",
+        "line": 45,
+        "snippet": "const existing = await prisma.clearanceSignOff.findFirst({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/clearance-boxup/sign-off/[signOffId]/waiver/route.ts",
+        "line": 59,
+        "snippet": "const updated = await prisma.clearanceSignOff.update({"
+      },
+      {
+        "file": "src/modules/certificates/services/JobCompletionService.ts",
+        "line": 30,
+        "snippet": "pendingSignOffs = await prisma.clearanceSignOff.count({"
+      },
+      {
+        "file": "src/modules/checklists/services/ClearanceService.ts",
+        "line": 7,
+        "snippet": "const sign_offs = await prisma.clearanceSignOff.findMany({"
+      },
+      {
+        "file": "src/modules/checklists/services/ClearanceService.ts",
+        "line": 33,
+        "snippet": "await prisma.clearanceSignOff.createMany({"
+      },
+      {
+        "file": "src/modules/checklists/services/ClearanceService.ts",
+        "line": 56,
+        "snippet": "const signOff = await prisma.clearanceSignOff.update({"
+      }
+    ]
+  },
+  {
+    "model": "constraintAttachment",
+    "count": 1,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/constraints/[constraintId]/attach/route.ts",
+        "line": 32,
+        "snippet": "const attachment = await prisma.constraintAttachment.create({"
+      }
+    ]
+  },
+  {
+    "model": "consumable",
+    "count": 1,
+    "locations": [
+      {
+        "file": "prisma/migrate-consumable-to-item-catalog.ts",
+        "line": 34,
+        "snippet": "const consumables = await prisma.consumable.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "droppingBoxupChecklist",
+    "count": 8,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/extract-document/[jobId]/accept/route.ts",
+        "line": 92,
+        "snippet": "const checklist = await prisma.droppingBoxupChecklist.findFirst({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/summary-counts/route.ts",
+        "line": 77,
+        "snippet": "prisma.droppingBoxupChecklist.count({ where: { workpack_id: id } }).catch(() => 0),"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 9,
+        "snippet": "const checklist = await prisma.droppingBoxupChecklist.findFirst({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 23,
+        "snippet": "const checklist = await prisma.droppingBoxupChecklist.findFirst({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 35,
+        "snippet": "const created = await prisma.droppingBoxupChecklist.create({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 44,
+        "snippet": "const checklist = await prisma.droppingBoxupChecklist.findFirst({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 56,
+        "snippet": "const created = await prisma.droppingBoxupChecklist.create({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 65,
+        "snippet": "const updated = await prisma.droppingBoxupChecklist.update({ where: { id, organization_id: orgId }, data });"
+      }
+    ]
+  },
+  {
+    "model": "droppingBoxupChecklistItem",
+    "count": 8,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/extract-document/[jobId]/accept/route.ts",
+        "line": 107,
+        "snippet": "const count = await prisma.droppingBoxupChecklistItem.count({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/extract-document/[jobId]/accept/route.ts",
+        "line": 111,
+        "snippet": "await prisma.droppingBoxupChecklistItem.create({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 13,
+        "snippet": "const items = await prisma.droppingBoxupChecklistItem.findMany({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 27,
+        "snippet": "const items = await prisma.droppingBoxupChecklistItem.findMany({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 48,
+        "snippet": "const items = await prisma.droppingBoxupChecklistItem.findMany({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 75,
+        "snippet": "const existing = await prisma.droppingBoxupChecklistItem.findMany({ where: { checklist_id: checklistId, organization_id: orgId } });"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 77,
+        "snippet": "await prisma.droppingBoxupChecklistItem.createMany({"
+      },
+      {
+        "file": "src/modules/checklists/services/DroppingBoxupService.ts",
+        "line": 90,
+        "snippet": "return prisma.droppingBoxupChecklistItem.update({"
+      }
+    ]
+  },
+  {
+    "model": "eventPhase",
+    "count": 1,
+    "locations": [
+      {
+        "file": "app/api/events/[eventId]/phases/route.ts",
+        "line": 22,
+        "snippet": "const phase = await prisma.eventPhase.create({"
+      }
+    ]
+  },
+  {
+    "model": "exportHistory",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/export/generate/route.ts",
+        "line": 124,
+        "snippet": "await prisma.exportHistory.create({"
+      },
+      {
+        "file": "app/api/export/history/route.ts",
+        "line": 11,
+        "snippet": "const history = await prisma.exportHistory.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "extractionConflict",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/extraction-conflicts/[conflictId]/route.ts",
+        "line": 24,
+        "snippet": "const conflict = await prisma.extractionConflict.findFirst({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/extraction-conflicts/[conflictId]/route.ts",
+        "line": 37,
+        "snippet": "const updated = await prisma.extractionConflict.update({"
+      }
+    ]
+  },
+  {
+    "model": "gasketBoltLookup",
+    "count": 6,
+    "locations": [
+      {
+        "file": "app/api/master-data/gasket-lookup/route.ts",
+        "line": 16,
+        "snippet": "const row = await prisma.gasketBoltLookup.findFirst({"
+      },
+      {
+        "file": "app/api/master-data/gasket-lookup/route.ts",
+        "line": 61,
+        "snippet": "const rows = await prisma.gasketBoltLookup.findMany({"
+      },
+      {
+        "file": "app/api/master-data/gasket-lookup/route.ts",
+        "line": 98,
+        "snippet": "const row = await prisma.gasketBoltLookup.upsert({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/auto-fill-gaskets/route.ts",
+        "line": 115,
+        "snippet": "const lookup = await prisma.gasketBoltLookup.findFirst({"
+      },
+      {
+        "file": "prisma/seed-gasket-lookup.ts",
+        "line": 94,
+        "snippet": "await prisma.gasketBoltLookup.upsert({"
+      },
+      {
+        "file": "src/lib/materials/materialLineGenerator.ts",
+        "line": 11,
+        "snippet": "const lookup = await prisma.gasketBoltLookup.findFirst({"
+      }
+    ]
+  },
+  {
+    "model": "integrationConfig",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/settings/integrations/route.ts",
+        "line": 13,
+        "snippet": "const integrations = await prisma.integrationConfig.findMany({"
+      },
+      {
+        "file": "app/api/settings/integrations/route.ts",
+        "line": 42,
+        "snippet": "const integration = await prisma.integrationConfig.upsert({"
+      }
+    ]
+  },
+  {
+    "model": "itemCatalog",
+    "count": 23,
+    "locations": [
+      {
+        "file": "app/api/master-data/items/counts/route.ts",
+        "line": 10,
+        "snippet": "const rows = await prisma.itemCatalog.groupBy({"
+      },
+      {
+        "file": "app/api/master-data/items/draft/route.ts",
+        "line": 25,
+        "snippet": "const existing = await prisma.itemCatalog.findFirst({"
+      },
+      {
+        "file": "app/api/master-data/items/draft/route.ts",
+        "line": 45,
+        "snippet": "const item = await prisma.itemCatalog.create({"
+      },
+      {
+        "file": "app/api/master-data/items/import/route.ts",
+        "line": 115,
+        "snippet": "const existing = await prisma.itemCatalog.findFirst({"
+      },
+      {
+        "file": "app/api/master-data/items/import/route.ts",
+        "line": 124,
+        "snippet": "await prisma.itemCatalog.update({"
+      },
+      {
+        "file": "app/api/master-data/items/import/route.ts",
+        "line": 144,
+        "snippet": "await prisma.itemCatalog.create({"
+      },
+      {
+        "file": "app/api/master-data/items/route.ts",
+        "line": 39,
+        "snippet": "prisma.itemCatalog.findMany({"
+      },
+      {
+        "file": "app/api/master-data/items/route.ts",
+        "line": 45,
+        "snippet": "prisma.itemCatalog.count({ where }),"
+      },
+      {
+        "file": "app/api/master-data/items/route.ts",
+        "line": 71,
+        "snippet": "const existing = await prisma.itemCatalog.findFirst({"
+      },
+      {
+        "file": "app/api/master-data/items/route.ts",
+        "line": 86,
+        "snippet": "const item = await prisma.itemCatalog.create({"
+      },
+      {
+        "file": "app/api/master-data/items/[itemId]/route.ts",
+        "line": 17,
+        "snippet": "const existing = await prisma.itemCatalog.findFirst({"
+      },
+      {
+        "file": "app/api/master-data/items/[itemId]/route.ts",
+        "line": 23,
+        "snippet": "const updated = await prisma.itemCatalog.update({"
+      },
+      {
+        "file": "app/api/master-data/items/[itemId]/route.ts",
+        "line": 57,
+        "snippet": "await prisma.itemCatalog.updateMany({"
+      },
+      {
+        "file": "app/api/settings/master-data/consumables/route.ts",
+        "line": 26,
+        "snippet": "const items = await prisma.itemCatalog.findMany({"
+      },
+      {
+        "file": "app/api/settings/master-data/consumables/route.ts",
+        "line": 70,
+        "snippet": "const item = await prisma.itemCatalog.create({"
+      },
+      {
+        "file": "app/api/settings/master-data/consumables/route.ts",
+        "line": 130,
+        "snippet": "const existing = await prisma.itemCatalog.findFirst({"
+      },
+      {
+        "file": "app/api/settings/master-data/consumables/route.ts",
+        "line": 135,
+        "snippet": "const updated = await prisma.itemCatalog.update({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/auto-fill-gaskets/route.ts",
+        "line": 161,
+        "snippet": "const catalog = await prisma.itemCatalog.findUnique({"
+      },
+      {
+        "file": "prisma/migrate-consumable-to-item-catalog.ts",
+        "line": 63,
+        "snippet": "const existing = await prisma.itemCatalog.findUnique({"
+      },
+      {
+        "file": "prisma/migrate-consumable-to-item-catalog.ts",
+        "line": 77,
+        "snippet": "const created = await prisma.itemCatalog.create({"
+      },
+      {
+        "file": "src/modules/Workpack/Services/WorkpackMaterialService.ts",
+        "line": 18,
+        "snippet": "const item = await prisma.itemCatalog.findFirst({"
+      },
+      {
+        "file": "src/services/master-data/ItemMatchingService.ts",
+        "line": 40,
+        "snippet": "const existingItems = await prisma.itemCatalog.findMany({"
+      },
+      {
+        "file": "src/services/master-data/ItemMatchingService.ts",
+        "line": 64,
+        "snippet": "const newItem = await prisma.itemCatalog.create({"
+      }
+    ]
+  },
+  {
+    "model": "itemCatalogImportLog",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/master-data/items/import/log/route.ts",
+        "line": 10,
+        "snippet": "const logs = await prisma.itemCatalogImportLog.findMany({"
+      },
+      {
+        "file": "app/api/master-data/items/import/route.ts",
+        "line": 170,
+        "snippet": "await prisma.itemCatalogImportLog.create({"
+      }
+    ]
+  },
+  {
+    "model": "jobCompletionCertificate",
+    "count": 7,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/certificates/pdf-bulk/route.ts",
+        "line": 29,
+        "snippet": "prisma.jobCompletionCertificate.findUnique({ where: { workpack_id: workpackId } }),"
+      },
+      {
+        "file": "src/modules/certificates/services/JobCompletionService.ts",
+        "line": 46,
+        "snippet": "return prisma.jobCompletionCertificate.findUnique({ where: { workpack_id: workpackId } });"
+      },
+      {
+        "file": "src/modules/certificates/services/JobCompletionService.ts",
+        "line": 61,
+        "snippet": "const cert = await prisma.jobCompletionCertificate.create({"
+      },
+      {
+        "file": "src/modules/certificates/services/JobCompletionService.ts",
+        "line": 92,
+        "snippet": "const cert = await prisma.jobCompletionCertificate.findUnique({ where: { workpack_id: workpackId } });"
+      },
+      {
+        "file": "src/modules/certificates/services/JobCompletionService.ts",
+        "line": 95,
+        "snippet": "const updated = await prisma.jobCompletionCertificate.update({"
+      },
+      {
+        "file": "src/modules/certificates/services/JobCompletionService.ts",
+        "line": 115,
+        "snippet": "const cert = await prisma.jobCompletionCertificate.findUnique({ where: { workpack_id: workpackId } });"
+      },
+      {
+        "file": "src/modules/certificates/services/JobCompletionService.ts",
+        "line": 133,
+        "snippet": "const updated = await prisma.jobCompletionCertificate.update({ where: { id: cert.id }, data: updateData });"
+      }
+    ]
+  },
+  {
+    "model": "jointMaster",
+    "count": 24,
+    "locations": [
+      {
+        "file": "app/(dashboard)/asset-register/[assetId]/page.tsx",
+        "line": 47,
+        "snippet": "const joints = await prisma.jointMaster.findMany({"
+      },
+      {
+        "file": "app/api/joint-masters/route.ts",
+        "line": 23,
+        "snippet": "const joints = await prisma.jointMaster.findMany({"
+      },
+      {
+        "file": "app/api/joint-masters/[jointId]/route.ts",
+        "line": 10,
+        "snippet": "const joint = await prisma.jointMaster.findFirst({"
+      },
+      {
+        "file": "app/api/joint-masters/[jointId]/route.ts",
+        "line": 32,
+        "snippet": "const existing = await prisma.jointMaster.findFirst({"
+      },
+      {
+        "file": "app/api/joint-masters/[jointId]/route.ts",
+        "line": 50,
+        "snippet": "const joint = await prisma.jointMaster.update({"
+      },
+      {
+        "file": "app/api/line-lists/import/route.ts",
+        "line": 70,
+        "snippet": "await prisma.jointMaster.upsert({"
+      },
+      {
+        "file": "app/api/line-lists/route.ts",
+        "line": 82,
+        "snippet": "const existingJoints = await prisma.jointMaster.count({ where: { line_id: line.id } });"
+      },
+      {
+        "file": "app/api/line-lists/route.ts",
+        "line": 87,
+        "snippet": "await prisma.jointMaster.createMany({"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/generate-joints/route.ts",
+        "line": 21,
+        "snippet": "const existingCount = await prisma.jointMaster.count({ where: { line_id: lineId } });"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/generate-joints/route.ts",
+        "line": 24,
+        "snippet": "await prisma.jointMaster.createMany({"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/route.ts",
+        "line": 80,
+        "snippet": "const existingJoints = await prisma.jointMaster.count({ where: { line_id: lineId } });"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/route.ts",
+        "line": 85,
+        "snippet": "await prisma.jointMaster.createMany({"
+      },
+      {
+        "file": "app/api/workpacks/route.ts",
+        "line": 111,
+        "snippet": "const masters = await prisma.jointMaster.findMany({"
+      },
+      {
+        "file": "check-final-db.js",
+        "line": 50,
+        "snippet": "const joints = await prisma.jointMaster.count({ where: { organization_id: orgId } });"
+      },
+      {
+        "file": "check-final-db.js",
+        "line": 53,
+        "snippet": "const totalJoints = await prisma.jointMaster.count();"
+      },
+      {
+        "file": "cleanup-test-data.js",
+        "line": 16,
+        "snippet": "await prisma.jointMaster.deleteMany({ where: { joint_number: { in: ['J-E101-N1', 'J-L1001-01'] } } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.js",
+        "line": 131,
+        "snippet": "let jointMaster = await prisma.jointMaster.findFirst({ where: { organization_id: org.id, joint_number: jointNozzleNum } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.js",
+        "line": 133,
+        "snippet": "jointMaster = await prisma.jointMaster.create({"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.js",
+        "line": 166,
+        "snippet": "let lineJoint = await prisma.jointMaster.findFirst({ where: { organization_id: org.id, joint_number: jointLineNum } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.js",
+        "line": 168,
+        "snippet": "lineJoint = await prisma.jointMaster.create({"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.ts",
+        "line": 120,
+        "snippet": "let jointMaster = await prisma.jointMaster.findFirst({ where: { organization_id: org.id, joint_number: jointNozzleNum } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.ts",
+        "line": 122,
+        "snippet": "jointMaster = await prisma.jointMaster.create({"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.ts",
+        "line": 151,
+        "snippet": "let lineJoint = await prisma.jointMaster.findFirst({ where: { organization_id: org.id, joint_number: jointLineNum } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.ts",
+        "line": 153,
+        "snippet": "lineJoint = await prisma.jointMaster.create({"
+      }
+    ]
+  },
+  {
+    "model": "lessonsLearnt",
+    "count": 3,
+    "locations": [
+      {
+        "file": "src/modules/lessons-learnt/services/LessonsLearntService.ts",
+        "line": 5,
+        "snippet": "return prisma.lessonsLearnt.findMany({"
+      },
+      {
+        "file": "src/modules/lessons-learnt/services/LessonsLearntService.ts",
+        "line": 12,
+        "snippet": "return prisma.lessonsLearnt.create({"
+      },
+      {
+        "file": "src/modules/lessons-learnt/services/LessonsLearntService.ts",
+        "line": 22,
+        "snippet": "return prisma.lessonsLearnt.delete({"
+      }
+    ]
+  },
+  {
+    "model": "lineList",
+    "count": 18,
+    "locations": [
+      {
+        "file": "app/(dashboard)/asset-register/[assetId]/page.tsx",
+        "line": 33,
+        "snippet": "const lines = await prisma.lineList.findMany({"
+      },
+      {
+        "file": "app/api/asset-register/extract-pid/[jobId]/accept/route.ts",
+        "line": 92,
+        "snippet": "const existing = await prisma.lineList.findUnique({"
+      },
+      {
+        "file": "app/api/asset-register/extract-pid/[jobId]/accept/route.ts",
+        "line": 100,
+        "snippet": "await prisma.lineList.create({"
+      },
+      {
+        "file": "app/api/hierarchy/asset/[assetId]/scope/route.ts",
+        "line": 26,
+        "snippet": "prisma.lineList.findMany({"
+      },
+      {
+        "file": "app/api/line-lists/import/route.ts",
+        "line": 35,
+        "snippet": "await prisma.lineList.upsert({"
+      },
+      {
+        "file": "app/api/line-lists/route.ts",
+        "line": 18,
+        "snippet": "const lines = await prisma.lineList.findMany({"
+      },
+      {
+        "file": "app/api/line-lists/route.ts",
+        "line": 45,
+        "snippet": "const existingLine = await prisma.lineList.findUnique({"
+      },
+      {
+        "file": "app/api/line-lists/route.ts",
+        "line": 50,
+        "snippet": "const line = await prisma.lineList.create({"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/generate-joints/route.ts",
+        "line": 13,
+        "snippet": "const line = await prisma.lineList.findFirst({"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/generate-joints/route.ts",
+        "line": 36,
+        "snippet": "await prisma.lineList.update({ where: { id: lineId }, data: { total_joint_count: totalJointCount } });"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/route.ts",
+        "line": 13,
+        "snippet": "const line = await prisma.lineList.findFirst({"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/route.ts",
+        "line": 36,
+        "snippet": "const existing = await prisma.lineList.findFirst({"
+      },
+      {
+        "file": "app/api/line-lists/[lineId]/route.ts",
+        "line": 69,
+        "snippet": "const line = await prisma.lineList.update({"
+      },
+      {
+        "file": "cleanup-test-data.js",
+        "line": 18,
+        "snippet": "await prisma.lineList.deleteMany({ where: { line_number: '8-OIL-1001-A1' } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.js",
+        "line": 150,
+        "snippet": "let line = await prisma.lineList.findFirst({ where: { organization_id: org.id, line_number: lineNum } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.js",
+        "line": 152,
+        "snippet": "line = await prisma.lineList.create({"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.ts",
+        "line": 137,
+        "snippet": "let line = await prisma.lineList.findFirst({ where: { organization_id: org.id, line_number: lineNum } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.ts",
+        "line": 139,
+        "snippet": "line = await prisma.lineList.create({"
+      }
+    ]
+  },
+  {
+    "model": "model",
+    "count": 2,
+    "locations": [
+      {
+        "file": "src/lib/audit.ts",
+        "line": 21,
+        "snippet": "*   const oldValues = await prisma.model.findUnique({ where: { id } })"
+      },
+      {
+        "file": "src/lib/audit.ts",
+        "line": 22,
+        "snippet": "*   const updated = await prisma.model.update({ where: { id }, data })"
+      }
+    ]
+  },
+  {
+    "model": "nozzle",
+    "count": 12,
+    "locations": [
+      {
+        "file": "app/api/assets/[assetId]/nozzles/route.ts",
+        "line": 18,
+        "snippet": "const nozzles = await prisma.nozzle.findMany({"
+      },
+      {
+        "file": "app/api/assets/[assetId]/nozzles/route.ts",
+        "line": 41,
+        "snippet": "const nozzle = await prisma.nozzle.create({"
+      },
+      {
+        "file": "app/api/assets/[assetId]/nozzles/[nozzleId]/route.ts",
+        "line": 14,
+        "snippet": "const nozzle = await prisma.nozzle.findFirst({"
+      },
+      {
+        "file": "app/api/assets/[assetId]/nozzles/[nozzleId]/route.ts",
+        "line": 38,
+        "snippet": "const updated = await prisma.nozzle.update({"
+      },
+      {
+        "file": "app/api/assets/[assetId]/nozzles/[nozzleId]/route.ts",
+        "line": 54,
+        "snippet": "const nozzle = await prisma.nozzle.findFirst({"
+      },
+      {
+        "file": "app/api/assets/[assetId]/nozzles/[nozzleId]/route.ts",
+        "line": 60,
+        "snippet": "await prisma.nozzle.update({"
+      },
+      {
+        "file": "app/api/hierarchy/asset/[assetId]/scope/route.ts",
+        "line": 21,
+        "snippet": "prisma.nozzle.findMany({"
+      },
+      {
+        "file": "cleanup-test-data.js",
+        "line": 17,
+        "snippet": "await prisma.nozzle.deleteMany({ where: { designation: 'N1' } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.js",
+        "line": 115,
+        "snippet": "let nozzle = await prisma.nozzle.findFirst({ where: { asset_id: asset.id, designation: nozzleName } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.js",
+        "line": 117,
+        "snippet": "nozzle = await prisma.nozzle.create({"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.ts",
+        "line": 106,
+        "snippet": "let nozzle = await prisma.nozzle.findFirst({ where: { asset_id: asset.id, designation: nozzleName } });"
+      },
+      {
+        "file": "prisma/seed-hierarchy-test.ts",
+        "line": 108,
+        "snippet": "nozzle = await prisma.nozzle.create({"
+      }
+    ]
+  },
+  {
+    "model": "onboardingRequest",
+    "count": 7,
+    "locations": [
+      {
+        "file": "app/api/admin/onboarding/route.ts",
+        "line": 14,
+        "snippet": "const requests = await prisma.onboardingRequest.findMany({"
+      },
+      {
+        "file": "app/api/admin/onboarding/route.ts",
+        "line": 36,
+        "snippet": "const onboardingRequest = await prisma.onboardingRequest.findUnique({"
+      },
+      {
+        "file": "app/api/admin/onboarding/route.ts",
+        "line": 75,
+        "snippet": "await prisma.onboardingRequest.update({"
+      },
+      {
+        "file": "app/api/admin/onboarding/route.ts",
+        "line": 100,
+        "snippet": "await prisma.onboardingRequest.update({"
+      },
+      {
+        "file": "app/api/onboarding/request/route.ts",
+        "line": 31,
+        "snippet": "const existingRequest = await prisma.onboardingRequest.findFirst({"
+      },
+      {
+        "file": "app/api/onboarding/request/route.ts",
+        "line": 46,
+        "snippet": "const onboardingRequest = await prisma.onboardingRequest.create({"
+      },
+      {
+        "file": "app/platform/onboarding/page.tsx",
+        "line": 11,
+        "snippet": "const requests = await prisma.onboardingRequest.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "orgClearanceParty",
+    "count": 5,
+    "locations": [
+      {
+        "file": "app/api/admin/clearance-parties/route.ts",
+        "line": 9,
+        "snippet": "const parties = await prisma.orgClearanceParty.findMany({"
+      },
+      {
+        "file": "app/api/admin/clearance-parties/route.ts",
+        "line": 20,
+        "snippet": "const party = await prisma.orgClearanceParty.create({"
+      },
+      {
+        "file": "app/api/admin/clearance-parties/[id]/route.ts",
+        "line": 11,
+        "snippet": "const party = await prisma.orgClearanceParty.update({"
+      },
+      {
+        "file": "app/api/admin/clearance-parties/[id]/route.ts",
+        "line": 22,
+        "snippet": "await prisma.orgClearanceParty.delete({"
+      },
+      {
+        "file": "src/modules/checklists/services/ClearanceService.ts",
+        "line": 21,
+        "snippet": "const parties = await prisma.orgClearanceParty.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "pidExtractionJob",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/asset-register/extract-pid/route.ts",
+        "line": 20,
+        "snippet": "const job = await prisma.pidExtractionJob.create({"
+      },
+      {
+        "file": "app/api/asset-register/extract-pid/route.ts",
+        "line": 60,
+        "snippet": "const updatedJob = await prisma.pidExtractionJob.update({"
+      }
+    ]
+  },
+  {
+    "model": "projectConstraint",
+    "count": 3,
+    "locations": [
+      {
+        "file": "app/api/projects/[id]/ai-assistant/route.ts",
+        "line": 49,
+        "snippet": "prisma.projectConstraint.count({"
+      },
+      {
+        "file": "app/api/projects/[id]/constraints/route.ts",
+        "line": 18,
+        "snippet": "const list = await prisma.projectConstraint.findMany({"
+      },
+      {
+        "file": "app/api/projects/[id]/reports/daily/route.ts",
+        "line": 44,
+        "snippet": "prisma.projectConstraint.count({"
+      }
+    ]
+  },
+  {
+    "model": "punchItem",
+    "count": 6,
+    "locations": [
+      {
+        "file": "app/api/projects/[id]/ai-assistant/route.ts",
+        "line": 52,
+        "snippet": "prisma.punchItem.groupBy({"
+      },
+      {
+        "file": "app/api/projects/[id]/punch/route.ts",
+        "line": 19,
+        "snippet": "prisma.punchItem.groupBy({"
+      },
+      {
+        "file": "app/api/projects/[id]/punch/route.ts",
+        "line": 24,
+        "snippet": "prisma.punchItem.groupBy({"
+      },
+      {
+        "file": "app/api/projects/[id]/punch/route.ts",
+        "line": 29,
+        "snippet": "prisma.punchItem.findMany({"
+      },
+      {
+        "file": "app/api/projects/[id]/reports/daily/route.ts",
+        "line": 47,
+        "snippet": "prisma.punchItem.count({"
+      },
+      {
+        "file": "src/lib/tenantGuard.ts",
+        "line": 47,
+        "snippet": "found = !!(await prisma.punchItem.findFirst({"
+      }
+    ]
+  },
+  {
+    "model": "qaClearanceRecord",
+    "count": 7,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/hold-points/[activityId]/route.ts",
+        "line": 35,
+        "snippet": "const clearance = await prisma.qaClearanceRecord.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/summary-counts/route.ts",
+        "line": 82,
+        "snippet": "prisma.qaClearanceRecord.count({ where: { workpack_id: id } }).catch(() => 0),"
+      },
+      {
+        "file": "src/modules/certificates/services/CertificateService.ts",
+        "line": 43,
+        "snippet": "? await prisma.qaClearanceRecord.findMany({ where: { activity_id: { in: activityIds } } })"
+      },
+      {
+        "file": "src/modules/QA/Services/QaClearanceService.ts",
+        "line": 17,
+        "snippet": "const created = await prisma.qaClearanceRecord.create({"
+      },
+      {
+        "file": "src/modules/QA/Services/QaClearanceService.ts",
+        "line": 44,
+        "snippet": "return prisma.qaClearanceRecord.findMany({"
+      },
+      {
+        "file": "src/modules/QA/Services/QaClearanceService.ts",
+        "line": 54,
+        "snippet": "return prisma.qaClearanceRecord.findMany({"
+      },
+      {
+        "file": "src/modules/QA/Services/QaClearanceService.ts",
+        "line": 72,
+        "snippet": "const deleted = await prisma.qaClearanceRecord.delete({"
+      }
+    ]
+  },
+  {
+    "model": "reportTemplate",
+    "count": 5,
+    "locations": [
+      {
+        "file": "app/api/reporting/deliveries/route.ts",
+        "line": 39,
+        "snippet": "const template = await prisma.reportTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/reporting/templates/route.ts",
+        "line": 14,
+        "snippet": "const templateList = await prisma.reportTemplate.findMany({"
+      },
+      {
+        "file": "app/api/reporting/templates/route.ts",
+        "line": 39,
+        "snippet": "const template = await prisma.reportTemplate.create({"
+      },
+      {
+        "file": "app/api/reporting/templates/[id]/route.ts",
+        "line": 18,
+        "snippet": "const template = await prisma.reportTemplate.updateMany({"
+      },
+      {
+        "file": "app/api/reporting/templates/[id]/route.ts",
+        "line": 38,
+        "snippet": "const result = await prisma.reportTemplate.updateMany({"
+      }
+    ]
+  },
+  {
+    "model": "scheduledDelivery",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/reporting/deliveries/route.ts",
+        "line": 15,
+        "snippet": "const deliveries = await prisma.scheduledDelivery.findMany({"
+      },
+      {
+        "file": "app/api/reporting/deliveries/route.ts",
+        "line": 46,
+        "snippet": "const delivery = await prisma.scheduledDelivery.create({"
+      }
+    ]
+  },
+  {
+    "model": "scheduleImportBatch",
+    "count": 3,
+    "locations": [
+      {
+        "file": "app/api/projects/[id]/import/[batchId]/route.ts",
+        "line": 18,
+        "snippet": "batch = await prisma.scheduleImportBatch.findFirst({"
+      },
+      {
+        "file": "app/api/projects/[id]/import/[batchId]/route.ts",
+        "line": 23,
+        "snippet": "batch = await prisma.scheduleImportBatch.findFirst({"
+      },
+      {
+        "file": "app/api/projects/[id]/imported-schedule/route.ts",
+        "line": 55,
+        "snippet": "const batches = await prisma.scheduleImportBatch.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "shiftReport",
+    "count": 1,
+    "locations": [
+      {
+        "file": "app/api/shift-reports/route.ts",
+        "line": 30,
+        "snippet": "const data = await prisma.shiftReport.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "ssoConfig",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/settings/sso/route.ts",
+        "line": 13,
+        "snippet": "const ssoConfig = await prisma.ssoConfig.findUnique({"
+      },
+      {
+        "file": "app/api/settings/sso/route.ts",
+        "line": 34,
+        "snippet": "const ssoConfig = await prisma.ssoConfig.upsert({"
+      }
+    ]
+  },
+  {
+    "model": "systemBlind",
+    "count": 9,
+    "locations": [
+      {
+        "file": "app/(dashboard)/planning/units/[unitId]/page.tsx",
+        "line": 58,
+        "snippet": "? prisma.systemBlind.count({"
+      },
+      {
+        "file": "app/api/exports/route.ts",
+        "line": 80,
+        "snippet": "const data = await prisma.systemBlind.findMany({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/blinds/route.ts",
+        "line": 34,
+        "snippet": "const blinds = await prisma.systemBlind.findMany({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/blinds/route.ts",
+        "line": 72,
+        "snippet": "const blind = await prisma.systemBlind.create({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/blinds/[blindId]/route.ts",
+        "line": 30,
+        "snippet": "const blind = await prisma.systemBlind.findFirst({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/blinds/[blindId]/route.ts",
+        "line": 53,
+        "snippet": "const updated = await prisma.systemBlind.update({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/blinds/[blindId]/route.ts",
+        "line": 71,
+        "snippet": "const blind = await prisma.systemBlind.findFirst({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/blinds/[blindId]/route.ts",
+        "line": 76,
+        "snippet": "await prisma.systemBlind.delete({ where: { id: blindId } });"
+      },
+      {
+        "file": "app/api/units/[unitId]/route.ts",
+        "line": 44,
+        "snippet": "prisma.systemBlind.count({"
+      }
+    ]
+  },
+  {
+    "model": "systemDrawing",
+    "count": 7,
+    "locations": [
+      {
+        "file": "app/(dashboard)/asset-register/[assetId]/page.tsx",
+        "line": 62,
+        "snippet": "drawings = await prisma.systemDrawing.findMany({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/drawings/route.ts",
+        "line": 26,
+        "snippet": "const drawings = await prisma.systemDrawing.findMany({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/drawings/route.ts",
+        "line": 49,
+        "snippet": "const drawing = await prisma.systemDrawing.create({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/drawings/[drawingId]/route.ts",
+        "line": 31,
+        "snippet": "const drawing = await prisma.systemDrawing.findFirst({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/drawings/[drawingId]/route.ts",
+        "line": 56,
+        "snippet": "const updated = await prisma.systemDrawing.update({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/drawings/[drawingId]/route.ts",
+        "line": 78,
+        "snippet": "const drawing = await prisma.systemDrawing.findFirst({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/drawings/[drawingId]/route.ts",
+        "line": 84,
+        "snippet": "await prisma.systemDrawing.delete({ where: { id: drawingId } });"
+      }
+    ]
+  },
+  {
+    "model": "systemGasket",
+    "count": 6,
+    "locations": [
+      {
+        "file": "app/api/systems/[systemId]/gaskets/route.ts",
+        "line": 35,
+        "snippet": "const gaskets = await prisma.systemGasket.findMany({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/gaskets/route.ts",
+        "line": 70,
+        "snippet": "const gasket = await prisma.systemGasket.create({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/gaskets/[gasketId]/route.ts",
+        "line": 34,
+        "snippet": "const gasket = await prisma.systemGasket.findFirst({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/gaskets/[gasketId]/route.ts",
+        "line": 62,
+        "snippet": "const updated = await prisma.systemGasket.update({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/gaskets/[gasketId]/route.ts",
+        "line": 84,
+        "snippet": "const gasket = await prisma.systemGasket.findFirst({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/gaskets/[gasketId]/route.ts",
+        "line": 90,
+        "snippet": "await prisma.systemGasket.delete({ where: { id: gasketId } });"
+      }
+    ]
+  },
+  {
+    "model": "systemJoint",
+    "count": 1,
+    "locations": [
+      {
+        "file": "app/api/exports/route.ts",
+        "line": 55,
+        "snippet": "const data = await prisma.systemJoint.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "systemProcedure",
+    "count": 7,
+    "locations": [
+      {
+        "file": "app/(dashboard)/asset-register/[assetId]/page.tsx",
+        "line": 65,
+        "snippet": "procedures = await prisma.systemProcedure.findMany({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/procedures/route.ts",
+        "line": 29,
+        "snippet": "const procedures = await prisma.systemProcedure.findMany({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/procedures/route.ts",
+        "line": 55,
+        "snippet": "const procedure = await prisma.systemProcedure.create({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/procedures/[procedureId]/route.ts",
+        "line": 31,
+        "snippet": "const procedure = await prisma.systemProcedure.findFirst({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/procedures/[procedureId]/route.ts",
+        "line": 56,
+        "snippet": "const updated = await prisma.systemProcedure.update({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/procedures/[procedureId]/route.ts",
+        "line": 78,
+        "snippet": "const procedure = await prisma.systemProcedure.findFirst({"
+      },
+      {
+        "file": "app/api/systems/[systemId]/procedures/[procedureId]/route.ts",
+        "line": 84,
+        "snippet": "await prisma.systemProcedure.delete({ where: { id: procedureId } });"
+      }
+    ]
+  },
+  {
+    "model": "unitResponsibility",
+    "count": 8,
+    "locations": [
+      {
+        "file": "app/api/units/[unitId]/responsibilities/route.ts",
+        "line": 18,
+        "snippet": "const list = await prisma.unitResponsibility.findMany({"
+      },
+      {
+        "file": "app/api/units/[unitId]/responsibilities/route.ts",
+        "line": 48,
+        "snippet": "const existing = await prisma.unitResponsibility.findUnique({"
+      },
+      {
+        "file": "app/api/units/[unitId]/responsibilities/route.ts",
+        "line": 53,
+        "snippet": "const updated = await prisma.unitResponsibility.update({"
+      },
+      {
+        "file": "app/api/units/[unitId]/responsibilities/route.ts",
+        "line": 68,
+        "snippet": "const resp = await prisma.unitResponsibility.create({"
+      },
+      {
+        "file": "app/api/units/[unitId]/responsibilities/[respId]/route.ts",
+        "line": 13,
+        "snippet": "const resp = await prisma.unitResponsibility.findFirst({"
+      },
+      {
+        "file": "app/api/units/[unitId]/responsibilities/[respId]/route.ts",
+        "line": 26,
+        "snippet": "const updated = await prisma.unitResponsibility.update({"
+      },
+      {
+        "file": "app/api/units/[unitId]/responsibilities/[respId]/route.ts",
+        "line": 42,
+        "snippet": "const resp = await prisma.unitResponsibility.findFirst({"
+      },
+      {
+        "file": "app/api/units/[unitId]/responsibilities/[respId]/route.ts",
+        "line": 47,
+        "snippet": "await prisma.unitResponsibility.update({"
+      }
+    ]
+  },
+  {
+    "model": "webhookConfig",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/settings/system/webhooks/route.ts",
+        "line": 13,
+        "snippet": "const config = await prisma.webhookConfig.findUnique({"
+      },
+      {
+        "file": "app/api/settings/system/webhooks/route.ts",
+        "line": 50,
+        "snippet": "const config = await prisma.webhookConfig.upsert({"
+      }
+    ]
+  },
+  {
+    "model": "webhookLog",
+    "count": 1,
+    "locations": [
+      {
+        "file": "app/api/settings/system/webhooks/logs/route.ts",
+        "line": 12,
+        "snippet": "const logs = await prisma.webhookLog.findMany({"
+      }
+    ]
+  },
+  {
+    "model": "whatsappSession",
+    "count": 4,
+    "locations": [
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 83,
+        "snippet": "const session = await prisma.whatsappSession.findFirst({"
+      },
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 344,
+        "snippet": "await prisma.whatsappSession.upsert({"
+      },
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 440,
+        "snippet": "await prisma.whatsappSession.update({"
+      },
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 464,
+        "snippet": "await prisma.whatsappSession.update({"
+      }
+    ]
+  },
+  {
+    "model": "whatsappUpdate",
+    "count": 18,
+    "locations": [
+      {
+        "file": "app/api/nav/counts/route.ts",
+        "line": 32,
+        "snippet": "prisma.whatsappUpdate"
+      },
+      {
+        "file": "app/api/whatsapp/audio/[updateId]/route.ts",
+        "line": 16,
+        "snippet": "const update = await prisma.whatsappUpdate.findFirst({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/count/route.ts",
+        "line": 10,
+        "snippet": "const pending = await prisma.whatsappUpdate.count({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/route.ts",
+        "line": 22,
+        "snippet": "prisma.whatsappUpdate.findMany({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/route.ts",
+        "line": 48,
+        "snippet": "prisma.whatsappUpdate.count({ where }),"
+      },
+      {
+        "file": "app/api/whatsapp/updates/route.ts",
+        "line": 49,
+        "snippet": "prisma.whatsappUpdate.count({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/route.ts",
+        "line": 52,
+        "snippet": "prisma.whatsappUpdate.count({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/[updateId]/approve/route.ts",
+        "line": 20,
+        "snippet": "const update = await prisma.whatsappUpdate.findFirst({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/[updateId]/approve/route.ts",
+        "line": 90,
+        "snippet": "const updated = await prisma.whatsappUpdate.update({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/[updateId]/reject/route.ts",
+        "line": 32,
+        "snippet": "const update = await prisma.whatsappUpdate.findFirst({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/[updateId]/reject/route.ts",
+        "line": 50,
+        "snippet": "const updated = await prisma.whatsappUpdate.update({"
+      },
+      {
+        "file": "app/api/whatsapp/updates/[updateId]/route.ts",
+        "line": 14,
+        "snippet": "const update = await prisma.whatsappUpdate.findFirst({"
+      },
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 50,
+        "snippet": "const existing = await prisma.whatsappUpdate.findFirst({"
+      },
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 68,
+        "snippet": "await prisma.whatsappUpdate.create({"
+      },
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 136,
+        "snippet": "await prisma.whatsappUpdate.create({"
+      },
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 271,
+        "snippet": "await prisma.whatsappUpdate.create({"
+      },
+      {
+        "file": "src/services/whatsapp/MessageProcessor.ts",
+        "line": 408,
+        "snippet": "await prisma.whatsappUpdate.create({"
+      },
+      {
+        "file": "src/services/whatsapp/ShiftReportGenerator.ts",
+        "line": 235,
+        "snippet": "prisma.whatsappUpdate.count({"
+      }
+    ]
+  },
+  {
+    "model": "Workpack",
+    "count": 1,
+    "locations": [
+      {
+        "file": "test-prisma.js",
+        "line": 10,
+        "snippet": "const wpCount = await prisma.Workpack.count();"
+      }
+    ]
+  },
+  {
+    "model": "workpackIdCounter",
+    "count": 2,
+    "locations": [
+      {
+        "file": "prisma/backfill-workpack-ids.ts",
+        "line": 40,
+        "snippet": "const counter = await prisma.workpackIdCounter.upsert({"
+      },
+      {
+        "file": "src/lib/workpackId.ts",
+        "line": 105,
+        "snippet": "const counter = await prisma.workpackIdCounter.findFirst({"
+      }
+    ]
+  },
+  {
+    "model": "workpackMaterialLine",
+    "count": 29,
+    "locations": [
+      {
+        "file": "app/api/events/[eventId]/materials/route.ts",
+        "line": 60,
+        "snippet": "const lines = await prisma.workpackMaterialLine.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/ai-generate/route.ts",
+        "line": 182,
+        "snippet": "await prisma.workpackMaterialLine.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/electrical-requirements/route.ts",
+        "line": 69,
+        "snippet": "const lines = await prisma.workpackMaterialLine.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/auto-fill-gaskets/route.ts",
+        "line": 58,
+        "snippet": "const existingLines = await prisma.workpackMaterialLine.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/auto-fill-gaskets/route.ts",
+        "line": 172,
+        "snippet": "const line = await prisma.workpackMaterialLine.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/bulk/route.ts",
+        "line": 28,
+        "snippet": "const count = await prisma.workpackMaterialLine.updateMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/bulk/route.ts",
+        "line": 41,
+        "snippet": "const count = await prisma.workpackMaterialLine.updateMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/bulk/route.ts",
+        "line": 73,
+        "snippet": "const validLines = await prisma.workpackMaterialLine.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/bulk/route.ts",
+        "line": 92,
+        "snippet": "await prisma.workpackMaterialLine.updateMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/bulk-create/route.ts",
+        "line": 53,
+        "snippet": "const line = await prisma.workpackMaterialLine.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/export/route.ts",
+        "line": 31,
+        "snippet": "const lines = await prisma.workpackMaterialLine.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/generate-with-ai/route.ts",
+        "line": 250,
+        "snippet": "await prisma.workpackMaterialLine.deleteMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/generate-with-ai/route.ts",
+        "line": 257,
+        "snippet": "await prisma.workpackMaterialLine.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/route.ts",
+        "line": 32,
+        "snippet": "const lines = await prisma.workpackMaterialLine.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/route.ts",
+        "line": 182,
+        "snippet": "const line = await prisma.workpackMaterialLine.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/[lineId]/route.ts",
+        "line": 53,
+        "snippet": "const count = await prisma.workpackMaterialLine.updateMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/materials/[lineId]/route.ts",
+        "line": 77,
+        "snippet": "const count = await prisma.workpackMaterialLine.updateMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/sap-sync/bom-export/route.ts",
+        "line": 36,
+        "snippet": "const lines = await prisma.workpackMaterialLine.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/summary-counts/route.ts",
+        "line": 72,
+        "snippet": "prisma.workpackMaterialLine.count({ where: { workpack_id: id, deleted_at: null, ai_generated: true } }).catch(() => 0),"
+      },
+      {
+        "file": "app/api/workpacks/[id]/summary-counts/route.ts",
+        "line": 76,
+        "snippet": "prisma.workpackMaterialLine.count({ where: { workpack_id: id, deleted_at: null } }).catch(() => 0),"
+      },
+      {
+        "file": "scripts/perf-dashboard.js",
+        "line": 73,
+        "snippet": "prisma.workpackMaterialLine.count({"
+      },
+      {
+        "file": "scripts/verify-fix.js",
+        "line": 27,
+        "snippet": "const mCount = await prisma.workpackMaterialLine.count({"
+      },
+      {
+        "file": "src/lib/ai/workpackAutoFill.ts",
+        "line": 83,
+        "snippet": "const existing = await prisma.workpackMaterialLine.count({"
+      },
+      {
+        "file": "src/lib/ai/workpackAutoFill.ts",
+        "line": 133,
+        "snippet": "await prisma.workpackMaterialLine.create({"
+      },
+      {
+        "file": "src/lib/materials/materialLineGenerator.ts",
+        "line": 21,
+        "snippet": "await prisma.workpackMaterialLine.updateMany({"
+      },
+      {
+        "file": "src/lib/materials/materialLineGenerator.ts",
+        "line": 32,
+        "snippet": "await prisma.workpackMaterialLine.create({"
+      },
+      {
+        "file": "src/lib/materials/materialLineGenerator.ts",
+        "line": 97,
+        "snippet": "await prisma.workpackMaterialLine.createMany({"
+      },
+      {
+        "file": "src/lib/materials/materialLineGenerator.ts",
+        "line": 116,
+        "snippet": "await prisma.workpackMaterialLine.updateMany({"
+      },
+      {
+        "file": "src/lib/materials/materialLineGenerator.ts",
+        "line": 131,
+        "snippet": "await prisma.workpackMaterialLine.create({"
+      }
+    ]
+  },
+  {
+    "model": "workpackPrintSettings",
+    "count": 8,
+    "locations": [
+      {
+        "file": "app/api/settings/print-settings/route.ts",
+        "line": 16,
+        "snippet": "const settings = await prisma.workpackPrintSettings.findUnique({"
+      },
+      {
+        "file": "app/api/settings/print-settings/route.ts",
+        "line": 145,
+        "snippet": "const updated = await prisma.workpackPrintSettings.upsert({"
+      },
+      {
+        "file": "app/api/settings/print-settings/upload-cover/route.ts",
+        "line": 36,
+        "snippet": "await prisma.workpackPrintSettings.upsert({"
+      },
+      {
+        "file": "app/api/settings/print-settings/upload-logo/route.ts",
+        "line": 51,
+        "snippet": "const settings = await prisma.workpackPrintSettings.findUnique({ where: { organization_id: orgId } });"
+      },
+      {
+        "file": "app/api/settings/print-settings/upload-logo/route.ts",
+        "line": 54,
+        "snippet": "await prisma.workpackPrintSettings.upsert({"
+      },
+      {
+        "file": "app/platform-data/print-settings/page.tsx",
+        "line": 13,
+        "snippet": "let settings: Awaited<ReturnType<typeof prisma.workpackPrintSettings.findUnique>> = null;"
+      },
+      {
+        "file": "app/platform-data/print-settings/page.tsx",
+        "line": 18,
+        "snippet": "prisma.workpackPrintSettings.findUnique({ where: { organization_id: orgId } }),"
+      },
+      {
+        "file": "src/modules/Workpack/Services/PdfService.ts",
+        "line": 1052,
+        "snippet": "const printSettings = await prisma.workpackPrintSettings.findUnique({"
+      }
+    ]
+  },
+  {
+    "model": "workpackTemplate",
+    "count": 16,
+    "locations": [
+      {
+        "file": "app/api/settings/templates/route.ts",
+        "line": 24,
+        "snippet": "const templates = await prisma.workpackTemplate.findMany({"
+      },
+      {
+        "file": "app/api/settings/templates/route.ts",
+        "line": 67,
+        "snippet": "const template = await prisma.workpackTemplate.create({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/copy/route.ts",
+        "line": 33,
+        "snippet": "const source = await prisma.workpackTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/copy/route.ts",
+        "line": 50,
+        "snippet": "const template = await prisma.workpackTemplate.create({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/route.ts",
+        "line": 20,
+        "snippet": "const template = await prisma.workpackTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/route.ts",
+        "line": 61,
+        "snippet": "const existing = await prisma.workpackTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/route.ts",
+        "line": 141,
+        "snippet": "const template = await prisma.workpackTemplate.findUnique({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/route.ts",
+        "line": 165,
+        "snippet": "const existing = await prisma.workpackTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/route.ts",
+        "line": 175,
+        "snippet": "await prisma.workpackTemplate.update({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/toggle-active/route.ts",
+        "line": 23,
+        "snippet": "const existing = await prisma.workpackTemplate.findFirst({"
+      },
+      {
+        "file": "app/api/settings/templates/[id]/toggle-active/route.ts",
+        "line": 33,
+        "snippet": "const updated = await prisma.workpackTemplate.update({"
+      },
+      {
+        "file": "app/platform-data/templates/page.tsx",
+        "line": 15,
+        "snippet": "prisma.workpackTemplate.findMany({"
+      },
+      {
+        "file": "src/core/master-data/services/WorkpackTemplateService.ts",
+        "line": 9,
+        "snippet": "return prisma.workpackTemplate.findMany({"
+      },
+      {
+        "file": "src/core/master-data/services/WorkpackTemplateService.ts",
+        "line": 23,
+        "snippet": "return prisma.workpackTemplate.findFirst({"
+      },
+      {
+        "file": "src/core/master-data/services/WorkpackTemplateService.ts",
+        "line": 46,
+        "snippet": "const created = await prisma.workpackTemplate.create({"
+      },
+      {
+        "file": "src/core/master-data/services/WorkpackTemplateService.ts",
+        "line": 68,
+        "snippet": "const updated = await prisma.workpackTemplate.update({"
+      }
+    ]
+  },
+  {
+    "model": "workpackTemplateActivity",
+    "count": 2,
+    "locations": [
+      {
+        "file": "app/api/admin/templates/[id]/route.ts",
+        "line": 40,
+        "snippet": "const lastSeq = await prisma.workpackTemplateActivity.aggregate({"
+      },
+      {
+        "file": "app/api/admin/templates/[id]/route.ts",
+        "line": 46,
+        "snippet": "const activity = await prisma.workpackTemplateActivity.create({"
+      }
+    ]
+  },
+  {
+    "model": "workpackTool",
+    "count": 13,
+    "locations": [
+      {
+        "file": "app/api/workpacks/[id]/summary-counts/route.ts",
+        "line": 73,
+        "snippet": "prisma.workpackTool.count({ where: { workpack_id: id, ai_generated: true } }).catch(() => 0),"
+      },
+      {
+        "file": "app/api/workpacks/[id]/summary-counts/route.ts",
+        "line": 86,
+        "snippet": "prisma.workpackTool.count({ where: { workpack_id: id } }).catch(() => 0),"
+      },
+      {
+        "file": "app/api/workpacks/[id]/tools/bulk-create/route.ts",
+        "line": 52,
+        "snippet": "const tool = await prisma.workpackTool.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/tools/generate-with-ai/route.ts",
+        "line": 170,
+        "snippet": "await prisma.workpackTool.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/tools/route.ts",
+        "line": 20,
+        "snippet": "const tools = await prisma.workpackTool.findMany({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/tools/route.ts",
+        "line": 61,
+        "snippet": "const tool = await prisma.workpackTool.create({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/tools/[toolId]/route.ts",
+        "line": 35,
+        "snippet": "const tool = await prisma.workpackTool.findFirst({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/tools/[toolId]/route.ts",
+        "line": 40,
+        "snippet": "const updated = await prisma.workpackTool.update({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/tools/[toolId]/route.ts",
+        "line": 57,
+        "snippet": "const tool = await prisma.workpackTool.findFirst({"
+      },
+      {
+        "file": "app/api/workpacks/[id]/tools/[toolId]/route.ts",
+        "line": 62,
+        "snippet": "await prisma.workpackTool.delete({ where: { id: toolId } });"
+      },
+      {
+        "file": "src/lib/ai/workpackAutoFill.ts",
+        "line": 165,
+        "snippet": "const existing = await prisma.workpackTool.count({"
+      },
+      {
+        "file": "src/lib/ai/workpackAutoFill.ts",
+        "line": 203,
+        "snippet": "await prisma.workpackTool.create({"
+      },
+      {
+        "file": "src/modules/Workpack/Services/WorkpackService.ts",
+        "line": 298,
+        "snippet": "const tools = await prisma.workpackTool.findMany({"
+      }
+    ]
+  }
+]

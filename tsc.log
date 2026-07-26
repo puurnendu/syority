@@ -1,0 +1,446 @@
+﻿app/(dashboard)/planning/units/[unitId]/page.tsx(65,13): error TS2353: Object literal may only specify known properties, and 'workpack' does not exist in type 'ConstraintWhereInput'.
+app/(dashboard)/settings/templates/page.tsx(26,13): error TS2322: Type '{ activities: { orderBy: { sequence_number: string; }; }; checklist_items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+app/(dashboard)/settings/templates/page.tsx(46,17): error TS2561: Object literal may only specify known properties, but 'discipline' does not exist in type 'ActivityLibrarySelect<DefaultArgs>'. Did you mean to write 'discipline_id'?
+app/(dashboard)/settings/templates/page.tsx(64,28): error TS2551: Property 'discipline' does not exist on type '{ name: string; id: string; is_active: boolean | null; created_at: Date; updated_at: Date; deleted_at: Date | null; organization_id: string; description: string | null; ... 8 more ...; level_code: string | null; }'. Did you mean 'discipline_id'?
+app/(dashboard)/settings/templates/page.tsx(65,28): error TS2551: Property 'discipline' does not exist on type '{ name: string; id: string; is_active: boolean | null; created_at: Date; updated_at: Date; deleted_at: Date | null; organization_id: string; description: string | null; ... 8 more ...; level_code: string | null; }'. Did you mean 'discipline_id'?
+app/(dashboard)/workpacks/[id]/page.tsx(26,13): error TS2322: Type '{ options: { where: { deleted_at: null; is_active: true; }; orderBy: ({ sort_order: string; } | { value: string; })[]; }; }' is not assignable to type 'never'.
+app/api/central/constraints/route.ts(31,13): error TS2322: Type '{ workpack: { select: { workpack_id_code: true; title: true; }; }; attachments: { select: { id: true; filename: true; }; }; }' is not assignable to type 'never'.
+app/api/central/lessons/closure-report/route.ts(19,9): error TS2322: Type '{ workpack: { select: { workpack_id_code: true; title: true; }; }; }' is not assignable to type 'never'.
+app/api/central/lessons/route.ts(32,13): error TS2322: Type '{ workpack: { select: { workpack_id_code: true; title: true; }; }; }' is not assignable to type 'never'.
+app/api/dashboard/constraint-heatmap/route.ts(27,9): error TS2353: Object literal may only specify known properties, and 'workpack' does not exist in type 'ConstraintLogSelect<DefaultArgs>'.
+app/api/dashboard/constraint-heatmap/route.ts(39,24): error TS2339: Property 'workpack' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: string; organization_id: string; description: string; title: string; portfolio_id: string | null; ... 14 more ...; is_in_central_register: boolean; }'.
+app/api/joint-masters/[jointId]/route.ts(16,7): error TS2353: Object literal may only specify known properties, and 'integrity_items' does not exist in type 'JointMasterInclude<DefaultArgs>'.
+app/api/master-data/activity-codes/route.ts(45,9): error TS2322: Type '{ discipline: true; }' is not assignable to type 'never'.
+app/api/master-data/activity-codes/route.ts(54,46): error TS2339: Property 'code' does not exist on type 'never'.
+app/api/master-data/activity-codes/route.ts(54,71): error TS2339: Property 'name' does not exist on type 'never'.
+app/api/master-data/activity-codes/route.ts(55,38): error TS2339: Property 'code' does not exist on type 'never'.
+app/api/master-data/activity-codes/route.ts(55,63): error TS2339: Property 'name' does not exist on type 'never'.
+app/api/master-data/gasket-lookup/route.ts(24,7): error TS2322: Type '{ gasket_item: { select: { id: true; item_code: true; description: true; sap_material_number: true; }; }; bolt_item: { select: { id: true; item_code: true; description: true; sap_material_number: true; }; }; nut_item: { ...; }; washer_item: { ...; }; }' is not assignable to type 'never'.
+app/api/master-data/gasket-lookup/route.ts(63,5): error TS2322: Type '{ gasket_item: { select: { item_code: true; description: true; }; }; bolt_item: { select: { item_code: true; description: true; }; }; nut_item: { select: { item_code: true; description: true; }; }; }' is not assignable to type 'never'.
+app/api/master-data/udf-definitions/[id]/route.ts(16,9): error TS2322: Type '{ options: { where: { deleted_at: null; }; orderBy: ({ sort_order: string; } | { value: string; })[]; }; }' is not assignable to type 'never'.
+app/api/master-data/udf-definitions/[id]/route.ts(51,13): error TS2322: Type '{ options: { where: { deleted_at: null; }; orderBy: ({ sort_order: string; } | { value: string; })[]; }; }' is not assignable to type 'never'.
+app/api/master-data/udf-definitions/route.ts(17,9): error TS2322: Type '{ options: { where: { deleted_at: null; }; orderBy: ({ sort_order: string; } | { value: string; })[]; }; }' is not assignable to type 'never'.
+app/api/master-data/udf-definitions/route.ts(73,13): error TS2322: Type '{ options: { where: { deleted_at: null; }; orderBy: ({ sort_order: string; } | { value: string; })[]; }; }' is not assignable to type 'never'.
+app/api/projects/[id]/import/ms-project/route.ts(151,50): error TS2322: Type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }[]' is not assignable to type 'ActivityRelationshipCreateManyInput | ActivityRelationshipCreateManyInput[]'.
+  Type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }[]' is not assignable to type 'ActivityRelationshipCreateManyInput[]'.
+    Property 'organization_id' is missing in type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }' but required in type 'ActivityRelationshipCreateManyInput'.
+app/api/projects/[id]/import/p6-xer/route.ts(151,50): error TS2322: Type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }[]' is not assignable to type 'ActivityRelationshipCreateManyInput | ActivityRelationshipCreateManyInput[]'.
+  Type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }[]' is not assignable to type 'ActivityRelationshipCreateManyInput[]'.
+    Property 'organization_id' is missing in type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }' but required in type 'ActivityRelationshipCreateManyInput'.
+app/api/projects/[id]/import/p6-xml/route.ts(151,50): error TS2322: Type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }[]' is not assignable to type 'ActivityRelationshipCreateManyInput | ActivityRelationshipCreateManyInput[]'.
+  Type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }[]' is not assignable to type 'ActivityRelationshipCreateManyInput[]'.
+    Property 'organization_id' is missing in type '{ predecessor_id: string; successor_id: string; relationship_type: "FS" | "SS" | "FF" | "SF"; lag_days: number; }' but required in type 'ActivityRelationshipCreateManyInput'.
+app/api/projects/[id]/route.ts(24,11): error TS2353: Object literal may only specify known properties, and 'equipment' does not exist in type 'ProjectCountOutputTypeSelect<DefaultArgs>'.
+app/api/projects/[id]/route.ts(35,11): error TS2339: Property '_count' does not exist on type '{ client: string | null; name: string; id: string; status: string; description: string | null; code: string; location: string | null; createdAt: Date; updatedAt: Date; orgId: string; ... 7 more ...; createdBy: string | null; }'.
+app/api/projects/[id]/s-curve/route.ts(101,7): error TS2322: Type '{ activities: true; }' is not assignable to type 'never'.
+app/api/projects/[id]/s-curve/route.ts(113,29): error TS2339: Property 'map' does not exist on type 'never'.
+app/api/projects/[id]/s-curve/route.ts(113,33): error TS7006: Parameter 'ba' implicitly has an 'any' type.
+app/api/projects/route.ts(24,36): error TS2353: Object literal may only specify known properties, and 'equipment' does not exist in type 'ProjectCountOutputTypeSelect<DefaultArgs>'.
+app/api/projects/route.ts(69,44): error TS2353: Object literal may only specify known properties, and 'equipment' does not exist in type 'ProjectCountOutputTypeSelect<DefaultArgs>'.
+app/api/settings/master-data/activity-codes/route.ts(15,13): error TS2322: Type '{ discipline: true; default_resources: { include: { resource: true; }; }; }' is not assignable to type 'never'.
+app/api/settings/templates/[id]/copy/route.ts(35,9): error TS2322: Type '{ activities: { orderBy: { sequence_number: string; }; }; checklist_items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+app/api/settings/templates/[id]/copy/route.ts(60,13): error TS2353: Object literal may only specify known properties, and 'activities' does not exist in type '(Without<WorkpackTemplateCreateInput, WorkpackTemplateUncheckedCreateInput> & WorkpackTemplateUncheckedCreateInput) | (Without<...> & WorkpackTemplateCreateInput)'.
+app/api/settings/templates/[id]/copy/route.ts(61,43): error TS2339: Property 'map' does not exist on type 'never'.
+app/api/settings/templates/[id]/copy/route.ts(61,48): error TS7006: Parameter 'a' implicitly has an 'any' type.
+app/api/settings/templates/[id]/copy/route.ts(76,48): error TS2339: Property 'map' does not exist on type 'never'.
+app/api/settings/templates/[id]/copy/route.ts(76,53): error TS7006: Parameter 'item' implicitly has an 'any' type.
+app/api/settings/templates/[id]/route.ts(26,9): error TS2322: Type '{ activities: { orderBy: { sequence_number: string; }; }; checklist_items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+app/api/settings/templates/[id]/route.ts(143,9): error TS2322: Type '{ activities: { orderBy: { sequence_number: string; }; }; checklist_items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+app/api/settings/templates/[id]/toggle-active/route.ts(36,9): error TS2322: Type '{ activities: { orderBy: { sequence_number: string; }; }; checklist_items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+app/api/settings/templates/route.ts(29,9): error TS2322: Type '{ activities: { orderBy: { sequence_number: string; }; }; checklist_items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+app/api/settings/templates/route.ts(77,13): error TS2353: Object literal may only specify known properties, and 'activities' does not exist in type '(Without<WorkpackTemplateCreateInput, WorkpackTemplateUncheckedCreateInput> & WorkpackTemplateUncheckedCreateInput) | (Without<...> & WorkpackTemplateCreateInput)'.
+app/api/settings/udf-definitions/[id]/route.ts(20,9): error TS2322: Type '{ options: { where: { deleted_at: null; }; orderBy: { value: string; }; }; }' is not assignable to type 'never'.
+app/api/settings/udf-definitions/[id]/route.ts(58,13): error TS2322: Type '{ options: { where: { deleted_at: null; }; orderBy: { value: string; }; }; }' is not assignable to type 'never'.
+app/api/settings/udf-definitions/route.ts(14,9): error TS2322: Type '{ options: { where: { deleted_at: null; }; orderBy: { value: string; }; }; }' is not assignable to type 'never'.
+app/api/settings/udf-definitions/route.ts(46,13): error TS2322: Type '{ options: true; }' is not assignable to type 'never'.
+app/api/shift-reports/route.ts(32,5): error TS2322: Type '{ unit: { select: { name: true; code: true; }; }; }' is not assignable to type 'never'.
+app/api/units/[unitId]/constraints/route.ts(41,7): error TS2353: Object literal may only specify known properties, and 'workpack' does not exist in type 'ConstraintWhereInput'.
+app/api/units/[unitId]/constraints/route.ts(64,14): error TS2339: Property 'owner' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(64,30): error TS2339: Property 'owner' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(64,48): error TS2339: Property 'owner' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(64,69): error TS2339: Property 'owner' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(65,17): error TS2339: Property 'workpack' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(67,17): error TS2339: Property 'workpack' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(68,31): error TS2339: Property 'workpack' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(69,20): error TS2339: Property 'workpack' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(72,15): error TS2339: Property 'workpack' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/constraints/route.ts(72,49): error TS2339: Property 'workpack' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ConstraintStatus | null; organization_id: string; site_id: string; ... 16 more ...; closed_at: Date | null; }'.
+app/api/units/[unitId]/route.ts(49,9): error TS2353: Object literal may only specify known properties, and 'workpack' does not exist in type 'ConstraintWhereInput'.
+app/api/whatsapp/updates/[updateId]/route.ts(16,5): error TS2322: Type '{ user: { select: { name: true; }; }; }' is not assignable to type 'never'.
+app/api/whatsapp/updates/route.ts(41,9): error TS2353: Object literal may only specify known properties, and 'user' does not exist in type 'WhatsappUpdateSelect<DefaultArgs>'.
+app/api/workpacks/[id]/activities/[activityId]/predecessors/[relId]/route.ts(34,13): error TS2322: Type '{ predecessor: { select: { id: true; sequence_number: true; description: true; activity_number: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/activities/[activityId]/predecessors/route.ts(44,13): error TS2322: Type '{ predecessor: { select: { id: true; sequence_number: true; description: true; activity_number: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/activities/[activityId]/predecessors/route.ts(100,13): error TS2322: Type '{ predecessor: { select: { id: true; sequence_number: true; description: true; activity_number: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/activities/[activityId]/udf/route.ts(38,13): error TS2322: Type '{ options: { where: { deleted_at: null; is_active: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/activities/[activityId]/udf/route.ts(48,44): error TS2339: Property 'find' does not exist on type 'never'.
+app/api/workpacks/[id]/activities/route.ts(21,24): error TS2353: Object literal may only specify known properties, and 'discipline' does not exist in type 'ActivityInclude<DefaultArgs>'.
+app/api/workpacks/[id]/certificates/[certId]/route.ts(41,9): error TS2322: Type '{ template: { select: { cert_name: true; fields: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/certificates/route.ts(29,9): error TS2322: Type '{ template: { select: { cert_name: true; cert_type: true; fields: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/constraints/[constraintId]/route.ts(42,9): error TS2322: Type '{ attachments: true; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/constraints/route.ts(21,9): error TS2322: Type '{ attachments: { select: { id: true; filename: true; file_size: true; created_at: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/electrical-requirements/route.ts(24,7): error TS2353: Object literal may only specify known properties, and 'materials' does not exist in type 'ActivityInclude<DefaultArgs>'.
+app/api/workpacks/[id]/electrical-requirements/route.ts(42,32): error TS2339: Property 'materials' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'.
+app/api/workpacks/[id]/export/activities-csv/route.ts(26,24): error TS2353: Object literal may only specify known properties, and 'discipline' does not exist in type 'ActivityInclude<DefaultArgs>'.
+app/api/workpacks/[id]/export/activities-csv/route.ts(33,27): error TS2551: Property 'discipline' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'. Did you mean 'discipline_id'?
+app/api/workpacks/[id]/export/activities-csv/route.ts(33,49): error TS2551: Property 'discipline' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'. Did you mean 'discipline_id'?
+app/api/workpacks/[id]/export/activities-excel/route.ts(29,25): error TS2353: Object literal may only specify known properties, and 'udf_values' does not exist in type 'ActivityInclude<DefaultArgs>'.
+app/api/workpacks/[id]/export/activities-excel/route.ts(84,37): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/export/ms-project/route.ts(35,13): error TS2353: Object literal may only specify known properties, and 'discipline' does not exist in type 'ActivityInclude<DefaultArgs>'.
+app/api/workpacks/[id]/export/ms-project/route.ts(96,26): error TS2551: Property 'discipline' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'. Did you mean 'discipline_id'?
+app/api/workpacks/[id]/export/ms-project/route.ts(96,50): error TS2551: Property 'discipline' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'. Did you mean 'discipline_id'?
+app/api/workpacks/[id]/export/ms-project/route.ts(101,65): error TS2551: Property 'discipline' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'. Did you mean 'discipline_id'?
+app/api/workpacks/[id]/export/ms-project/route.ts(101,87): error TS2551: Property 'discipline' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'. Did you mean 'discipline_id'?
+app/api/workpacks/[id]/export/ms-project/route.ts(114,34): error TS2551: Property 'discipline' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'. Did you mean 'discipline_id'?
+app/api/workpacks/[id]/export/ms-project/route.ts(114,58): error TS2551: Property 'discipline' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'. Did you mean 'discipline_id'?
+app/api/workpacks/[id]/export/primavera/route.ts(28,11): error TS2353: Object literal may only specify known properties, and 'successors' does not exist in type 'ActivityInclude<DefaultArgs>'.
+app/api/workpacks/[id]/export/primavera/route.ts(33,29): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ProjectSelect<DefaultArgs>'.
+app/api/workpacks/[id]/export/primavera/route.ts(43,47): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/export/primavera/route.ts(43,62): error TS7006: Parameter 'a' implicitly has an 'any' type.
+app/api/workpacks/[id]/export/primavera/route.ts(57,14): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/export/primavera/route.ts(57,29): error TS7006: Parameter 'a' implicitly has an 'any' type.
+app/api/workpacks/[id]/export/primavera/route.ts(60,54): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/export/primavera/route.ts(60,73): error TS7006: Parameter 'a' implicitly has an 'any' type.
+app/api/workpacks/[id]/export/primavera/route.ts(61,22): error TS7006: Parameter 'rel' implicitly has an 'any' type.
+app/api/workpacks/[id]/export/primavera/route.ts(70,27): error TS2339: Property 'project' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/export/primavera/route.ts(72,27): error TS2339: Property 'project' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/export/primavera/route.ts(73,27): error TS2339: Property 'project' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/extract-document/[jobId]/accept/route.ts(147,9): error TS2322: Type '{ result: true; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/extract-document/[jobId]/accept/route.ts(156,20): error TS2339: Property 'extracted_data_json' does not exist on type 'never'.
+app/api/workpacks/[id]/extract-document/[jobId]/route.ts(20,9): error TS2322: Type '{ result: true; extraction_conflicts: { where: { status: string; }; orderBy: { created_at: string; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(33,5): error TS2322: Type '{ item_catalog: { select: { item_code: true; sap_material_number: true; sap_plant: true; sap_storage_location: true; manufacturer: true; manufacturer_part_no: true; specification: true; unit_cost: true; currency: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(57,48): error TS2339: Property 'sap_material_number' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(58,47): error TS2339: Property 'item_code' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(61,23): error TS2339: Property 'specification' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(64,32): error TS2339: Property 'unit_cost' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(66,23): error TS2339: Property 'unit_cost' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(67,27): error TS2339: Property 'unit_cost' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(69,31): error TS2339: Property 'currency' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(72,28): error TS2339: Property 'sap_plant' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(73,34): error TS2339: Property 'sap_storage_location' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(74,35): error TS2339: Property 'manufacturer' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/export/route.ts(75,34): error TS2339: Property 'manufacturer_part_no' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/generate-with-ai/route.ts(142,9): error TS2353: Object literal may only specify known properties, and 'joint_integrity_items' does not exist in type 'WorkpackSelect<DefaultArgs>'.
+app/api/workpacks/[id]/materials/generate-with-ai/route.ts(180,57): error TS2339: Property 'asset' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/materials/generate-with-ai/route.ts(180,87): error TS2339: Property 'asset' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/materials/generate-with-ai/route.ts(183,33): error TS2339: Property 'joint_integrity_items' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/materials/generate-with-ai/route.ts(185,60): error TS2339: Property 'blinds' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/materials/generate-with-ai/route.ts(186,68): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+app/api/workpacks/[id]/materials/route.ts(34,5): error TS2322: Type '{ item_catalog: { select: { item_code: true; sap_material_number: true; manufacturer: true; manufacturer_part_no: true; specification: true; unit_cost: true; currency: true; item_category: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/materials/route.ts(82,48): error TS2339: Property 'item_code' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/route.ts(85,30): error TS2339: Property 'sap_material_number' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/route.ts(88,43): error TS2339: Property 'specification' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/route.ts(91,39): error TS2339: Property 'unit_cost' does not exist on type 'never'.
+app/api/workpacks/[id]/materials/route.ts(93,38): error TS2339: Property 'currency' does not exist on type 'never'.
+app/api/workpacks/[id]/punch-list/route.ts(17,13): error TS2322: Type '{ discipline: { select: { id: true; code: true; name: true; }; }; raiser: { select: { id: true; name: true; }; }; assignee: { select: { id: true; name: true; }; }; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/suggest-lessons/[jobId]/accept/route.ts(28,9): error TS2322: Type '{ result: true; }' is not assignable to type 'never'.
+app/api/workpacks/[id]/suggest-lessons/[jobId]/accept/route.ts(36,29): error TS2339: Property 'extracted_data_json' does not exist on type 'never'.
+app/api/workpacks/[id]/summary-counts/route.ts(58,21): error TS2353: Object literal may only specify known properties, and 'qa_clearances' does not exist in type 'ActivityWhereInput'.
+app/api/workpacks/[id]/tools/generate-with-ai/route.ts(168,13): error TS2353: Object literal may only specify known properties, and 'workpack' does not exist in type '(Without<WorkpackToolCreateInput, WorkpackToolUncheckedCreateInput> & WorkpackToolUncheckedCreateInput) | (Without<...> & WorkpackToolCreateInput)'.
+next.config.ts(13,3): error TS2353: Object literal may only specify known properties, and 'eslint' does not exist in type 'NextConfig'.
+prisma/backfill-workpack-ids.ts(68,27): error TS2561: Object literal may only specify known properties, but 'discipline' does not exist in type 'ActivitySelect<DefaultArgs>'. Did you mean to write 'discipline_id'?
+prisma/backfill-workpack-ids.ts(83,25): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/components/ta-dashboard.tsx(35,18): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(35,22): error TS7006: Parameter 'total' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(35,28): error TS7006: Parameter 'acts' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(35,93): error TS7006: Parameter 'act' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(35,97): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(68,16): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(69,19): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(69,22): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ High: string; Medium: string; Low: string; Critical: string; }'.
+src/components/ta-dashboard.tsx(70,17): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(70,20): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Critical: string; High: string; Medium: string; Low: string; }'.
+src/components/ta-dashboard.tsx(71,19): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(71,22): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ complete: { bg: string; icon: string; }; "in-progress": { bg: string; icon: string; }; "at-risk": { bg: string; icon: string; }; "on-track": { bg: string; icon: string; }; }'.
+src/components/ta-dashboard.tsx(72,17): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(72,20): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ complete: { icon: string; bg: string; color: string; }; "in-progress": { icon: string; bg: string; color: string; }; overdue: { icon: string; bg: string; color: string; }; "not-started": { icon: string; bg: string; color: string; }; }'.
+src/components/ta-dashboard.tsx(73,18): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(73,21): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ warning: { bg: string; border: string; icon: string; color: string; }; info: { bg: string; border: string; icon: string; color: string; }; danger: { bg: string; border: string; icon: string; color: string; }; success: { ...; }; }'.
+src/components/ta-dashboard.tsx(74,18): error TS7031: Binding element 'v' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(75,19): error TS7031: Binding element 'v' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(76,20): error TS7031: Binding element 'active' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(76,27): error TS7031: Binding element 'payload' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(76,35): error TS7031: Binding element 'label' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(76,273): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(76,275): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(77,14): error TS7031: Binding element 'children' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(77,23): error TS7031: Binding element 'c' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(78,14): error TS7031: Binding element 'children' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(78,23): error TS7031: Binding element 'c' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(78,25): error TS7031: Binding element 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(85,23): error TS7031: Binding element 'onLogin' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(129,79): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+  No index signature with a parameter of type 'string' was found on type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(129,124): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+  No index signature with a parameter of type 'string' was found on type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(129,237): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+  No index signature with a parameter of type 'string' was found on type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(129,273): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+  No index signature with a parameter of type 'string' was found on type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(161,34): error TS2339: Property 'scrollIntoView' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(163,19): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(168,20): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(170,21): error TS7006: Parameter 'type' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(170,26): error TS7006: Parameter 'title' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(170,32): error TS7006: Parameter 'msg' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(175,26): error TS7006: Parameter 'text' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(194,25): error TS2345: Argument of type 'never[]' is not assignable to parameter of type 'SetStateAction<null>'.
+  Type 'never[]' provides no match for the signature '(prevState: null): null'.
+src/components/ta-dashboard.tsx(200,16): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(200,27): error TS2339: Property 'role' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(215,23): error TS2322: Type '{ user: never; role: any; }' is not assignable to type 'null'.
+src/components/ta-dashboard.tsx(250,125): error TS2339: Property 'name' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(251,64): error TS2339: Property 'role' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(326,178): error TS2339: Property 'role' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(341,108): error TS2554: Expected 1 arguments, but got 0.
+src/components/ta-dashboard.tsx(342,42): error TS2554: Expected 1 arguments, but got 0.
+src/components/ta-dashboard.tsx(356,26): error TS7031: Binding element 'schedules' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(356,36): error TS7031: Binding element 'setSchedules' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(356,49): error TS7031: Binding element 'deliveryLog' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(356,61): error TS7031: Binding element 'setDeliveryLog' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(356,76): error TS7031: Binding element 'addNotif' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(357,10): error TS2339: Property 'role' does not exist on type 'null'.
+src/components/ta-dashboard.tsx(370,19): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(375,20): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(375,29): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(377,20): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(381,24): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(381,43): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(381,52): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(382,24): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(382,43): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(382,55): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(384,31): error TS7006: Parameter 'sched' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(387,93): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(387,96): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+src/components/ta-dashboard.tsx(388,20): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(400,41): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ name: string; template: string; recipients: string; channels: string[]; freq: string; time: string; active: boolean; }'.
+  No index signature with a parameter of type 'string' was found on type '{ name: string; template: string; recipients: string; channels: string[]; freq: string; time: string; active: boolean; }'.
+src/components/ta-dashboard.tsx(427,84): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+src/components/ta-dashboard.tsx(427,126): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+src/components/ta-dashboard.tsx(427,165): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+src/components/ta-dashboard.tsx(428,20): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+src/components/ta-dashboard.tsx(459,58): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(459,204): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(459,294): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(470,26): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(482,43): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(482,46): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Email: string; WhatsApp: string; "In-App": string; }'.
+src/components/ta-dashboard.tsx(514,35): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(514,37): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(552,226): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ "24hr Progress + Constraints": string; "Shift Handover Summary": string; "Management Flash Update": string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ "24hr Progress + Constraints": string; "Shift Handover Summary": string; "Management Flash Update": string; }'.
+src/components/ta-dashboard.tsx(626,25): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+  No index signature with a parameter of type 'string' was found on type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(660,110): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+  No index signature with a parameter of type 'string' was found on type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(666,46): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(666,49): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(667,49): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(667,52): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(669,45): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(669,48): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(670,46): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(670,49): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Admin: { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; "Project Manager": { color: string; badge: string; nav: string[]; canAI: boolean; canBuild: boolean; canData: boolean; canAdmin: boolean; }; Planner: { ...; }; Superintendent: { ...; }; ...'.
+src/components/ta-dashboard.tsx(712,20): error TS7031: Binding element 'loadAiJobs' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(712,31): error TS7031: Binding element 'aiJobs' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(712,38): error TS7031: Binding element 'jobsLoading' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(772,30): error TS2739: Type '{}' is missing the following properties from type '{ active: any; payload: any; label: any; }': active, payload, label
+src/components/ta-dashboard.tsx(790,30): error TS2739: Type '{}' is missing the following properties from type '{ active: any; payload: any; label: any; }': active, payload, label
+src/components/ta-dashboard.tsx(831,22): error TS7031: Binding element 'loadAiJobs' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(831,33): error TS7031: Binding element 'aiJobs' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(831,40): error TS7031: Binding element 'jobsLoading' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(842,24): error TS7006: Parameter 'j' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(842,26): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(929,32): error TS2739: Type '{}' is missing the following properties from type '{ active: any; payload: any; label: any; }': active, payload, label
+src/components/ta-dashboard.tsx(952,20): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(952,72): error TS2571: Object is of type 'unknown'.
+src/components/ta-dashboard.tsx(952,90): error TS18046: 'a' is of type 'unknown'.
+src/components/ta-dashboard.tsx(954,19): error TS7006: Parameter 'act' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(955,66): error TS2345: Argument of type '(t: never[]) => { name: string; type: string; view: string; filters: { unit: string; area: string; contr: string; prio: string; }; }[]' is not assignable to parameter of type 'SetStateAction<never[]>'.
+  Type '(t: never[]) => { name: string; type: string; view: string; filters: { unit: string; area: string; contr: string; prio: string; }; }[]' is not assignable to type '(prevState: never[]) => never[]'.
+    Type '{ name: string; type: string; view: string; filters: { unit: string; area: string; contr: string; prio: string; }; }[]' is not assignable to type 'never[]'.
+      Type '{ name: string; type: string; view: string; filters: { unit: string; area: string; contr: string; prio: string; }; }' is not assignable to type 'never'.
+src/components/ta-dashboard.tsx(956,60): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ta-dashboard.tsx(956,70): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ta-dashboard.tsx(956,84): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ta-dashboard.tsx(956,160): error TS18046: 'tags' is of type 'unknown'.
+src/components/ta-dashboard.tsx(956,173): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(956,217): error TS18046: 'tags' is of type 'unknown'.
+src/components/ta-dashboard.tsx(956,249): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(956,295): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(956,345): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(956,398): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(958,59): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ta-dashboard.tsx(958,70): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ta-dashboard.tsx(958,85): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ta-dashboard.tsx(958,163): error TS18046: 'tags' is of type 'unknown'.
+src/components/ta-dashboard.tsx(958,176): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(958,221): error TS18046: 'tags' is of type 'unknown'.
+src/components/ta-dashboard.tsx(958,253): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(958,299): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(958,349): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(958,402): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(959,25): error TS7031: Binding element 'data' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(959,30): error TS7031: Binding element 'kf' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(959,33): error TS7031: Binding element 'kc' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(960,25): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(960,29): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(960,102): error TS2739: Type '{ children: Element; }' is missing the following properties from type '{ children: any; c: any; s: any; }': c, s
+src/components/ta-dashboard.tsx(960,178): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(960,254): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(960,333): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(960,410): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(960,488): error TS2741: Property 's' is missing in type '{ children: Element[]; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(967,454): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ "Heat Exchangers": { pfx: string; n: number; acts: string[]; }; Vessels: { pfx: string; n: number; acts: string[]; }; Columns: { pfx: string; n: number; acts: string[]; }; Pumps: { pfx: string; n: number; acts: string[]; }; ... 5 more ...; "Fired Equipment": { ...; }; }'.
+  No index signature with a parameter of type 'string' was found on type '{ "Heat Exchangers": { pfx: string; n: number; acts: string[]; }; Vessels: { pfx: string; n: number; acts: string[]; }; Columns: { pfx: string; n: number; acts: string[]; }; Pumps: { pfx: string; n: number; acts: string[]; }; ... 5 more ...; "Fired Equipment": { ...; }; }'.
+src/components/ta-dashboard.tsx(969,184): error TS2339: Property 'type' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(969,200): error TS2339: Property 'view' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(969,219): error TS2339: Property 'filters' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(969,418): error TS2339: Property 'name' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(975,226): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ unit: string; area: string; contr: string; prio: string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ unit: string; area: string; contr: string; prio: string; }'.
+src/components/ta-dashboard.tsx(983,591): error TS2739: Type '{ children: Element; }' is missing the following properties from type '{ children: any; c: any; s: any; }': c, s
+src/components/ta-dashboard.tsx(983,662): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(983,847): error TS2741: Property 'c' is missing in type '{ children: string; s: { color: string; whiteSpace: string; }; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(983,909): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(983,1075): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(984,252): error TS2741: Property 'kc' is missing in type '{ data: { unit: string; total: any; complete: any; inprog: any; overdue: any; pct: number; }[]; kf: string; }' but required in type '{ data: any; kf: any; kc: any; }'.
+src/components/ta-dashboard.tsx(985,361): error TS2739: Type '{ children: Element; }' is missing the following properties from type '{ children: any; c: any; s: any; }': c, s
+src/components/ta-dashboard.tsx(985,433): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(985,512): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(985,589): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(985,667): error TS2741: Property 's' is missing in type '{ children: Element; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(985,748): error TS2741: Property 's' is missing in type '{ children: Element[]; c: true; }' but required in type '{ children: any; c: any; s: any; }'.
+src/components/ta-dashboard.tsx(996,29): error TS7031: Binding element 'addNotif' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1007,19): error TS7006: Parameter 'cat' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1007,52): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
+src/components/ta-dashboard.tsx(1010,17): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1011,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1011,27): error TS7006: Parameter 'cardId' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1011,50): error TS2353: Object literal may only specify known properties, and 'src' does not exist in type '(prevState: null) => null'.
+src/components/ta-dashboard.tsx(1012,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1012,28): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1012,48): error TS2353: Object literal may only specify known properties, and 'src' does not exist in type '(prevState: null) => null'.
+src/components/ta-dashboard.tsx(1013,21): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1013,23): error TS7006: Parameter 'pageIdx' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1013,31): error TS7006: Parameter 'insertIdx' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1013,181): error TS2339: Property 'src' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1013,233): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+src/components/ta-dashboard.tsx(1013,242): error TS2339: Property 'cardId' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1013,303): error TS2339: Property 'cardIdx' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1013,348): error TS2339: Property 'cardIdx' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1014,21): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1014,23): error TS7006: Parameter 'pageIdx' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1014,94): error TS2339: Property 'src' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1014,200): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+src/components/ta-dashboard.tsx(1014,209): error TS2339: Property 'cardId' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1015,21): error TS7006: Parameter 'pi' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1015,24): error TS7006: Parameter 'ci' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1017,20): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1018,21): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1018,25): error TS7006: Parameter 'val' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1019,19): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1020,22): error TS7006: Parameter 'tpl' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1020,51): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1024,25): error TS7031: Binding element 'cardId' implicitly has an 'any' type.
+src/components/ta-dashboard.tsx(1030,349): error TS2322: Type 'string | number' is not assignable to type 'Color | undefined'.
+  Type 'number' is not assignable to type 'Color | undefined'.
+src/components/ta-dashboard.tsx(1052,64): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ta-dashboard.tsx(1054,16): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ta-dashboard.tsx(1103,91): error TS2339: Property 'pageIdx' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1103,123): error TS2339: Property 'cardIdx' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1103,211): error TS2353: Object literal may only specify known properties, and 'pageIdx' does not exist in type '(prevState: null) => null'.
+src/components/ta-dashboard.tsx(1113,94): error TS2339: Property 'pageIdx' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1113,126): error TS2339: Property 'cardIdx' does not exist on type 'never'.
+src/components/ta-dashboard.tsx(1113,218): error TS2353: Object literal may only specify known properties, and 'pageIdx' does not exist in type '(prevState: null) => null'.
+src/core/master-data/services/ActivityLibraryService.ts(12,13): error TS2322: Type '{ discipline: true; }' is not assignable to type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(15,13): error TS2322: Type '{ _count: { select: { activities: true; }; }; }' is not assignable to type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(29,13): error TS2322: Type '{ activities: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(106,39): error TS2339: Property 'description' does not exist on type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(107,21): error TS2339: Property 'activity_code' does not exist on type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(107,63): error TS2339: Property 'activity_code' does not exist on type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(117,41): error TS2339: Property 'description' does not exist on type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(118,45): error TS2339: Property 'activity_code' does not exist on type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(119,44): error TS2339: Property 'duration_hours' does not exist on type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(120,45): error TS2339: Property 'hold_point_type' does not exist on type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(121,52): error TS2339: Property 'hold_point_description' does not exist on type 'never'.
+src/core/master-data/services/WorkpackTemplateService.ts(130,24): error TS2339: Property 'activity_code' does not exist on type 'never'.
+src/lib/ai/workpackAutoFill.ts(299,9): error TS2353: Object literal may only specify known properties, and 'joint_integrity_items' does not exist in type 'WorkpackInclude<DefaultArgs>'.
+src/lib/tenantGuard.ts(30,34): error TS2561: Object literal may only specify known properties, but 'project' does not exist in type 'EquipmentWhereInput'. Did you mean to write 'projectId'?
+src/lib/tenantGuard.ts(42,38): error TS2561: Object literal may only specify known properties, but 'project' does not exist in type 'PermitWhereInput'. Did you mean to write 'projectId'?
+src/lib/tenantGuard.ts(48,38): error TS2561: Object literal may only specify known properties, but 'workpack' does not exist in type 'PunchItemWhereInput'. Did you mean to write 'workpackId'?
+src/modules/Activity/Services/ActivityService.ts(151,28): error TS2353: Object literal may only specify known properties, and 'qa_clearances' does not exist in type 'ActivityInclude<DefaultArgs>'.
+src/modules/Activity/Services/ActivityService.ts(153,65): error TS2339: Property 'qa_clearances' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'.
+src/modules/Activity/Services/ActivityService.ts(153,91): error TS2339: Property 'qa_clearances' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'.
+src/modules/Activity/Services/ActivityUdfService.ts(28,13): error TS2322: Type '{ options: { where: { is_active: true; deleted_at: null; }; orderBy: { value: string; }; }; }' is not assignable to type 'never'.
+src/modules/Activity/Services/ActivityUdfService.ts(53,13): error TS2322: Type '{ options: { where: { deleted_at: null; }; }; }' is not assignable to type 'never'.
+src/modules/Activity/Services/ActivityUdfService.ts(74,44): error TS2339: Property 'find' does not exist on type 'never'.
+src/modules/Activity/Services/ActivityUdfService.ts(75,22): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/modules/certificates/services/CertificateService.ts(11,13): error TS2322: Type '{ assembler: true; inspector: true; sign_off_user: true; }' is not assignable to type 'never'.
+src/modules/certificates/services/CertificateService.ts(39,13): error TS2322: Type '{ assembler: true; inspector: true; }' is not assignable to type 'never'.
+src/modules/certificates/services/CertificateService.ts(65,17): error TS2353: Object literal may only specify known properties, and 'qa_clearances' does not exist in type 'ActivityInclude<DefaultArgs>'.
+src/modules/certificates/services/JobCompletionService.ts(18,13): error TS2322: Type '{ sign_offs: true; }' is not assignable to type 'never'.
+src/modules/certificates/services/JobCompletionService.ts(21,54): error TS2339: Property 'filter' does not exist on type 'never'.
+src/modules/certificates/services/JobCompletionService.ts(21,61): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/modules/checklists/services/CleaningService.ts(7,13): error TS2322: Type '{ activity: true; }' is not assignable to type 'never'.
+src/modules/checklists/services/ClearanceService.ts(8,13): error TS2322: Type '{ sign_offs: true; }' is not assignable to type 'never'.
+src/modules/checklists/services/ClearanceService.ts(27,17): error TS2353: Object literal may only specify known properties, and 'sign_offs' does not exist in type '(Without<ClearanceForBoxupCreateInput, ClearanceForBoxupUncheckedCreateInput> & ClearanceForBoxupUncheckedCreateInput) | (Without<...> & ClearanceForBoxupCreateInput)'.
+src/modules/checklists/services/DroppingBoxupService.ts(8,13): error TS2322: Type '{ items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+src/modules/checklists/services/DroppingBoxupService.ts(22,13): error TS2322: Type '{ items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+src/modules/checklists/services/DroppingBoxupService.ts(60,13): error TS2322: Type '{ items: true; }' is not assignable to type 'never'.
+src/modules/checklists/services/DroppingBoxupService.ts(63,44): error TS2339: Property 'length' does not exist on type 'never'.
+src/modules/checklists/services/DroppingBoxupService.ts(75,13): error TS2322: Type '{ items: { orderBy: { sequence_number: string; }; }; }' is not assignable to type 'never'.
+src/modules/QA/Services/QaClearanceService.ts(59,13): error TS2322: Type '{ activity: { select: { description: true; sequence_number: true; }; }; }' is not assignable to type 'never'.
+src/modules/Scheduling/Services/SchedulingService.ts(45,9): error TS2353: Object literal may only specify known properties, and 'predecessors' does not exist in type 'ActivityInclude<DefaultArgs>'.
+src/modules/Scheduling/Services/SchedulingService.ts(74,42): error TS2339: Property 'predecessors' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'.
+src/modules/Scheduling/Services/SchedulingService.ts(75,40): error TS2339: Property 'successors' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'.
+src/modules/Scheduling/Services/SchedulingService.ts(87,25): error TS2339: Property 'predecessors' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'.
+src/modules/Scheduling/Services/SchedulingService.ts(88,23): error TS2339: Property 'successors' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: ActivityStatus | null; notes: string | null; organization_id: string; ... 39 more ...; remaining_duration: number | null; }'.
+src/modules/Scheduling/Services/SchedulingService.ts(181,9): error TS2353: Object literal may only specify known properties, and 'predecessors' does not exist in type 'ActivityInclude<DefaultArgs>'.
+src/modules/Scheduling/Services/SchedulingService.ts(293,9): error TS2353: Object literal may only specify known properties, and 'discipline' does not exist in type 'ActivityInclude<DefaultArgs>'.
+src/modules/Workpack/Services/PdfService.ts(956,25): error TS2353: Object literal may only specify known properties, and 'discipline' does not exist in type 'ActivityInclude<DefaultArgs>'.
+src/modules/Workpack/Services/PdfService.ts(1035,17): error TS2322: Type '{ template: { select: { cert_name: true; fields: true; }; }; }' is not assignable to type 'never'.
+src/modules/Workpack/Services/PdfService.ts(1160,99): error TS2551: Property 'contractor' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'. Did you mean 'contractor_id'?
+src/modules/Workpack/Services/WorkflowService.ts(107,13): error TS2322: Type '{ performer: { select: { id: true; name: true; email: true; }; }; }' is not assignable to type 'never'.
+src/modules/Workpack/Services/WorkpackService.ts(168,25): error TS2353: Object literal may only specify known properties, and 'discipline' does not exist in type 'ActivityInclude<DefaultArgs>'.
+src/modules/Workpack/Services/WorkpackService.ts(182,32): error TS2353: Object literal may only specify known properties, and 'item_catalog' does not exist in type 'WorkpackMaterialInclude<DefaultArgs>'.
+src/modules/Workpack/Services/WorkpackService.ts(280,55): error TS2353: Object literal may only specify known properties, and 'constraints' does not exist in type 'WorkpackCountOutputTypeSelect<DefaultArgs>'.
+src/services/ai/LessonsSuggester.ts(46,13): error TS2353: Object literal may only specify known properties, and 'constraint_logs' does not exist in type 'WorkpackSelect<DefaultArgs>'.
+src/services/ai/LessonsSuggester.ts(91,12): error TS2339: Property 'constraint_logs' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/ai/LessonsSuggester.ts(93,12): error TS2339: Property 'constraint_logs' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/ai/LessonsSuggester.ts(93,37): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/services/ai/LessonsSuggester.ts(93,40): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/services/ai/LessonsSuggester.ts(105,12): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/ai/LessonsSuggester.ts(107,12): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/ai/LessonsSuggester.ts(107,32): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/services/ai/LessonsSuggester.ts(114,12): error TS2339: Property 'lessons_learned' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/ai/LessonsSuggester.ts(116,12): error TS2339: Property 'lessons_learned' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/ai/LessonsSuggester.ts(116,37): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/services/whatsapp/QueryHandler.ts(39,9): error TS2353: Object literal may only specify known properties, and 'constraint_logs' does not exist in type 'WorkpackInclude<DefaultArgs>'.
+src/services/whatsapp/QueryHandler.ts(52,24): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/whatsapp/QueryHandler.ts(53,23): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/whatsapp/QueryHandler.ts(53,42): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/services/whatsapp/QueryHandler.ts(54,25): error TS2339: Property 'activities' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/whatsapp/QueryHandler.ts(54,44): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/services/whatsapp/QueryHandler.ts(60,14): error TS2339: Property 'constraint_logs' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/whatsapp/QueryHandler.ts(62,12): error TS2339: Property 'constraint_logs' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: WorkpackStatus; organization_id: string; site_id: string; system_id: string | null; ... 39 more ...; project_id: string | null; }'.
+src/services/whatsapp/QueryHandler.ts(62,37): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/services/whatsapp/ShiftReportGenerator.ts(52,7): error TS2353: Object literal may only specify known properties, and 'shift_report_recipients' does not exist in type 'UnitWhereInput'.
+src/services/whatsapp/ShiftReportGenerator.ts(64,7): error TS2353: Object literal may only specify known properties, and 'shift_report_recipients' does not exist in type 'UnitInclude<DefaultArgs>'.
+src/services/whatsapp/ShiftReportGenerator.ts(95,9): error TS2345: Argument of type '{ name: string; id: string; is_active: boolean | null; created_at: Date; updated_at: Date; deleted_at: Date | null; organization_id: string; site_id: string; description: string | null; created_by: string | null; code: string | null; plant_id: string; }' is not assignable to parameter of type '{ id: string; name: string; code: string | null; site_id: string; shift_report_recipients: { user: { name: string; whatsapp_number: string | null; whatsapp_opt_in: boolean | null; }; }[]; }'.
+  Property 'shift_report_recipients' is missing in type '{ name: string; id: string; is_active: boolean | null; created_at: Date; updated_at: Date; deleted_at: Date | null; organization_id: string; site_id: string; description: string | null; created_by: string | null; code: string | null; plant_id: string; }' but required in type '{ id: string; name: string; code: string | null; site_id: string; shift_report_recipients: { user: { name: string; whatsapp_number: string | null; whatsapp_opt_in: boolean | null; }; }[]; }'.
+src/services/whatsapp/ShiftReportGenerator.ts(211,9): error TS2353: Object literal may only specify known properties, and 'workpack' does not exist in type 'ConstraintLogWhereInput'.
+src/services/whatsapp/ShiftReportGenerator.ts(223,9): error TS2353: Object literal may only specify known properties, and 'workpack' does not exist in type 'ConstraintLogSelect<DefaultArgs>'.
+src/services/whatsapp/ShiftReportGenerator.ts(270,69): error TS2339: Property 'workpack' does not exist on type '{ id: string; created_at: Date; updated_at: Date; deleted_at: Date | null; status: string; organization_id: string; description: string; title: string; portfolio_id: string | null; ... 14 more ...; is_in_central_register: boolean; }'.

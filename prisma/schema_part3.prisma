@@ -1,0 +1,237 @@
+// WORKPACK
+model Workpack {
+  id              String    @id @default(uuid()) @db.Uuid
+  organization_id String    @db.Uuid
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  site_id         String    @db.Uuid
+  site            Site      @relation(fields: [site_id], references: [id])
+  workpack_number String?   @unique
+  title           String
+  revision        String?   @default("R0")
+  sap_work_order  String?
+  sap_notification String?
+  sap_plant_maintenance_order String?
+  asset_id        String?   @db.Uuid
+  asset           Asset?    @relation(fields: [asset_id], references: [id])
+  unit_id         String?   @db.Uuid
+  unit            Unit?     @relation(fields: [unit_id], references: [id])
+  discipline_id   String?   @db.Uuid
+  discipline      Discipline? @relation(fields: [discipline_id], references: [id])
+  contractor_id   String?   @db.Uuid
+  contractor      Contractor? @relation(fields: [contractor_id], references: [id])
+  work_type       String?
+  priority        String?   @default("Normal")
+  scope_of_work   String?   @db.Text
+  planned_start_date DateTime? @db.Date
+  planned_end_date DateTime? @db.Date
+  estimated_manhours Int?   @default(0)
+  status          WorkpackStatus @default(draft)
+  is_locked       Boolean?  @default(false)
+  locked_at       DateTime?
+  locked_by       String?   @db.Uuid
+  locker          User?     @relation("WorkpackLocker", fields: [locked_by], references: [id])
+  created_by      String    @db.Uuid
+  creator         User      @relation("WorkpackCreator", fields: [created_by], references: [id])
+  updated_by      String?   @db.Uuid
+  updater         User?     @relation("WorkpackUpdater", fields: [updated_by], references: [id])
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  versions              WorkpackVersion[]
+  activities            Activity[]
+  workpack_materials    WorkpackMaterial[]
+  form_instances        FormInstance[]
+  document_instances    DocumentInstance[]
+  joint_integrity_items JointIntegrityItem[]
+  blinds                Blind[]
+  constraints           Constraint[]
+  punch_list_items      PunchListItem[]
+  workflow_transitions  WorkflowTransition[]
+  ai_extraction_jobs    AiExtractionJob[]
+  activity_resources    ActivityResource[]
+
+  @@index([organization_id, status])
+  @@index([organization_id, site_id, status])
+}
+
+model WorkpackVersion {
+  id              String    @id @default(uuid()) @db.Uuid
+  organization_id String    @db.Uuid
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  workpack_id     String    @db.Uuid
+  workpack        Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  revision        String
+  status_at_snapshot String
+  snapshot_json   Json
+  change_summary  String?   @db.Text
+  created_by      String?   @db.Uuid
+  creator         User?     @relation("VersionCreator", fields: [created_by], references: [id])
+  created_at      DateTime  @default(now())
+
+  @@unique([workpack_id, revision])
+}
+
+model Activity {
+  id              String    @id @default(uuid()) @db.Uuid
+  organization_id String    @db.Uuid
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  site_id         String    @db.Uuid
+  site            Site      @relation(fields: [site_id], references: [id])
+  workpack_id     String?   @db.Uuid
+  workpack        Workpack? @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  activity_library_id String? @db.Uuid
+  activity_library ActivityLibrary? @relation(fields: [activity_library_id], references: [id])
+  sequence_number Int?      @default(0)
+  activity_number String?
+  description     String
+  work_category   String?
+  discipline_id   String?   @db.Uuid
+  discipline      Discipline? @relation(fields: [discipline_id], references: [id])
+  duration_hours  Decimal?  @db.Decimal(8, 2) @default(0)
+  planned_start   DateTime? @db.Date
+  planned_end     DateTime? @db.Date
+  actual_start    DateTime? @db.Date
+  actual_end      DateTime? @db.Date
+  progress_percent Int?     @default(0)
+  status          ActivityStatus? @default(not_started)
+  notes           String?   @db.Text
+  
+  // scheduling integration
+  p6_object_id    Int?
+  p6_activity_id  String?
+  is_approved_for_scheduling Boolean? @default(false)
+  
+  created_by      String?   @db.Uuid
+  creator         User?     @relation("ActivityCreator", fields: [created_by], references: [id])
+  updated_by      String?   @db.Uuid
+  updater         User?     @relation("ActivityUpdater", fields: [updated_by], references: [id])
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  predecessors    ActivityRelationship[] @relation("Successor")
+  successors      ActivityRelationship[] @relation("Predecessor")
+  resources       ActivityResource[]
+  materials       WorkpackMaterial[]
+  joint_constructs JointIntegrityItem[] @relation("JointConstruct")
+  joint_destructs JointIntegrityItem[] @relation("JointDestruct")
+  blind_inserts   Blind[] @relation("BlindInsert")
+  blind_removes   Blind[] @relation("BlindRemove")
+  constraints     Constraint[]
+  punch_items     PunchListItem[]
+  udf_values      ActivityUdfValue[]
+
+  @@index([workpack_id, sequence_number])
+}
+
+model ActivityRelationship {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  predecessor_id    String    @db.Uuid
+  predecessor       Activity  @relation("Predecessor", fields: [predecessor_id], references: [id], onDelete: Cascade)
+  successor_id      String    @db.Uuid
+  successor         Activity  @relation("Successor", fields: [successor_id], references: [id], onDelete: Cascade)
+  relationship_type RelationshipType? @default(FS)
+  lag_days          Int?      @default(0)
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("RelationshipCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@unique([predecessor_id, successor_id])
+}
+
+model WorkpackMaterial {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String    @db.Uuid
+  site              Site      @relation(fields: [site_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  activity_id       String?   @db.Uuid
+  activity          Activity? @relation(fields: [activity_id], references: [id])
+  consumable_id     String?   @db.Uuid
+  consumable        Consumable? @relation(fields: [consumable_id], references: [id])
+
+  material_number   String?
+  description       String
+  unit_of_measure   String
+  specifications    String?   @db.Text
+  
+  quantity_required Decimal?  @db.Decimal(12, 3) @default(0)
+  quantity_issued   Decimal?  @db.Decimal(12, 3) @default(0)
+  quantity_returned Decimal?  @db.Decimal(12, 3) @default(0)
+  unit_cost         Decimal?  @db.Decimal(12, 2)
+  status            MaterialStatus? @default(pending)
+  required_date     DateTime? @db.Date
+  issue_reference   String?
+  is_critical       Boolean?  @default(false)
+  notes             String?   @db.Text
+
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("MaterialCreator", fields: [created_by], references: [id])
+  updated_by        String?   @db.Uuid
+  updater           User?     @relation("MaterialUpdater", fields: [updated_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  ai_suggested_items AiSuggestedItem[]
+
+  @@index([workpack_id, status])
+  @@index([consumable_id])
+}
+
+// AI SETTINGS
+model AiProviderSetting {
+  id              String    @id @default(uuid()) @db.Uuid
+  organization_id String    @db.Uuid @unique
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  provider        String?   @default("anthropic")
+  model           String?
+  api_key_encrypted String? @db.Text
+  api_endpoint    String?
+  api_version     String?
+  max_tokens      Int?      @default(4096)
+  temperature     Float?    @default(0.1)
+  is_active       Boolean?  @default(false)
+  extraction_prompt String? @db.Text
+  fallback_provider String?
+  fallback_api_key_encrypted String? @db.Text
+  fallback_model  String?
+  created_by      String?   @db.Uuid
+  creator         User?     @relation("AiSettingCreator", fields: [created_by], references: [id])
+  updated_by      String?   @db.Uuid
+  updater         User?     @relation("AiSettingUpdater", fields: [updated_by], references: [id])
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+}
+
+model ActivityResource {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id])
+  activity_id       String    @db.Uuid
+  activity          Activity  @relation(fields: [activity_id], references: [id], onDelete: Cascade)
+  resource_id       String?   @db.Uuid
+  resource          Resource? @relation(fields: [resource_id], references: [id])
+  resource_type_id  String?   @db.Uuid
+  resource_type     ResourceType? @relation(fields: [resource_type_id], references: [id])
+  contractor_id     String?   @db.Uuid
+  contractor        Contractor? @relation(fields: [contractor_id], references: [id])
+  
+  planned_hours     Decimal?  @db.Decimal(8, 2) @default(0)
+  actual_hours      Decimal?  @db.Decimal(8, 2) @default(0)
+  headcount         Int?      @default(1)
+  assigned_date     DateTime? @db.Date
+  notes             String?   @db.Text
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("ActResourceCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+}

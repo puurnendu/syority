@@ -1,0 +1,100 @@
+services:
+  app:
+    restart: always
+    # NOTE: "ports: []" does NOT clear ports on merge — compose appends lists.
+    # "!reset" (Compose v2.24+) actually removes the host port mapping so the
+    # app is only reachable through nginx on the internal network.
+    ports: !reset []
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - static_assets:/app/.next/static
+      - public_assets:/app/public
+      - uploads_data:/app/uploads
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # BullMQ background workers (schedule recalculation, report delivery).
+  # Runs from the builder stage, which has full node_modules + tsx + the
+  # generated Prisma client. Without this service, queued jobs never execute.
+  worker:
+    build:
+      context: .
+      target: builder
+    restart: always
+    command: ["npx", "tsx", "src/workers/index.ts"]
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Migrator is defined in docker-compose.yml (target: migrator) and runs
+  # automatically before `app` via service_completed_successfully.
+  # Manual re-run:  docker compose <files> run --rm migrator
+  # Optional seed:  docker compose <files> run --rm --entrypoint "npx tsx prisma/seed.ts" --target builder ...
+  # For seed from builder image:
+  seeder:
+    build:
+      context: .
+      target: builder
+    profiles: ["tools"]
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["npx", "tsx", "prisma/seed.ts"]
+    restart: "no"
+
+  db:
+    restart: always
+
+  redis:
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+      - static_assets:/usr/share/nginx/html/_next/static:ro
+      - public_assets:/usr/share/nginx/html/public:ro
+    environment:
+      - DOMAIN=${DOMAIN}
+    depends_on:
+      - app
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  static_assets:
+  public_assets:
+  uploads_data:

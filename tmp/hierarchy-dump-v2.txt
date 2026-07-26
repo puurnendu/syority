@@ -1,0 +1,15 @@
+--- PLANTS ---
+PLANT: Ammonia | ID: 901aabc0-7890-4eb3-8038-49b6b0367cbe | SITE_ID: d27d8c98-6193-427d-b3b0-fb7bc2568898 | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+PLANT: Babrala | ID: 9aa8ecc7-a55b-48bf-8af8-e4e0c1b4fd9c | SITE_ID: ba490dbf-0f1a-4526-ae11-52a5292b2160 | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+PLANT: Project | ID: b4dd4ea3-e8a1-432c-8c12-680ee0eec45a | SITE_ID: d27d8c98-6193-427d-b3b0-fb7bc2568898 | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+
+--- UNITS ---
+UNIT: Project | ID: f7104298-00f5-4616-941d-9fcc28a00ea9 | SITE_ID: d27d8c98-6193-427d-b3b0-fb7bc2568898 | PLANT_ID: b4dd4ea3-e8a1-432c-8c12-680ee0eec45a | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+
+--- SITES ---
+SITE: Demo Site | ID: ba490dbf-0f1a-4526-ae11-52a5292b2160 | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+SITE: Kwinana Refinery | ID: 459df679-76c8-49fc-bcba-8e6674beb56a | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227
+SITE: AURIANOA HQ | ID: 3c082286-0f0e-4f5d-986a-773572d2f50e | ORG: 8add6a1a-52d9-4535-b854-f75f4ac5027e
+SITE: Acme Gulf Coast | ID: 3e99fe3d-ac38-4f1e-9e30-2304bab27ceb | ORG: 23661409-e520-4cf8-99e0-fb5053d46706
+SITE: SYORITY HQ | ID: a51d296e-6490-4a16-9c52-dc7ff9df750e | ORG: 3dd4978c-4da5-4d5e-83ab-7218f1ab0786
+SITE: Babrala | ID: d27d8c98-6193-427d-b3b0-fb7bc2568898 | ORG: 050e19a7-8c49-45f3-b03b-b46cfedde227

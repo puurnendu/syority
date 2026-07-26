@@ -1,0 +1,257 @@
+// FORMS
+model FormTemplate {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  name              String
+  slug              String
+  form_type         String
+  description       String?   @db.Text
+  schema_json       Json
+  is_active         Boolean?  @default(true)
+  requires_approval Boolean?  @default(false)
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("FormTemplateCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  versions          FormTemplateVersion[]
+  instances         FormInstance[]
+
+  @@unique([organization_id, slug])
+}
+
+model FormTemplateVersion {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  form_template_id  String    @db.Uuid
+  form_template     FormTemplate @relation(fields: [form_template_id], references: [id], onDelete: Cascade)
+  version_number    Int
+  schema_json       Json
+  change_notes      String?   @db.Text
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("FormTemplateVersionCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+
+  @@unique([form_template_id, version_number])
+}
+
+model FormInstance {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String    @db.Uuid
+  site              Site      @relation(fields: [site_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  form_template_id  String    @db.Uuid
+  form_template     FormTemplate @relation(fields: [form_template_id], references: [id])
+  template_version  Int
+  title             String?
+  sequence_number   Int?      @default(0)
+  status            FormStatus? @default(draft)
+  submitted_by      String?   @db.Uuid
+  submitter         User?     @relation("FormInstanceSubmitter", fields: [submitted_by], references: [id])
+  submitted_at      DateTime?
+  approved_by       String?   @db.Uuid
+  approver          User?     @relation("FormInstanceApprover", fields: [approved_by], references: [id])
+  approved_at       DateTime?
+  rejection_reason  String?   @db.Text
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("FormInstanceCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  entries           FormEntry[]
+}
+
+model FormEntry {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  form_instance_id  String    @db.Uuid
+  form_instance     FormInstance @relation(fields: [form_instance_id], references: [id], onDelete: Cascade)
+  section_id        String
+  field_id          String
+  field_type        String
+  value             String?   @db.Text
+  value_type        String?   @default("string")
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("FormEntryCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@unique([form_instance_id, section_id, field_id])
+}
+
+// DOCUMENTS
+model DocumentTemplate {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  name              String
+  document_type     String?
+  description       String?   @db.Text
+  default_sections  Json?
+  is_active         Boolean?  @default(true)
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("DocumentTemplateCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  instances         DocumentInstance[]
+}
+
+model DocumentInstance {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String    @db.Uuid
+  site              Site      @relation(fields: [site_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  document_template_id String? @db.Uuid
+  document_template DocumentTemplate? @relation(fields: [document_template_id], references: [id])
+  tab_title         String
+  sequence_number   Int?      @default(0)
+  content_html      String?   @db.Text
+  document_type     String?
+  revision          String?   @default("R0")
+  is_locked         Boolean?  @default(false)
+  include_in_pdf    Boolean?  @default(true)
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("DocumentInstanceCreator", fields: [created_by], references: [id])
+  updated_by        String?   @db.Uuid
+  updater           User?     @relation("DocumentInstanceUpdater", fields: [updated_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  @@index([workpack_id, sequence_number])
+}
+
+model Attachment {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String?   @db.Uuid
+  site              Site?     @relation(fields: [site_id], references: [id])
+  reference_type    String
+  reference_id      String    @db.Uuid
+  original_filename String
+  stored_filename   String
+  storage_disk      String?   @default("s3")
+  storage_path      String
+  mime_type         String?
+  file_size_bytes   BigInt?   @default(0)
+  file_extension    String?
+  category          String?
+  description       String?   @db.Text
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("AttachmentCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  @@index([reference_type, reference_id])
+}
+
+model WorkflowTransition {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  from_status       String?
+  to_status         String
+  action            WorkflowAction?
+  comment           String?   @db.Text
+  comment_required  Boolean?  @default(false)
+  performed_by      String    @db.Uuid
+  performer         User      @relation("TransitionPerformer", fields: [performed_by], references: [id])
+  performed_at      DateTime? @default(now())
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([workpack_id, performed_at])
+}
+
+model AuditLog {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String?   @db.Uuid
+  site              Site?     @relation(fields: [site_id], references: [id])
+  auditable_type    String
+  auditable_id      String    @db.Uuid
+  event             String
+  old_values        Json?
+  new_values        Json?
+  changed_fields    Json?
+  user_id           String?   @db.Uuid
+  user_name         String?
+  user_email        String?
+  ip_address        String?
+  user_agent        String?
+  url               String?
+  method            String?
+  context           String?
+  session_id        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+
+  @@index([auditable_type, auditable_id])
+  @@index([organization_id, created_at])
+  @@index([user_id, created_at])
+}
+
+model Notification {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  user_id           String    @db.Uuid
+  user              User      @relation("NotificationRecipient", fields: [user_id], references: [id], onDelete: Cascade)
+  type              String
+  title             String
+  message           String?   @db.Text
+  notifiable_type   String?
+  notifiable_id     String?   @db.Uuid
+  action_url        String?
+  is_read           Boolean?  @default(false)
+  read_at           DateTime?
+  triggered_by      String?   @db.Uuid
+  triggerer         User?     @relation("NotificationTrigger", fields: [triggered_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([user_id, is_read, created_at])
+  @@index([notifiable_type, notifiable_id])
+}
+
+model OrganizationDocumentSetting {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid @unique
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  company_name      String?
+  logo_path         String?
+  primary_color     String?   @default("#003366")
+  secondary_color   String?   @default("#666666")
+  header_html       String?   @db.Text
+  footer_html       String?   @db.Text
+  show_page_numbers Boolean?  @default(true)
+  show_logo_all_pages Boolean? @default(true)
+  enable_watermark  Boolean?  @default(false)
+  watermark_text    String?
+  watermark_color   String?   @default("#CCCCCC")
+  number_prefix     String?   @default("WP")
+  number_format     String?   @default("{PREFIX}-{YEAR}-{SEQ:5}")
+  page_size         String?   @default("A4")
+  page_orientation  String?   @default("portrait")
+  margins           Json?
+  updated_by        String?   @db.Uuid
+  updater           User?     @relation("DocSettingUpdater", fields: [updated_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+}

@@ -1,0 +1,19 @@
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+node.exe : Error: Cannot convert 
+undefined or null to object
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~
+    + CategoryInfo          : Not 
+   Specified: (Error: Cannot c..  
+  . null to object:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 

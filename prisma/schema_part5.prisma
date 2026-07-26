@@ -1,0 +1,451 @@
+// JOINT INTEGRITY
+model JointIntegrityItem {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String    @db.Uuid
+  site              Site      @relation(fields: [site_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  activity_id       String?   @db.Uuid
+  activity          Activity? @relation(fields: [activity_id], references: [id])
+
+  // POD 1
+  joint_number      String
+  tag_id            String?
+  drawing_number    String?
+  pipeline_number   String?
+  pand_id_number    String?
+  specification     String?
+  rating            String?
+  flange_size       String?
+  construct_operation_id String? @db.Uuid
+  construct_activity Activity? @relation("JointConstruct", fields: [construct_operation_id], references: [id])
+  destruct_operation_id String? @db.Uuid
+  destruct_activity Activity? @relation("JointDestruct", fields: [destruct_operation_id], references: [id])
+
+  // POD 2
+  flange_material   String?
+  flange_reference_standard String?
+  gasket_material   String?
+  gasket_reference_standard String?
+
+  // POD 3
+  bolt_material     String?
+  bolt_reference_standard String?
+  bolt_diameter     String?
+  bolt_length       String?
+  bolt_quantity     Int?
+  tightening_method TighteningMethod?
+
+  // POD 4
+  torque_tightening_value Decimal? @db.Decimal(10, 2)
+  torque_pump_pressure Decimal? @db.Decimal(10, 2)
+  torque_tool_reference String?
+  tensioning_pressure Decimal? @db.Decimal(10, 2)
+  tensioning_residual_bolt_stress Decimal? @db.Decimal(10, 2)
+  tensioning_pass   String?
+  tensioning_tool_reference String?
+
+  status            JointStatus? @default(pending)
+  assembled_by      String?   @db.Uuid
+  assembler         User?     @relation("JointAssembler", fields: [assembled_by], references: [id])
+  assembled_at      DateTime?
+  inspected_by      String?   @db.Uuid
+  inspector         User?     @relation("JointInspector", fields: [inspected_by], references: [id])
+  inspected_at      DateTime?
+  signed_off_by     String?   @db.Uuid
+  sign_off_user     User?     @relation("JointSignOff", fields: [signed_off_by], references: [id])
+  signed_off_at     DateTime?
+  notes             String?   @db.Text
+
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("JointCreator", fields: [created_by], references: [id])
+  updated_by        String?   @db.Uuid
+  updater           User?     @relation("JointUpdater", fields: [updated_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  @@unique([workpack_id, joint_number])
+  @@index([workpack_id, status])
+  @@index([workpack_id, activity_id])
+}
+
+// BLINDS
+model Blind {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String    @db.Uuid
+  site              Site      @relation(fields: [site_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  activity_id       String?   @db.Uuid
+  activity          Activity? @relation(fields: [activity_id], references: [id])
+
+  blind_number      String
+  blind_type        BlindType?
+  system            String?
+  pipeline_number   String?
+  pand_id_number    String?
+  location          String?   @db.Text
+  area              String?
+
+  flange_size       String?
+  rating            String?
+  blind_test_type   BlindTestType?
+  blind_test_type_description String?
+
+  safe_isolation_confirmed Boolean? @default(false)
+  safe_isolation_reference String?
+
+  insert_activity_id  String? @db.Uuid
+  insert_activity     Activity? @relation("BlindInsert", fields: [insert_activity_id], references: [id])
+  inserted_by         String? @db.Uuid
+  inserter          User?   @relation("BlindInserter", fields: [inserted_by], references: [id])
+  inserted_at         DateTime?
+  insert_witness      String?
+
+  remove_activity_id  String? @db.Uuid
+  remove_activity     Activity? @relation("BlindRemove", fields: [remove_activity_id], references: [id])
+  removed_by          String? @db.Uuid
+  remover             User?   @relation("BlindRemover", fields: [removed_by], references: [id])
+  removed_at          DateTime?
+  remove_witness      String?
+
+  status            BlindStatus? @default(pending)
+  notes             String?   @db.Text
+  triage_reference  String?
+
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("BlindCreator", fields: [created_by], references: [id])
+  updated_by        String?   @db.Uuid
+  updater           User?     @relation("BlindUpdater", fields: [updated_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  @@unique([workpack_id, blind_number])
+  @@index([workpack_id, status])
+}
+
+// CONSTRAINTS
+model Constraint {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String    @db.Uuid
+  site              Site      @relation(fields: [site_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  activity_id       String?   @db.Uuid
+  activity          Activity? @relation(fields: [activity_id], references: [id])
+
+  constraint_number String?
+  title             String
+  description       String?   @db.Text
+  constraint_type   ConstraintType?
+  priority          Priority? @default(high)
+  owner_id          String?   @db.Uuid
+  owner             User?     @relation("ConstraintOwner", fields: [owner_id], references: [id])
+  target_resolution_date DateTime? @db.Date
+  actual_resolution_date DateTime? @db.Date
+  status            ConstraintStatus? @default(open)
+  resolution_notes  String?   @db.Text
+
+  raised_by         String?   @db.Uuid
+  raiser            User?     @relation("ConstraintRaiser", fields: [raised_by], references: [id])
+  raised_at         DateTime? @default(now())
+  closed_by         String?   @db.Uuid
+  closer            User?     @relation("ConstraintCloser", fields: [closed_by], references: [id])
+  closed_at         DateTime?
+
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("ConstraintCreator", fields: [created_by], references: [id])
+  updated_by        String?   @db.Uuid
+  updater           User?     @relation("ConstraintUpdater", fields: [updated_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  @@index([workpack_id, status])
+  @@index([workpack_id, constraint_type, status])
+  @@index([owner_id, status])
+}
+
+// PUNCH LIST
+model PunchListItem {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String    @db.Uuid
+  site              Site      @relation(fields: [site_id], references: [id])
+  workpack_id       String    @db.Uuid
+  workpack          Workpack  @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+  activity_id       String?   @db.Uuid
+  activity          Activity? @relation(fields: [activity_id], references: [id])
+
+  item_number       String?
+  title             String
+  description       String?   @db.Text
+  category          PunchCategory?
+  discipline_id     String?   @db.Uuid
+  discipline        Discipline? @relation(fields: [discipline_id], references: [id])
+  
+  raised_by         String?   @db.Uuid
+  raiser            User?     @relation("PunchItemRaiser", fields: [raised_by], references: [id])
+  raised_at         DateTime? @default(now())
+  location          String?
+  drawing_reference String?
+
+  assigned_to       String?   @db.Uuid
+  assignee          User?     @relation("PunchItemAssignee", fields: [assigned_to], references: [id])
+  target_close_date DateTime? @db.Date
+
+  status            PunchStatus? @default(open)
+  closed_by         String?   @db.Uuid
+  closer            User?     @relation("PunchItemCloser", fields: [closed_by], references: [id])
+  closed_at         DateTime?
+  close_out_notes   String?   @db.Text
+  accepted_by       String?   @db.Uuid
+  accepter          User?     @relation("PunchItemAccepter", fields: [accepted_by], references: [id])
+  accepted_at       DateTime?
+
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("PunchItemCreator", fields: [created_by], references: [id])
+  updated_by        String?   @db.Uuid
+  updater           User?     @relation("PunchItemUpdater", fields: [updated_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  @@index([workpack_id, status])
+  @@index([workpack_id, category, status])
+}
+
+// AI EXTRACTION PIPELINE
+model AiExtractionJob {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String?   @db.Uuid
+  site              Site?     @relation(fields: [site_id], references: [id])
+  requested_by      String    @db.Uuid
+  requester         User      @relation("AiJobRequester", fields: [requested_by], references: [id])
+  workpack_id       String?   @db.Uuid
+  workpack          Workpack? @relation(fields: [workpack_id], references: [id])
+  status            AiJobStatus?
+  provider_used     String?
+  model_used        String?
+  started_at        DateTime?
+  completed_at      DateTime?
+  processing_seconds Int?
+  input_tokens      Int?
+  output_tokens     Int?
+  estimated_cost_usd Decimal? @db.Decimal(10, 6)
+  error_message     String?   @db.Text
+  retry_count       Int?      @default(0)
+  next_retry_at     DateTime?
+  work_type_hint    String?
+  discipline_hint   String?
+  additional_instructions String? @db.Text
+
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("AiJobCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  result            AiExtractionResult?
+  suggested_items   AiSuggestedItem[]
+
+  @@index([organization_id, status])
+  @@index([requested_by, created_at])
+}
+
+model AiExtractionResult {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  ai_extraction_job_id String @unique @db.Uuid
+  job               AiExtractionJob @relation(fields: [ai_extraction_job_id], references: [id], onDelete: Cascade)
+  raw_ai_response   String?   @db.Text
+  extracted_data_json Json
+  planner_review_json Json?
+  review_status     DocumentReviewStatus? @default(pending_review)
+  reviewed_by       String?   @db.Uuid
+  reviewer          User?     @relation("AiResultReviewer", fields: [reviewed_by], references: [id])
+  reviewed_at       DateTime?
+  review_notes      String?   @db.Text
+  overall_confidence Float?
+  field_confidence_json Json?
+  low_confidence_fields Json?
+  materials_extracted Int?    @default(0)
+  materials_matched_catalog Int? @default(0)
+  materials_unmatched Int?    @default(0)
+
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+}
+
+model AiSuggestedItem {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String?   @db.Uuid
+  site              Site?     @relation(fields: [site_id], references: [id])
+  ai_extraction_job_id String @db.Uuid
+  job               AiExtractionJob @relation(fields: [ai_extraction_job_id], references: [id], onDelete: Cascade)
+  workpack_material_id String? @db.Uuid
+  material          WorkpackMaterial? @relation(fields: [workpack_material_id], references: [id])
+  
+  suggested_name    String
+  suggested_material_number String?
+  suggested_category String?
+  suggested_uom     String?
+  suggested_specifications String? @db.Text
+  suggested_quantity Decimal? @db.Decimal(12, 3)
+  source_document   String?
+  confidence_score  Float?
+  ai_reasoning      String?   @db.Text
+  
+  status            SuggestedItemStatus? @default(pending_review)
+  resolved_consumable_id String? @db.Uuid
+  consumable        Consumable? @relation(fields: [resolved_consumable_id], references: [id])
+  
+  reviewed_by       String?   @db.Uuid
+  reviewer          User?     @relation("AiItemReviewer", fields: [reviewed_by], references: [id])
+  reviewed_at       DateTime?
+  review_notes      String?   @db.Text
+  
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([organization_id, status])
+}
+
+// ACTIVITY LIBRARY & UDFS
+model ActivityLibrary {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  name              String
+  description       String?   @db.Text
+  discipline_id     String?   @db.Uuid
+  discipline        Discipline? @relation(fields: [discipline_id], references: [id])
+  duration_hours    Decimal?  @db.Decimal(8, 2)
+  is_active         Boolean?  @default(true)
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("ActivityLibraryCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+  
+  activities        Activity[]
+  udf_defaults      ActivityLibraryUdfDefault[]
+}
+
+model ActivityUdfDefinition {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  name              String
+  code              String
+  type              String // text, number, date, boolean, select
+  is_active         Boolean?  @default(true)
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("UdfDefCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+  
+  options           ActivityUdfOption[]
+  defaults          ActivityLibraryUdfDefault[]
+  values            ActivityUdfValue[]
+}
+
+model ActivityUdfOption {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  udf_definition_id String    @db.Uuid
+  definition        ActivityUdfDefinition @relation(fields: [udf_definition_id], references: [id], onDelete: Cascade)
+  value             String
+  label             String
+  is_active         Boolean?  @default(true)
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("UdfOptCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+  
+  udf_defaults      ActivityLibraryUdfDefault[]
+  udf_values        ActivityUdfValue[]
+}
+
+model ActivityLibraryUdfDefault {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  activity_library_id String  @db.Uuid
+  library           ActivityLibrary @relation(fields: [activity_library_id], references: [id], onDelete: Cascade)
+  udf_definition_id String    @db.Uuid
+  definition        ActivityUdfDefinition @relation(fields: [udf_definition_id], references: [id], onDelete: Cascade)
+  udf_option_id     String?   @db.Uuid
+  option            ActivityUdfOption? @relation(fields: [udf_option_id], references: [id])
+  value_string      String?
+  value_number      Decimal?  @db.Decimal(10, 2)
+  value_date        DateTime? @db.Date
+  value_boolean     Boolean?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+}
+
+model ActivityUdfValue {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  activity_id       String    @db.Uuid
+  activity          Activity  @relation(fields: [activity_id], references: [id], onDelete: Cascade)
+  udf_definition_id String    @db.Uuid
+  definition        ActivityUdfDefinition @relation(fields: [udf_definition_id], references: [id], onDelete: Cascade)
+  udf_option_id     String?   @db.Uuid
+  option            ActivityUdfOption? @relation(fields: [udf_option_id], references: [id])
+  value_string      String?
+  value_number      Decimal?  @db.Decimal(10, 2)
+  value_date        DateTime? @db.Date
+  value_boolean     Boolean?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@unique([activity_id, udf_definition_id])
+}
+
+model ScheduleExportJob {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String?   @db.Uuid
+  site              Site?     @relation(fields: [site_id], references: [id])
+  status            String
+  file_path         String?
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("ExportJobCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+}
+
+model ScheduleImportJob {
+  id                String    @id @default(uuid()) @db.Uuid
+  organization_id   String    @db.Uuid
+  organization      Organization @relation(fields: [organization_id], references: [id])
+  site_id           String?   @db.Uuid
+  site              Site?     @relation(fields: [site_id], references: [id])
+  status            String
+  file_path         String?
+  created_by        String?   @db.Uuid
+  creator           User?     @relation("ImportJobCreator", fields: [created_by], references: [id])
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+}

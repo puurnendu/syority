@@ -1,0 +1,243 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                      String    @id @default(uuid()) @db.Uuid
+  name                    String
+  slug                    String?   @unique
+  industry                String?
+  country                 String?
+  timezone                String?   @default("UTC")
+  logo_path               String?
+  is_active               Boolean?  @default(true)
+  settings                Json?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+  deleted_at              DateTime?
+
+  sites                   Site[]
+  users                   User[]
+  roles                   Role[]
+  workpacks               Workpack[]
+  plants                  Plant[]
+  units                   Unit[]
+  systems                 System[]
+  assets                  Asset[]
+  disciplines             Discipline[]
+  contractors             Contractor[]
+  resource_types          ResourceType[]
+  resources               Resource[]
+  consumables             Consumable[]
+  ai_provider_settings    AiProviderSetting?
+  activity_library        ActivityLibrary[]
+  ai_extraction_jobs      AiExtractionJob[]
+  ai_extraction_results   AiExtractionResult[]
+  ai_suggested_items      AiSuggestedItem[]
+  joint_integrity_items   JointIntegrityItem[]
+  blinds                  Blind[]
+  constraints             Constraint[]
+  punch_list_items        PunchListItem[]
+  activities              Activity[]
+  workpack_materials      WorkpackMaterial[]
+  activity_resources      ActivityResource[]
+  form_templates          FormTemplate[]
+  form_instances          FormInstance[]
+  form_entries            FormEntry[]
+  document_templates      DocumentTemplate[]
+  document_instances      DocumentInstance[]
+  attachments             Attachment[]
+  workflow_transitions    WorkflowTransition[]
+  audit_logs              AuditLog[]
+  notifications           Notification[]
+  org_document_settings   OrganizationDocumentSetting?
+  activity_udf_defs       ActivityUdfDefinition[]
+  activity_udf_options    ActivityUdfOption[]
+  user_roles              UserRole[]
+  form_template_versions  FormTemplateVersion[]
+  workpack_versions       WorkpackVersion[]
+  activity_relationships  ActivityRelationship[]
+  schedule_export_jobs    ScheduleExportJob[]
+  schedule_import_jobs    ScheduleImportJob[]
+  activity_library_udf_defaults ActivityLibraryUdfDefault[]
+  activity_udf_values     ActivityUdfValue[]
+
+  @@index([is_active])
+}
+
+model Site {
+  id              String    @id @default(uuid()) @db.Uuid
+  organization_id String    @db.Uuid
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  name            String
+  code            String?
+  location        String?
+  timezone        String?   @default("UTC")
+  is_active       Boolean?  @default(true)
+  created_by      String?   @db.Uuid
+  creator         User?     @relation("SiteCreator", fields: [created_by], references: [id])
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  workpacks       Workpack[]
+  users           User[]
+  plants          Plant[]
+  units           Unit[]
+  systems         System[]
+  assets          Asset[]
+  contractors     Contractor[]
+  resources       Resource[]
+  consumables     Consumable[]
+  form_instances  FormInstance[]
+  document_instances DocumentInstance[]
+  attachments     Attachment[]
+  joint_integrity_items JointIntegrityItem[]
+  blinds          Blind[]
+  constraints     Constraint[]
+  punch_list_items PunchListItem[]
+  ai_extraction_jobs AiExtractionJob[]
+  ai_suggested_items AiSuggestedItem[]
+  audit_logs      AuditLog[]
+  activities      Activity[]
+  workpack_materials WorkpackMaterial[]
+  user_roles      UserRole[]
+  schedule_export_jobs ScheduleExportJob[]
+  schedule_import_jobs ScheduleImportJob[]
+
+  @@unique([organization_id, code])
+}
+
+model Role {
+  id              String    @id @default(uuid()) @db.Uuid
+  organization_id String    @db.Uuid
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  name            String
+  slug            String
+  permissions     Json?
+  is_system       Boolean?  @default(false)
+  created_by      String?   @db.Uuid
+  creator         User?     @relation("RoleCreator", fields: [created_by], references: [id])
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  user_roles      UserRole[]
+
+  @@unique([organization_id, slug])
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  organization_id String    @db.Uuid
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  site_id         String?   @db.Uuid
+  site            Site?     @relation(fields: [site_id], references: [id])
+  name            String
+  email           String    @unique
+  employee_id     String?
+  password        String
+  position        String?
+  phone           String?
+  avatar_path     String?
+  is_active       Boolean?  @default(true)
+  last_login_at   DateTime?
+  remember_token  String?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  user_roles      UserRole[]
+
+  created_sites   Site[]    @relation("SiteCreator")
+  created_roles   Role[]    @relation("RoleCreator")
+  assigned_user_roles UserRole[] @relation("RoleAssignedBy")
+
+  created_workpacks Workpack[] @relation("WorkpackCreator")
+  updated_workpacks Workpack[] @relation("WorkpackUpdater")
+  locked_workpacks  Workpack[] @relation("WorkpackLocker")
+
+  created_activities Activity[] @relation("ActivityCreator")
+  updated_activities Activity[] @relation("ActivityUpdater")
+
+  created_constraints Constraint[] @relation("ConstraintCreator")
+  updated_constraints Constraint[] @relation("ConstraintUpdater")
+  owned_constraints Constraint[] @relation("ConstraintOwner")
+  raised_constraints Constraint[] @relation("ConstraintRaiser")
+  closed_constraints Constraint[] @relation("ConstraintCloser")
+
+  raised_punch_items PunchListItem[] @relation("PunchItemRaiser")
+  assigned_punch_items PunchListItem[] @relation("PunchItemAssignee")
+  closed_punch_items PunchListItem[] @relation("PunchItemCloser")
+  accepted_punch_items PunchListItem[] @relation("PunchItemAccepter")
+  created_punch_items PunchListItem[] @relation("PunchItemCreator")
+  updated_punch_items PunchListItem[] @relation("PunchItemUpdater")
+
+  ai_jobs_requested AiExtractionJob[] @relation("AiJobRequester")
+  ai_jobs_created   AiExtractionJob[] @relation("AiJobCreator")
+  
+  ai_results_reviewed AiExtractionResult[] @relation("AiResultReviewer")
+  ai_items_reviewed AiSuggestedItem[] @relation("AiItemReviewer")
+
+  created_plants Plant[] @relation("PlantCreator")
+  created_units Unit[] @relation("UnitCreator")
+  created_systems System[] @relation("SystemCreator")
+  created_assets Asset[] @relation("AssetCreator")
+  created_disciplines Discipline[] @relation("DisciplineCreator")
+  created_contractors Contractor[] @relation("ContractorCreator")
+  created_resource_types ResourceType[] @relation("ResourceTypeCreator")
+  created_resources Resource[] @relation("ResourceCreator")
+  
+  created_consumables Consumable[] @relation("ConsumableCreator")
+  updated_consumables Consumable[] @relation("ConsumableUpdater")
+
+  created_materials WorkpackMaterial[] @relation("MaterialCreator")
+  updated_materials WorkpackMaterial[] @relation("MaterialUpdater")
+
+  created_form_templates FormTemplate[] @relation("FormTemplateCreator")
+  created_form_template_versions FormTemplateVersion[] @relation("FormTemplateVersionCreator")
+  created_form_instances FormInstance[] @relation("FormInstanceCreator")
+  submitted_form_instances FormInstance[] @relation("FormInstanceSubmitter")
+  approved_form_instances FormInstance[] @relation("FormInstanceApprover")
+  created_form_entries FormEntry[] @relation("FormEntryCreator")
+
+  created_document_templates DocumentTemplate[] @relation("DocumentTemplateCreator")
+  created_document_instances DocumentInstance[] @relation("DocumentInstanceCreator")
+  updated_document_instances DocumentInstance[] @relation("DocumentInstanceUpdater")
+  created_attachments Attachment[] @relation("AttachmentCreator")
+
+  performed_transitions WorkflowTransition[] @relation("TransitionPerformer")
+  notifications_received Notification[] @relation("NotificationRecipient")
+  notifications_triggered Notification[] @relation("NotificationTrigger")
+
+  assembled_joints JointIntegrityItem[] @relation("JointAssembler")
+  inspected_joints JointIntegrityItem[] @relation("JointInspector")
+  signed_off_joints JointIntegrityItem[] @relation("JointSignOff")
+  created_joints JointIntegrityItem[] @relation("JointCreator")
+  updated_joints JointIntegrityItem[] @relation("JointUpdater")
+
+  inserted_blinds Blind[] @relation("BlindInserter")
+  removed_blinds Blind[] @relation("BlindRemover")
+  created_blinds Blind[] @relation("BlindCreator")
+  updated_blinds Blind[] @relation("BlindUpdater")
+
+  created_ai_settings AiProviderSetting[] @relation("AiSettingCreator")
+  updated_ai_settings AiProviderSetting[] @relation("AiSettingUpdater")
+
+  created_versions WorkpackVersion[] @relation("VersionCreator")
+  created_relationships ActivityRelationship[] @relation("RelationshipCreator")
+  created_resources_act ActivityResource[] @relation("ActResourceCreator")
+
+  created_activity_libraries ActivityLibrary[] @relation("ActivityLibraryCreator")
+  created_udf_defs ActivityUdfDefinition[] @relation("UdfDefCreator")
+  created_udf_opts ActivityUdfOption[] @relation("UdfOptCreator")
+  updated_doc_settings OrganizationDocumentSetting[] @relation("DocSettingUpdater")
+  created_export_jobs ScheduleExportJob[] @relation("ExportJobCreator")
+  created_import_jobs ScheduleImportJob[] @relation("ImportJobCreator")
+}

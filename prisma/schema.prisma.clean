@@ -1,0 +1,2857 @@
+generator client { 
+  provider = "prisma-client-js" 
+} 
+ 
+datasource db { 
+  provider = "postgresql" 
+  url      =    env("DATABASE_URL") 
+} 
+ 
+model Organization { 
+  id                    String               @id @default(uuid()) @db.Uuid 
+  name                  String 
+  slug                  String?              @unique 
+  industry              String? 
+  country               String? 
+  timezone              String?              @default("UTC") 
+  logo_path             String? 
+  logoUrl               String?              @map("logo_url") 
+  logoWidthPx           Int?                 @default(140) @map("logo_width_px") 
+  logoHeightPx          Int?                 @default(40) @map("logo_height_px") 
+  sidebarLogoUrl        String?              @map("sidebar_logo_url") 
+  sidebarLogoWidthPx    Int?                 @default(120) @map("sidebar_logo_width_px") 
+  sidebarLogoHeightPx   Int?                 @default(36) @map("sidebar_logo_height_px") 
+  faviconUrl            String?              @map("favicon_url") 
+  primaryColor          String?              @default("#4F46E5") @map("primary_color") 
+  platformName          String?              @default("SYORITY") @map("platform_name") 
+  is_active             Boolean?             @default(true) 
+  settings              Json? 
+  activity_id_increment Int                  @default(3) 
+  workpackPdfColumns    Json?                @default("{\"showWindow\": true, \"showDuration\": true, \"showManpower\": false, \"showContractor\": true, \"showElectrical\": true, \"showPredecessor\": false, \"showScaffolding\": true}") @map("workpack_pdf_columns") 
+  created_at            DateTime             @default(now()) 
+  updated_at            DateTime             @updatedAt 
+  deleted_at            DateTime? 
+  contract_start_date   DateTime? 
+  contract_end_date     DateTime? 
+  contract_value        Float? 
+  currency              String?              @default("USD") 
+  billing_cycle         String?              @default("annual") 
+  payment_status        String?              @default("active") 
+  last_payment_date     DateTime? 
+  last_payment_amount   Float? 
+  payment_notes         String? 
+  plan_tier             String?              @default("professional") 
+  max_users             Int?                 @default(15) 
+  max_sites             Int?                 @default(3) 
+  feature_flags         Json?                @default("{}") 
+  status                String?              @default("active") 
+  suspended_at          DateTime? 
+  suspension_reason     String? 
+  terminated_at         DateTime? 
+  onboarded_by          String? 
+  onboarded_at          DateTime? 
+  account_manager       String? 
+  account_manager_email String? 
+  technical_contact     String? 
+  technical_email       String? 
+  notes                 String? 
+  deployment_model      String?              @default("shared") 
+  vps_hostname          String? 
+  vps_region            String? 
+  assets                Asset[] 
+  contractors           Contractor[] 
+  disciplines           Discipline[] 
+  plants                Plant[] 
+  resources             Resource[] 
+  resource_types        ResourceType[] 
+  roles                 Role[] 
+  sites                 Site[] 
+  systems               System[] 
+  units                 Unit[] 
+  users                 User[] 
+  user_roles            UserRole[] 
+  workpacks             Workpack[] 
+  report_templates      ReportTemplate[] 
+  scheduled_deliveries  ScheduledDelivery[] 
+  billing_logs          BillingLog[] 
+  events                Event[] 
+  joint_masters         JointMaster[] 
+  line_lists            LineList[] 
+  nozzles               Nozzle[] 
+  unit_responsibilities UnitResponsibility[] 
+  wbs_nodes             WbsNode[] 
+  workpack_materials    WorkpackMaterial[] 
+ 
+  @@index([is_active]) 
+} 
+ 
+model BillingLog { 
+  id              String       @id @default(uuid()) @db.Uuid 
+  organization_id String       @db.Uuid 
+  recorded_by     String 
+  payment_date    DateTime 
+  amount          Float 
+  currency        String       @default("USD") 
+  reference       String? 
+  notes           String? 
+  created_at      DateTime     @default(now()) 
+  organization    Organization @relation(fields: [organization_id], references: [id]) 
+ 
+  @@map("billing_logs") 
+} 
+ 
+model Site { 
+  id                        String        @id @default(uuid()) @db.Uuid 
+  organization_id           String        @db.Uuid 
+  name                      String 
+  code                      String? 
+  location                  String? 
+  timezone                  String?       @default("UTC") 
+  is_active                 Boolean?      @default(true) 
+  created_by                String?       @db.Uuid 
+  created_at                DateTime      @default(now()) 
+  updated_at                DateTime      @updatedAt 
+  deleted_at                DateTime? 
+  pressure_test_standard    String        @default("ASME_VIII") 
+  hydrotest_multiplier      Float         @default(1.5) 
+  pneumatic_test_multiplier Float         @default(1.1) 
+  torque_standard           String        @default("ASME_PCC_1") 
+  test_standard_notes       String? 
+  assets                    Asset[] 
+  contractors               Contractor[] 
+  plants                    Plant[] 
+  resources                 Resource[] 
+  creator                   User?         @relation("SiteCreator", fields: [created_by], references: [id]) 
+  organization              Organization  @relation(fields: [organization_id], references: [id], onDelete: Cascade) 
+  systems                   System[] 
+  units                     Unit[] 
+  users                     User[] 
+  user_roles                UserRole[] 
+  workpacks                 Workpack[] 
+  events                    Event[] 
+  joint_masters             JointMaster[] 
+  line_lists                LineList[] 
+  workpack_materials        WorkpackMaterial[] 
+ 
+  @@unique([organization_id, code]) 
+} 
+ 
+model Role { 
+  id              String       @id @default(uuid()) @db.Uuid 
+  organization_id String       @db.Uuid 
+  name            String 
+  slug            String 
+  permissions     Json? 
+  is_system       Boolean?     @default(false) 
+  created_by      String?      @db.Uuid 
+  created_at      DateTime     @default(now()) 
+  updated_at      DateTime     @updatedAt 
+  creator         User?        @relation("RoleCreator", fields: [created_by], references: [id]) 
+  organization    Organization @relation(fields: [organization_id], references: [id]) 
+  user_roles      UserRole[] 
+ 
+  @@unique([organization_id, slug]) 
+} 
+ 
+model User { 
+  id                        String               @id @default(uuid()) @db.Uuid 
+  organization_id           String               @db.Uuid 
+  site_id                   String?              @db.Uuid 
+  name                      String 
+  email                     String               @unique 
+  employee_id               String? 
+  password                  String 
+  position                  String? 
+  phone                     String? 
+  whatsapp_number           String?              @unique 
+  whatsapp_verified         Boolean              @default(false) 
+  whatsapp_opt_in           Boolean              @default(false) 
+  preferred_language        String?              @default("en") 
+  avatar_path               String? 
+  is_active                 Boolean?             @default(true) 
+  last_login_at             DateTime? 
+  remember_token            String? 
+  is_super_admin            Boolean              @default(false) 
+  is_tenant_admin           Boolean              @default(false) 
+  created_at                DateTime             @default(now()) 
+  updated_at                DateTime             @updatedAt 
+  deleted_at                DateTime? 
+  created_assets            Asset[]              @relation("AssetCreator") 
+  created_contractors       Contractor[]         @relation("ContractorCreator") 
+  created_disciplines       Discipline[]         @relation("DisciplineCreator") 
+  created_plants            Plant[]              @relation("PlantCreator") 
+  created_resources         Resource[]           @relation("ResourceCreator") 
+  created_resource_types    ResourceType[]       @relation("ResourceTypeCreator") 
+  created_roles             Role[]               @relation("RoleCreator") 
+  created_sites             Site[]               @relation("SiteCreator") 
+  created_systems           System[]             @relation("SystemCreator") 
+  created_units             Unit[]               @relation("UnitCreator") 
+  organization              Organization         @relation(fields: [organization_id], references: [id]) 
+  site                      Site?                @relation(fields: [site_id], references: [id]) 
+  assigned_user_roles       UserRole[]           @relation("RoleAssignedBy") 
+  user_roles                UserRole[] 
+  created_workpacks         Workpack[]           @relation("WorkpackCreator") 
+  locked_workpacks          Workpack[]           @relation("WorkpackLocker") 
+  updated_workpacks         Workpack[]           @relation("WorkpackUpdater") 
+  report_templates          ReportTemplate[] 
+  scheduled_deliveries      ScheduledDelivery[] 
+  created_events            Event[]              @relation("EventCreator") 
+  system_blinds_responsible SystemBlind[]        @relation("SystemBlindResponsible") 
+  unit_responsibilities     UnitResponsibility[] @relation("UnitResponsibility") 
+} 
+ 
+model UserRole { 
+  id              String       @id @default(uuid()) @db.Uuid 
+  organization_id String       @db.Uuid 
+  user_id         String       @db.Uuid 
+  role_id         String       @db.Uuid 
+  site_id         String?      @db.Uuid 
+  assigned_by     String?      @db.Uuid 
+  assigned_at     DateTime?    @default(now()) 
+  created_at      DateTime     @default(now()) 
+  updated_at      DateTime     @updatedAt 
+  assigner        User?        @relation("RoleAssignedBy", fields: [assigned_by], references: [id]) 
+  organization    Organization @relation(fields: [organization_id], references: [id]) 
+  role            Role         @relation(fields: [role_id], references: [id], onDelete: Cascade) 
+  site            Site?        @relation(fields: [site_id], references: [id]) 
+  user            User         @relation(fields: [user_id], references: [id], onDelete: Cascade) 
+ 
+  @@unique([user_id, role_id, site_id]) 
+} 
+ 
+model Plant { 
+  id              String       @id @default(uuid()) @db.Uuid 
+  organization_id String       @db.Uuid 
+  site_id         String       @db.Uuid 
+  name            String 
+  code            String? 
+  description     String? 
+  is_active       Boolean?     @default(true) 
+  created_by      String?      @db.Uuid 
+  created_at      DateTime     @default(now()) 
+  updated_at      DateTime     @updatedAt 
+  deleted_at      DateTime? 
+  creator         User?        @relation("PlantCreator", fields: [created_by], references: [id]) 
+  organization    Organization @relation(fields: [organization_id], references: [id]) 
+  site            Site         @relation(fields: [site_id], references: [id]) 
+  units           Unit[] 
+  workpacks       Workpack[] 
+} 
+ 
+model Event { 
+  id               String           @id @default(uuid()) @db.Uuid 
+  organization_id  String           @db.Uuid 
+  site_id          String           @db.Uuid 
+  name             String 
+  code             String 
+  event_type       String           @default("turnaround") 
+  planned_start    DateTime?        @db.Date 
+  planned_end      DateTime?        @db.Date 
+  actual_start     DateTime?        @db.Date 
+  actual_end       DateTime?        @db.Date 
+  status           String           @default("planning") 
+  scope_notes      String? 
+  budget_manhours  Int? 
+  budget_cost      Decimal?         @db.Decimal(15, 2) 
+  created_by       String?          @db.Uuid 
+  created_at       DateTime         @default(now()) 
+  updated_at       DateTime         @updatedAt 
+  deleted_at       DateTime? 
+  safety_incidents SafetyIncident[] 
+  safety_logs      SafetyLog[] 
+  safety_photos    SafetyPhoto[] 
+  workpacks        Workpack[] 
+  event_systems    EventSystem[] 
+  event_units      EventUnit[] 
+  creator          User?            @relation("EventCreator", fields: [created_by], references: [id]) 
+  organization     Organization     @relation(fields: [organization_id], references: [id]) 
+  site             Site             @relation(fields: [site_id], references: [id]) 
+  wbs_nodes        WbsNode[] 
+ 
+  @@index([organization_id, status]) 
+  @@index([site_id]) 
+  @@map("events") 
+} 
+ 
+model SafetyLog { 
+  id                  String           @id @default(uuid()) @db.Uuid 
+  eventId             String           @map("event_id") @db.Uuid 
+  projectId           String?          @map("project_id") @db.Uuid 
+  logDate             DateTime         @map("log_date") @db.Date 
+  shift               String           @default("day") 
+  manpowerPlanned     Int              @default(0) @map("manpower_planned") 
+  manpowerActual      Int              @default(0) @map("manpower_actual") 
+  lti                 Int              @default(0) 
+  ltiDaysLost         Int              @default(0) @map("lti_days_lost") 
+  nearMiss            Int              @default(0) @map("near_miss") 
+  firstAid            Int              @default(0) @map("first_aid") 
+  medicalTreatment    Int              @default(0) @map("medical_treatment") 
+  dangerousOccurrence Int              @default(0) @map("dangerous_occurrence") 
+  ptwIssued           Int              @default(0) @map("ptw_issued") 
+  ptwClosed           Int              @default(0) @map("ptw_closed") 
+  ptwSuspended        Int              @default(0) @map("ptw_suspended") 
+  toolboxTalks        Int              @default(0) @map("toolbox_talks") 
+  manhoursWorked      Decimal          @default(0) @map("manhours_worked") 
+  manhoursPlanned     Decimal          @default(0) @map("manhours_planned") 
+  cumulativeManhours  Decimal          @default(0) @map("cumulative_manhours") 
+  cumulativeLti       Int              @default(0) @map("cumulative_lti") 
+  ltiFrequencyRate    Decimal          @default(0) @map("lti_frequency_rate") 
+  safetyNotes         String?          @map("safety_notes") 
+  submittedBy         String?          @map("submitted_by") 
+  submittedByName     String?          @map("submitted_by_name") 
+  lastUpdatedBy       String?          @map("last_updated_by") 
+  lastUpdatedByName   String?          @map("last_updated_by_name") 
+  createdAt           DateTime         @default(now()) @map("created_at") 
+  updatedAt           DateTime         @updatedAt @map("updated_at") 
+  incidents           SafetyIncident[] 
+  event               Event            @relation(fields: [eventId], references: [id], onDelete: Cascade) 
+  photos              SafetyPhoto[] 
+ 
+  @@unique([eventId, logDate]) 
+  @@index([eventId, logDate]) 
+} 
+ 
+model SafetyIncident { 
+  id                  String        @id @default(uuid()) @db.Uuid 
+  safetyId            String?       @map("safety_id") 
+  safetyLogId         String        @map("safety_log_id") @db.Uuid 
+  eventId             String        @map("event_id") @db.Uuid 
+  incidentDate        DateTime      @map("incident_date") 
+  incidentTime        String?       @map("incident_time") 
+  incidentType        String        @map("incident_type") 
+  severity            String        @default("Low") 
+  title               String 
+  description         String 
+  location            String? 
+  unitArea            String?       @map("unit_area") 
+  contractor          String? 
+  personsInvolved     String?       @map("persons_involved") 
+  immediateAction     String?       @map("immediate_action") 
+  rootCause           String?       @map("root_cause") 
+  rootCauseCategory   String?       @map("root_cause_category") 
+  contributingFactors String?       @map("contributing_factors") 
+  correctiveActions   String?       @map("corrective_actions") 
+  preventiveActions   String?       @map("preventive_actions") 
+  lessonLearned       String?       @map("lesson_learned") 
+  actionOwner         String?       @map("action_owner") 
+  actionDueDate       DateTime?     @map("action_due_date") @db.Date 
+  actionCompletedDate DateTime?     @map("action_completed_date") @db.Date 
+  status              String        @default("Open") 
+  investigationBy     String?       @map("investigation_by") 
+  closedBy            String?       @map("closed_by") 
+  closedAt            DateTime?     @map("closed_at") 
+  remarks             String? 
+  reportedBy          String?       @map("reported_by") 
+  createdAt           DateTime      @default(now()) @map("created_at") 
+  updatedAt           DateTime      @updatedAt @map("updated_at") 
+  event               Event         @relation(fields: [eventId], references: [id], onDelete: Cascade) 
+  safetyLog           SafetyLog     @relation(fields: [safetyLogId], references: [id], onDelete: Cascade) 
+  photos              SafetyPhoto[] 
+} 
+ 
+model SafetyPhoto { 
+  id             String          @id @default(uuid()) @db.Uuid 
+  safetyLogId    String?         @map("safety_log_id") @db.Uuid 
+  incidentId     String?         @map("incident_id") @db.Uuid 
+  eventId        String          @map("event_id") @db.Uuid 
+  photoType      String          @default("general") @map("photo_type") 
+  caption        String? 
+  storagePath    String          @map("storage_path") 
+  publicUrl      String          @map("public_url") 
+  fileSize       Int?            @map("file_size") 
+  mimeType       String?         @map("mime_type") 
+  uploadedBy     String?         @map("uploaded_by") 
+  uploadedByName String?         @map("uploaded_by_name") 
+  takenAt        DateTime        @default(now()) @map("taken_at") 
+  createdAt      DateTime        @default(now()) @map("created_at") 
+  event          Event           @relation(fields: [eventId], references: [id], onDelete: Cascade) 
+  incident       SafetyIncident? @relation(fields: [incidentId], references: [id], onDelete: Cascade) 
+  safetyLog      SafetyLog?      @relation(fields: [safetyLogId], references: [id], onDelete: Cascade) 
+} 
+ 
+model EventUnit { 
+  id        String  @id @default(uuid()) @db.Uuid 
+  event_id  String  @db.Uuid 
+  unit_id   String  @db.Uuid 
+  is_active Boolean @default(true) 
+  notes     String? 
+  event     Event   @relation(fields: [event_id], references: [id], onDelete: Cascade) 
+  unit      Unit    @relation(fields: [unit_id], references: [id]) 
+ 
+  @@unique([event_id, unit_id]) 
+  @@map("event_units") 
+} 
+ 
+model Unit { 
+  id               String               @id @default(uuid()) @db.Uuid 
+  organization_id  String               @db.Uuid 
+  site_id          String               @db.Uuid 
+  plant_id         String               @db.Uuid 
+  name             String 
+  code             String? 
+  description      String? 
+  is_active        Boolean?             @default(true) 
+  created_by       String?              @db.Uuid 
+  created_at       DateTime             @default(now()) 
+  updated_at       DateTime             @updatedAt 
+  deleted_at       DateTime? 
+  systems          System[] 
+  creator          User?                @relation("UnitCreator", fields: [created_by], references: [id]) 
+  organization     Organization         @relation(fields: [organization_id], references: [id]) 
+  plant            Plant                @relation(fields: [plant_id], references: [id]) 
+  site             Site                 @relation(fields: [site_id], references: [id]) 
+  workpacks        Workpack[] 
+  event_units      EventUnit[] 
+  line_lists       LineList[] 
+  responsibilities UnitResponsibility[] 
+} 
+ 
+model System { 
+  id              String            @id @default(uuid()) @db.Uuid 
+  organization_id String            @db.Uuid 
+  site_id         String            @db.Uuid 
+  unit_id         String            @db.Uuid 
+  code            String? 
+  name            String 
+  description     String? 
+  criticality     String? 
+  status          String            @default("Active") 
+  p_and_id_ref    String? 
+  is_active       Boolean?          @default(true) 
+  created_by      String?           @db.Uuid 
+  created_at      DateTime          @default(now()) 
+  updated_at      DateTime          @updatedAt 
+  deleted_at      DateTime? 
+  assets          Asset[] 
+  creator         User?             @relation("SystemCreator", fields: [created_by], references: [id]) 
+  organization    Organization      @relation(fields: [organization_id], references: [id]) 
+  site            Site              @relation(fields: [site_id], references: [id]) 
+  unit            Unit              @relation(fields: [unit_id], references: [id]) 
+  workpacks       Workpack[] 
+  events          EventSystem[] 
+  line_lists      LineList[] 
+  blinds          SystemBlind[] 
+  drawings        SystemDrawing[] 
+  gaskets         SystemGasket[] 
+  procedures      SystemProcedure[] 
+  wbs_nodes       WbsNode[] 
+ 
+  @@index([organization_id]) 
+  @@index([site_id, unit_id]) 
+} 
+ 
+model SystemBlind { 
+  id                  String    @id @default(uuid()) @db.Uuid 
+  system_id           String    @db.Uuid 
+  blind_id            String 
+  tag                 String 
+  line_number         String 
+  spec                String 
+  size                String 
+  material            String 
+  inserted_at         DateTime? 
+  removed_at          DateTime? 
+  status              String    @default("Pending") 
+  responsible_user_id String?   @db.Uuid 
+  workpack_id         String?   @db.Uuid 
+  created_at          DateTime  @default(now()) 
+  updated_at          DateTime  @updatedAt 
+  responsible_user    User?     @relation("SystemBlindResponsible", fields: [responsible_user_id], references: [id]) 
+  system              System    @relation(fields: [system_id], references: [id], onDelete: Cascade) 
+ 
+  @@index([system_id]) 
+  @@map("system_blinds") 
+} 
+ 
+model SystemGasket { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  system_id       String   @db.Uuid 
+  gasket_id       String 
+  joint_ref       String 
+  line_number     String 
+  size            String 
+  pressure_rating String 
+  type            String 
+  material        String 
+  quantity        Int      @default(1) 
+  status          String   @default("Required") 
+  workpack_id     String?  @db.Uuid 
+  created_at      DateTime @default(now()) 
+  updated_at      DateTime @updatedAt 
+  system          System   @relation(fields: [system_id], references: [id], onDelete: Cascade) 
+ 
+  @@index([system_id]) 
+  @@map("system_gaskets") 
+} 
+ 
+model SystemDrawing { 
+  id         String    @id @default(uuid()) @db.Uuid 
+  system_id  String    @db.Uuid 
+  drawing_no String 
+  title      String 
+  revision   String 
+  type       String 
+  status     String    @default("For Review") 
+  file_url   String? 
+  date       DateTime? 
+  created_at DateTime  @default(now()) 
+  updated_at DateTime  @updatedAt 
+  system     System    @relation(fields: [system_id], references: [id], onDelete: Cascade) 
+ 
+  @@index([system_id]) 
+  @@map("system_drawings") 
+} 
+ 
+model SystemProcedure { 
+  id           String   @id @default(uuid()) @db.Uuid 
+  system_id    String   @db.Uuid 
+  procedure_no String 
+  title        String 
+  type         String 
+  revision     String 
+  status       String   @default("Draft") 
+  owner        String? 
+  file_url     String? 
+  created_at   DateTime @default(now()) 
+  updated_at   DateTime @updatedAt 
+  system       System   @relation(fields: [system_id], references: [id], onDelete: Cascade) 
+ 
+  @@index([system_id]) 
+  @@map("system_procedures") 
+} 
+ 
+model WbsNode { 
+  id                 String       @id @default(uuid()) @db.Uuid 
+  organization_id    String       @db.Uuid 
+  event_id           String       @db.Uuid 
+  system_id          String?      @db.Uuid 
+  parent_id          String?      @db.Uuid 
+  code               String 
+  name               String 
+  type               WbsNodeType 
+  order              Int          @default(0) 
+  locked             Boolean      @default(false) 
+  linked_entity_id   String?      @db.Uuid 
+  linked_entity_type String? 
+  created_at         DateTime     @default(now()) 
+  updated_at         DateTime     @updatedAt 
+  event              Event        @relation(fields: [event_id], references: [id], onDelete: Cascade) 
+  organization       Organization @relation(fields: [organization_id], references: [id]) 
+  parent             WbsNode?     @relation("WbsTree", fields: [parent_id], references: [id]) 
+  children           WbsNode[]    @relation("WbsTree") 
+  system             System?      @relation(fields: [system_id], references: [id]) 
+ 
+  @@index([organization_id, event_id]) 
+  @@index([system_id]) 
+  @@index([parent_id]) 
+  @@map("wbs_nodes") 
+} 
+ 
+model EventSystem { 
+  id        String @id @default(uuid()) @db.Uuid 
+  event_id  String @db.Uuid 
+  system_id String @db.Uuid 
+  event     Event  @relation(fields: [event_id], references: [id], onDelete: Cascade) 
+  system    System @relation(fields: [system_id], references: [id], onDelete: Cascade) 
+ 
+  @@unique([event_id, system_id]) 
+  @@map("event_systems") 
+} 
+ 
+model Asset { 
+  id                         String        @id @default(uuid()) @db.Uuid 
+  organization_id            String        @db.Uuid 
+  site_id                    String        @db.Uuid 
+  system_id                  String?       @db.Uuid 
+  tag_number                 String 
+  name                       String 
+  asset_type                 String? 
+  sap_equipment_number       String? 
+  description                String? 
+  is_active                  Boolean?      @default(true) 
+  created_by                 String?       @db.Uuid 
+  created_at                 DateTime      @default(now()) 
+  updated_at                 DateTime      @updatedAt 
+  deleted_at                 DateTime? 
+  manufacturer               String? 
+  model_number               String? 
+  serial_number              String? 
+  year_installed             Int? 
+  design_pressure_barg       Float? 
+  design_temp_c              Float? 
+  operating_pressure_barg    Float? 
+  operating_temp_c           Float? 
+  test_pressure_barg         Float? 
+  weight_empty_kg            Float? 
+  weight_operating_kg        Float? 
+  service_description        String? 
+  fluid_service              String? 
+  criticality                String? 
+  maintenance_strategy       String? 
+  inspection_interval_months Int? 
+  p_and_id_numbers           String[]      @default([]) 
+  ga_drawing_number          String? 
+  isometric_drawing_numbers  String[]      @default([]) 
+  plot_area                  String? 
+  elevation                  String? 
+  train                      String? 
+  sap_functional_location    String? 
+  extracted_from_document_id String?       @db.Uuid 
+  extraction_confidence      Float? 
+  creator                    User?         @relation("AssetCreator", fields: [created_by], references: [id]) 
+  organization               Organization  @relation(fields: [organization_id], references: [id]) 
+  site                       Site          @relation(fields: [site_id], references: [id]) 
+  system                     System?       @relation(fields: [system_id], references: [id]) 
+  workpacks                  Workpack[] 
+  line_connections           AssetLine[] 
+  joint_masters              JointMaster[] 
+  lines_from                 LineList[]    @relation("LineFromAsset") 
+  lines_to                   LineList[]    @relation("LineToAsset") 
+  nozzles                    Nozzle[] 
+ 
+  @@unique([organization_id, tag_number]) 
+} 
+ 
+model Nozzle { 
+  id                    String       @id @default(uuid()) @db.Uuid 
+  organization_id       String       @db.Uuid 
+  asset_id              String       @db.Uuid 
+  designation           String 
+  service               String? 
+  nominal_size_inches   Float? 
+  pressure_rating       String? 
+  flange_face           String? 
+  flange_standard       String? 
+  gasket_type           String? 
+  gasket_material       String? 
+  bolt_spec             String? 
+  bolt_count            Int? 
+  default_torque_nm     Float? 
+  p_and_id_number       String? 
+  connected_line_number String? 
+  is_active             Boolean      @default(true) 
+  sequence_number       Int?         @default(0) 
+  notes                 String? 
+  created_at            DateTime     @default(now()) 
+  updated_at            DateTime     @updatedAt 
+  deleted_at            DateTime? 
+  joint_master          JointMaster? 
+  line_from             LineList[]   @relation("LineFromNozzle") 
+  line_to               LineList[]   @relation("LineToNozzle") 
+  asset                 Asset        @relation(fields: [asset_id], references: [id], onDelete: Cascade) 
+  organization          Organization @relation(fields: [organization_id], references: [id]) 
+ 
+  @@index([asset_id]) 
+  @@map("nozzles") 
+} 
+ 
+model LineList { 
+  id                      String        @id @default(uuid()) @db.Uuid 
+  organization_id         String        @db.Uuid 
+  site_id                 String        @db.Uuid 
+  unit_id                 String        @db.Uuid 
+  system_id               String?       @db.Uuid 
+  line_number             String 
+  nominal_size_inches     Float? 
+  fluid_service_code      String? 
+  sequence_number         String? 
+  pipe_class              String? 
+  design_pressure_barg    Float? 
+  design_temp_c           Float? 
+  operating_pressure_barg Float? 
+  test_pressure_barg      Float? 
+  insulation_type         String? 
+  heat_tracing            Boolean?      @default(false) 
+  material                String? 
+  from_asset_id           String?       @db.Uuid 
+  from_nozzle_id          String?       @db.Uuid 
+  to_asset_id             String?       @db.Uuid 
+  to_nozzle_id            String?       @db.Uuid 
+  p_and_id_number         String? 
+  isometric_number        String? 
+  total_joint_count       Int           @default(0) 
+  is_active               Boolean       @default(true) 
+  notes                   String? 
+  created_by              String?       @db.Uuid 
+  created_at              DateTime      @default(now()) 
+  updated_at              DateTime      @updatedAt 
+  deleted_at              DateTime? 
+  asset_connections       AssetLine[] 
+  joints                  JointMaster[] 
+  from_asset              Asset?        @relation("LineFromAsset", fields: [from_asset_id], references: [id]) 
+  from_nozzle             Nozzle?       @relation("LineFromNozzle", fields: [from_nozzle_id], references: [id]) 
+  organization            Organization  @relation(fields: [organization_id], references: [id]) 
+  site                    Site          @relation(fields: [site_id], references: [id]) 
+  system                  System?       @relation(fields: [system_id], references: [id]) 
+  to_asset                Asset?        @relation("LineToAsset", fields: [to_asset_id], references: [id]) 
+  to_nozzle               Nozzle?       @relation("LineToNozzle", fields: [to_nozzle_id], references: [id]) 
+  unit                    Unit          @relation(fields: [unit_id], references: [id]) 
+ 
+  @@unique([organization_id, line_number]) 
+  @@index([unit_id]) 
+  @@index([system_id]) 
+  @@map("line_lists") 
+} 
+ 
+model AssetLine { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  asset_id        String   @db.Uuid 
+  line_id         String   @db.Uuid 
+  connection_type String   @default("from") 
+  asset           Asset    @relation(fields: [asset_id], references: [id], onDelete: Cascade) 
+  line            LineList @relation(fields: [line_id], references: [id], onDelete: Cascade) 
+ 
+  @@unique([asset_id, line_id]) 
+  @@map("asset_lines") 
+} 
+ 
+model JointMaster { 
+  id                      String       @id @default(uuid()) @db.Uuid 
+  organization_id         String       @db.Uuid 
+  site_id                 String       @db.Uuid 
+  joint_number            String 
+  joint_type              String       @default("flanged") 
+  asset_id                String?      @db.Uuid 
+  nozzle_id               String?      @unique @db.Uuid 
+  line_id                 String?      @db.Uuid 
+  sequence_in_line        Int? 
+  nominal_size_inches     Float? 
+  pressure_rating         String? 
+  flange_face             String? 
+  default_gasket_type     String? 
+  default_gasket_material String? 
+  default_bolt_spec       String? 
+  default_bolt_count      Int? 
+  default_torque_nm       Float? 
+  last_opened_date        DateTime? 
+  last_workpack_id        String?      @db.Uuid 
+  total_open_count        Int          @default(0) 
+  is_active               Boolean      @default(true) 
+  notes                   String? 
+  created_by              String?      @db.Uuid 
+  created_at              DateTime     @default(now()) 
+  updated_at              DateTime     @updatedAt 
+  asset                   Asset?       @relation(fields: [asset_id], references: [id]) 
+  line                    LineList?    @relation(fields: [line_id], references: [id]) 
+  nozzle                  Nozzle?      @relation(fields: [nozzle_id], references: [id]) 
+  organization            Organization @relation(fields: [organization_id], references: [id]) 
+  site                    Site         @relation(fields: [site_id], references: [id]) 
+ 
+  @@unique([organization_id, joint_number]) 
+  @@index([asset_id]) 
+  @@index([line_id]) 
+  @@map("joint_masters") 
+} 
+ 
+model UnitResponsibility { 
+  id                         String       @id @default(uuid()) @db.Uuid 
+  organization_id            String       @db.Uuid 
+  unit_id                    String       @db.Uuid 
+  user_id                    String       @db.Uuid 
+  role                       String 
+  receives_shift_reports     Boolean      @default(false) 
+  receives_constraint_alerts Boolean      @default(false) 
+  receives_daily_briefing    Boolean      @default(false) 
+  receives_overdue_alerts    Boolean      @default(false) 
+  is_active                  Boolean      @default(true) 
+  valid_from                 DateTime     @default(now()) 
+  valid_to                   DateTime? 
+  created_by                 String?      @db.Uuid 
+  created_at                 DateTime     @default(now()) 
+  updated_at                 DateTime     @updatedAt 
+  organization               Organization @relation(fields: [organization_id], references: [id]) 
+  unit                       Unit         @relation(fields: [unit_id], references: [id], onDelete: Cascade) 
+  user                       User         @relation("UnitResponsibility", fields: [user_id], references: [id]) 
+ 
+  @@unique([unit_id, user_id, role]) 
+  @@index([organization_id, role]) 
+  @@map("unit_responsibilities") 
+} 
+ 
+model Discipline { 
+  id              String         @id @default(uuid()) @db.Uuid 
+  organization_id String         @db.Uuid 
+  name            String 
+  code            String 
+  color           String? 
+  is_active       Boolean?       @default(true) 
+  created_by      String?        @db.Uuid 
+  created_at      DateTime       @default(now()) 
+  updated_at      DateTime       @updatedAt 
+  creator         User?          @relation("DisciplineCreator", fields: [created_by], references: [id]) 
+  organization    Organization   @relation(fields: [organization_id], references: [id]) 
+  resource_types  ResourceType[] 
+  workpacks       Workpack[] 
+ 
+  @@unique([organization_id, code]) 
+} 
+ 
+model Contractor { 
+  id              String       @id @default(uuid()) @db.Uuid 
+  organization_id String       @db.Uuid 
+  site_id         String?      @db.Uuid 
+  name            String 
+  code            String? 
+  contact_person  String? 
+  contact_email   String? 
+  contact_phone   String? 
+  is_active       Boolean?     @default(true) 
+  created_by      String?      @db.Uuid 
+  created_at      DateTime     @default(now()) 
+  updated_at      DateTime     @updatedAt 
+  deleted_at      DateTime? 
+  creator         User?        @relation("ContractorCreator", fields: [created_by], references: [id]) 
+  organization    Organization @relation(fields: [organization_id], references: [id]) 
+  site            Site?        @relation(fields: [site_id], references: [id]) 
+  resources       Resource[] 
+  workpacks       Workpack[] 
+} 
+ 
+model ResourceType { 
+  id              String       @id @default(uuid()) @db.Uuid 
+  organization_id String       @db.Uuid 
+  discipline_id   String?      @db.Uuid 
+  name            String 
+  code            String? 
+  is_active       Boolean?     @default(true) 
+  created_by      String?      @db.Uuid 
+  created_at      DateTime     @default(now()) 
+  updated_at      DateTime     @updatedAt 
+  resources       Resource[] 
+  creator         User?        @relation("ResourceTypeCreator", fields: [created_by], references: [id]) 
+  discipline      Discipline?  @relation(fields: [discipline_id], references: [id]) 
+  organization    Organization @relation(fields: [organization_id], references: [id]) 
+} 
+ 
+model Resource { 
+  id               String       @id @default(uuid()) @db.Uuid 
+  organization_id  String       @db.Uuid 
+  site_id          String?      @db.Uuid 
+  resource_type_id String       @db.Uuid 
+  contractor_id    String?      @db.Uuid 
+  name             String 
+  employee_id      String? 
+  craft_code       String? 
+  is_active        Boolean?     @default(true) 
+  created_by       String?      @db.Uuid 
+  created_at       DateTime     @default(now()) 
+  updated_at       DateTime     @updatedAt 
+  deleted_at       DateTime? 
+  contractor       Contractor?  @relation(fields: [contractor_id], references: [id]) 
+  creator          User?        @relation("ResourceCreator", fields: [created_by], references: [id]) 
+  organization     Organization @relation(fields: [organization_id], references: [id]) 
+  resource_type    ResourceType @relation(fields: [resource_type_id], references: [id]) 
+  site             Site?        @relation(fields: [site_id], references: [id]) 
+} 
+ 
+model Workpack { 
+  id                          String         @id @default(uuid()) @db.Uuid 
+  organization_id             String         @db.Uuid 
+  site_id                     String         @db.Uuid 
+  workpack_number             String? 
+  workpack_id_code            String?        @unique 
+  unit_code                   String? 
+  title                       String 
+  revision                    String?        @default("R0") 
+  sap_work_order              String? 
+  sap_notification            String? 
+  portfolio_id                String?        @db.Uuid 
+  sap_plant_maintenance_order String? 
+  asset_id                    String?        @db.Uuid 
+  unit_id                     String?        @db.Uuid 
+  event_id                    String?        @db.Uuid 
+  plant_id                    String?        @db.Uuid 
+  system_id                   String?        @db.Uuid 
+  discipline_id               String?        @db.Uuid 
+  contractor_id               String?        @db.Uuid 
+  work_type                   String? 
+  priority                    String?        @default("Normal") 
+  scope_of_work               String? 
+  planned_start_date          DateTime?      @db.Date 
+  planned_end_date            DateTime?      @db.Date 
+  estimated_manhours          Int?           @default(0) 
+  status                      WorkpackStatus @default(draft) 
+  overall_progress            Int?           @default(0) 
+  is_locked                   Boolean?       @default(false) 
+  locked_at                   DateTime? 
+  locked_by                   String?        @db.Uuid 
+  created_by                  String         @db.Uuid 
+  updated_by                  String?        @db.Uuid 
+  created_at                  DateTime       @default(now()) 
+  updated_at                  DateTime       @updatedAt 
+  deleted_at                  DateTime? 
+  template_id                 String?        @db.Uuid 
+  equipment_type              String? 
+  job_type                    String? 
+  equipment_technical_data    Json?          @default("{}") 
+  ai_auto_filled              Boolean        @default(false) 
+  ai_auto_filled_at           DateTime? 
+  approval_status             String?        @default("not_submitted") 
+  approval_submitted_at       DateTime? 
+  approval_decided_at         DateTime? 
+  approved_by_name            String? 
+  approved_by_email           String? 
+  approval_notes              String? 
+  project_id                  String?        @map("project_id") 
+  asset                       Asset?         @relation(fields: [asset_id], references: [id]) 
+  contractor                  Contractor?    @relation(fields: [contractor_id], references: [id]) 
+  creator                     User           @relation("WorkpackCreator", fields: [created_by], references: [id]) 
+  discipline                  Discipline?    @relation(fields: [discipline_id], references: [id]) 
+  event                       Event?         @relation(fields: [event_id], references: [id]) 
+  locker                      User?          @relation("WorkpackLocker", fields: [locked_by], references: [id]) 
+  organization                Organization   @relation(fields: [organization_id], references: [id]) 
+  plant                       Plant?         @relation(fields: [plant_id], references: [id]) 
+  project                     Project?       @relation(fields: [project_id], references: [id]) 
+  site                        Site           @relation(fields: [site_id], references: [id]) 
+  system                      System?        @relation(fields: [system_id], references: [id]) 
+  unit                        Unit?          @relation(fields: [unit_id], references: [id]) 
+  updater                     User?          @relation("WorkpackUpdater", fields: [updated_by], references: [id]) 
+  activities                  Activity[] 
+  workpack_materials          WorkpackMaterial[] 
+ 
+  @@unique([organization_id, workpack_number]) 
+  @@index([organization_id, status]) 
+  @@index([organization_id, site_id, status]) 
+} 
+ 
+model WorkpackAttachment { 
+  id             String   @id @default(uuid()) @db.Uuid 
+  workpackId     String   @map("workpack_id") 
+  group          String 
+  subGroup       String?  @map("sub_group") 
+  sortOrder      Int      @default(0) @map("sort_order") 
+  title          String 
+  attachmentType String   @map("attachment_type") 
+  templateKey    String?  @map("template_key") 
+  content        Json? 
+  isActive       Boolean  @default(true) @map("is_active") 
+  createdAt      DateTime @default(now()) @map("created_at") 
+  updatedAt      DateTime @updatedAt @map("updated_at") 
+ 
+  @@index([workpackId]) 
+} 
+ 
+model WorkpackDocument { 
+  id                 String    @id @default(uuid()) @db.Uuid 
+  organization_id    String    @db.Uuid 
+  site_id            String    @db.Uuid 
+  workpack_id        String    @db.Uuid 
+  document_type      String?   @default("attachment") 
+  original_filename  String 
+  storage_path       String 
+  mime_type          String? 
+  file_size_bytes    BigInt?   @default(0) 
+  title              String? 
+  description        String? 
+  include_in_pdf     Boolean   @default(false) 
+  source             String    @default("manual") 
+  created_by         String?   @db.Uuid 
+  created_at         DateTime  @default(now()) 
+  updated_at         DateTime  @updatedAt 
+  deleted_at         DateTime? 
+  source_document_id String?   @db.Uuid 
+  source_pages       Int[]     @default([]) 
+  extraction_job_id  String?   @db.Uuid 
+ 
+  @@index([workpack_id]) 
+  @@index([organization_id]) 
+} 
+ 
+model WorkpackVersion { 
+  id                 String   @id @default(uuid()) @db.Uuid 
+  organization_id    String   @db.Uuid 
+  workpack_id        String   @db.Uuid 
+  revision           String 
+  status_at_snapshot String 
+  snapshot_json      Json 
+  change_summary     String? 
+  created_by         String?  @db.Uuid 
+  created_at         DateTime @default(now()) 
+ 
+  @@unique([workpack_id, revision]) 
+} 
+ 
+model WorkpackIdCounter { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  unit_code       String 
+  discipline_code String 
+  last_number     Int      @default(0) 
+  created_at      DateTime @default(now()) 
+  updated_at      DateTime @updatedAt 
+ 
+  @@unique([organization_id, unit_code, discipline_code]) 
+  @@map("workpack_id_counters") 
+} 
+ 
+model Activity { 
+  id                         String          @id @default(uuid()) @db.Uuid 
+  organization_id            String          @db.Uuid 
+  site_id                    String          @db.Uuid 
+  workpack_id                String?         @db.Uuid 
+  event_id                   String?         @db.Uuid 
+  activity_library_id        String?         @db.Uuid 
+  sequence_number            Int?            @default(0) 
+  activity_number            String? 
+  activity_id                String? 
+  description                String 
+  responsible                String? 
+  work_category              String? 
+  discipline_id              String?         @db.Uuid 
+  duration_hours             Decimal?        @default(0) @db.Decimal(8, 2) 
+  window                     String? 
+  planned_start              DateTime?       @db.Date 
+  planned_end                DateTime?       @db.Date 
+  actual_start               DateTime?       @db.Date 
+  actual_end                 DateTime?       @db.Date 
+  progress_percent           Int?            @default(0) 
+  status                     ActivityStatus? @default(not_started) 
+  notes                      String? 
+  is_optional                Boolean         @default(false) 
+  color_label                String? 
+  hold_point_type            String? 
+  hold_point_description     String? 
+  p6_object_id               Int? 
+  p6_activity_id             String? 
+  is_approved_for_scheduling Boolean?        @default(false) 
+  early_start                DateTime?       @map("early_start") 
+  early_finish               DateTime?       @map("early_finish") 
+  late_start                 DateTime?       @map("late_start") 
+  late_finish                DateTime?       @map("late_finish") 
+  total_float                Decimal?        @map("total_float") @db.Decimal(12, 2) 
+  is_critical                Boolean?        @default(false) @map("is_critical") 
+  manpower_count             Int?            @map("manpower_count") 
+  manpower_type              String?         @map("manpower_type") 
+  wbs_code                   String?         @map("wbs_code") 
+  free_float                 Float? 
+  budgeted_cost              Float? 
+  actual_cost                Float? 
+  remaining_duration         Float? 
+  created_by                 String?         @db.Uuid 
+  updated_by                 String?         @db.Uuid 
+  created_at                 DateTime        @default(now()) 
+  updated_at                 DateTime        @updatedAt 
+  deleted_at                 DateTime? 
+  workpack                   Workpack?       @relation(fields: [workpack_id], references: [id]) 
+  progress_logs              ProgressLog[] 
+ 
+  @@index([workpack_id, sequence_number]) 
+} 
+ 
+model ActivityRelationship { 
+  id                String            @id @default(uuid()) @db.Uuid 
+  organization_id   String            @db.Uuid 
+  predecessor_id    String            @db.Uuid 
+  successor_id      String            @db.Uuid 
+  relationship_type RelationshipType? @default(FS) 
+  lag_days          Int?              @default(0) 
+  created_by        String?           @db.Uuid 
+  created_at        DateTime          @default(now()) 
+  updated_at        DateTime          @updatedAt 
+ 
+  @@unique([predecessor_id, successor_id]) 
+} 
+ 
+model WorkpackMaterial { 
+  id                String          @id @default(uuid()) @db.Uuid 
+  organization_id   String          @db.Uuid 
+  site_id           String          @db.Uuid 
+  workpack_id       String          @db.Uuid 
+  activity_id       String?         @db.Uuid 
+  item_catalog_id   String?         @db.Uuid 
+  material_number   String? 
+  description       String 
+  unit_of_measure   String 
+  specifications    String? 
+  material_category String?         @default("mechanical") 
+  quantity_required Decimal?        @default(0) @db.Decimal(12, 3) 
+  quantity_issued   Decimal?        @default(0) @db.Decimal(12, 3) 
+  quantity_returned Decimal?        @default(0) @db.Decimal(12, 3) 
+  unit_cost         Decimal?        @db.Decimal(12, 2) 
+  status            MaterialStatus? @default(pending) 
+  required_date     DateTime?       @db.Date 
+  issue_reference   String? 
+  is_critical       Boolean?        @default(false) 
+  notes             String? 
+  ai_generated      Boolean         @default(false) 
+  created_by        String?         @db.Uuid 
+  updated_by        String?         @db.Uuid 
+  created_at        DateTime        @default(now()) 
+  updated_at        DateTime        @updatedAt 
+  deleted_at        DateTime? 
+  organization      Organization     @relation(fields: [organization_id], references: [id]) 
+  site              Site             @relation(fields: [site_id], references: [id]) 
+  workpack          Workpack         @relation(fields: [workpack_id], references: [id], onDelete: Cascade) 
+ 
+  @@index([workpack_id, status]) 
+  @@index([item_catalog_id]) 
+} 
+ 
+model ItemCatalog { 
+  id                   String    @id @default(uuid()) @db.Uuid 
+  organization_id      String    @db.Uuid 
+  sap_material_number  String? 
+  sap_plant            String? 
+  sap_storage_location String? 
+  sap_material_group   String? 
+  item_code            String 
+  description          String 
+  long_description     String? 
+  item_category        String    @default("other") 
+  sub_category         String? 
+  unit_of_measure      String    @default("EA") 
+  manufacturer         String? 
+  manufacturer_part_no String? 
+  specification        String? 
+  standard_reference   String? 
+  material_grade       String? 
+  pipe_size            String? 
+  pressure_rating      String? 
+  flange_type          String? 
+  bolt_nominal_size    String? 
+  bolt_length_mm       Int? 
+  unit_cost            Float? 
+  currency             String?   @default("USD") 
+  last_sap_sync        DateTime? 
+  import_batch_id      String? 
+  is_active            Boolean   @default(true) 
+  deleted_at           DateTime? 
+  created_at           DateTime  @default(now()) 
+  updated_at           DateTime  @updatedAt 
+ 
+  @@unique([organization_id, item_code]) 
+  @@index([organization_id, item_category]) 
+  @@index([organization_id, sap_material_number]) 
+  @@index([organization_id, pipe_size, pressure_rating]) 
+  @@map("item_catalog") 
+} 
+ 
+model GasketBoltLookup { 
+  id                 String   @id @default(uuid()) @db.Uuid 
+  organization_id    String   @db.Uuid 
+  pipe_size          String 
+  pressure_class     String 
+  flange_type        String 
+  gasket_item_id     String?  @db.Uuid 
+  gasket_description String? 
+  bolt_item_id       String?  @db.Uuid 
+  bolt_description   String? 
+  bolt_count         Int      @default(4) 
+  bolt_length_mm     Int? 
+  nut_item_id        String?  @db.Uuid 
+  nut_description    String? 
+  washer_item_id     String?  @db.Uuid 
+  washer_description String? 
+  notes              String? 
+  is_active          Boolean  @default(true) 
+  created_at         DateTime @default(now()) 
+  updated_at         DateTime @updatedAt 
+ 
+  @@unique([organization_id, pipe_size, pressure_class, flange_type]) 
+  @@index([organization_id]) 
+  @@map("gasket_bolt_lookup") 
+} 
+ 
+model WorkpackMaterialLine { 
+  id                  String    @id @default(uuid()) @db.Uuid 
+  organization_id     String    @db.Uuid 
+  workpack_id         String    @db.Uuid 
+  source_type         String 
+  source_id           String?   @db.Uuid 
+  category            String? 
+  material_category   String?   @default("mechanical") 
+  linked_to           String? 
+  item_catalog_id     String?   @db.Uuid 
+  sap_material_number String? 
+  item_code           String? 
+  description         String 
+  specification       String? 
+  unit_of_measure     String    @default("EA") 
+  quantity_required   Float     @default(1) 
+  quantity_issued     Float     @default(0) 
+  quantity_used       Float     @default(0) 
+  quantity_returned   Float     @default(0) 
+  procurement_status  String    @default("not_requested") 
+  is_critical         Boolean   @default(false) 
+  lead_time_days      Int? 
+  required_by_date    DateTime? 
+  unit_cost           Float? 
+  total_cost          Float? 
+  notes               String? 
+  sort_order          Int? 
+  ai_generated        Boolean   @default(false) 
+  includedInPdf       Boolean   @default(true) @map("included_in_pdf") 
+  plannerNotes        String?   @map("planner_notes") 
+  customName          String?   @map("custom_name") 
+  deleted_at          DateTime? 
+  created_at          DateTime  @default(now()) 
+  updated_at          DateTime  @updatedAt 
+ 
+  @@index([workpack_id]) 
+  @@index([workpack_id, source_type]) 
+  @@index([workpack_id, item_catalog_id]) 
+  @@index([material_category]) 
+  @@index([includedInPdf]) 
+  @@map("workpack_material_lines") 
+} 
+ 
+model WorkpackTool { 
+  id              String       @id @default(cuid()) 
+  workpack_id     String       @db.Uuid 
+  organization_id String       @db.Uuid 
+  category        ToolCategory 
+  name            String 
+  description     String? 
+  quantity        Int?         @default(1) 
+  unit            String       @default("EA") 
+  tool_type       String       @default("Standard") 
+  source          String       @default("manual") 
+  cert_required   Boolean      @default(false) 
+  notes           String? 
+  status          String       @default("Required") 
+  ai_generated    Boolean      @default(false) 
+  created_at      DateTime     @default(now()) 
+  updated_at      DateTime     @updatedAt 
+ 
+  @@index([workpack_id]) 
+  @@map("workpack_tools") 
+} 
+ 
+model ItemCatalogImportLog { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  batch_id        String 
+  imported_by     String 
+  filename        String 
+  total_rows      Int      @default(0) 
+  imported_count  Int      @default(0) 
+  updated_count   Int      @default(0) 
+  error_count     Int      @default(0) 
+  errors          Json? 
+  status          String   @default("complete") 
+  created_at      DateTime @default(now()) 
+ 
+  @@map("item_catalog_import_logs") 
+} 
+ 
+model AiProviderSetting { 
+  id                         String   @id @default(uuid()) @db.Uuid 
+  organization_id            String   @unique @db.Uuid 
+  provider                   String?  @default("anthropic") 
+  model                      String? 
+  api_key_encrypted          String? 
+  api_endpoint               String? 
+  api_version                String? 
+  max_tokens                 Int?     @default(4096) 
+  temperature                Float?   @default(0.1) 
+  is_active                  Boolean? @default(false) 
+  extraction_prompt          String? 
+  fallback_provider          String? 
+  fallback_api_key_encrypted String? 
+  fallback_model             String? 
+  created_by                 String?  @db.Uuid 
+  updated_by                 String?  @db.Uuid 
+  created_at                 DateTime @default(now()) 
+  updated_at                 DateTime @updatedAt 
+  vision_provider            String? 
+  vision_model               String? 
+  vision_api_key_encrypted   String? 
+  whatsapp_provider          String?  @default("openai") 
+  whatsapp_model             String?  @default("gpt-4o-mini") 
+  whatsapp_api_key_encrypted String? 
+  whisper_api_key_encrypted  String? 
+  lessons_provider           String? 
+  lessons_model              String? 
+} 
+ 
+model WhatsappSession { 
+  id                String   @id @default(uuid()) @db.Uuid 
+  organization_id   String?  @db.Uuid 
+  phone_number      String   @unique 
+  user_id           String?  @unique @db.Uuid 
+  state             String   @default("idle") 
+  pending_data      Json? 
+  detected_language String?  @default("en") 
+  expires_at        DateTime 
+  created_at        DateTime @default(now()) 
+  updated_at        DateTime @updatedAt 
+ 
+  @@map("whatsapp_sessions") 
+} 
+ 
+model WhatsappUpdate { 
+  id                    String    @id @default(uuid()) @db.Uuid 
+  organization_id       String?   @db.Uuid 
+  user_id               String?   @db.Uuid 
+  phone_number          String 
+  meta_message_id       String?   @unique 
+  message_type          String 
+  raw_message_text      String? 
+  detected_language     String? 
+  audio_storage_path    String? 
+  audio_file_size_bytes BigInt? 
+  audio_duration_secs   Int? 
+  audio_downloaded_at   DateTime? 
+  transcript_path       String? 
+  extracted_unit        String? 
+  extracted_tag         String? 
+  extracted_description String? 
+  extracted_progress    Int? 
+  confidence_breakdown  Json? 
+  ai_confidence         Float? 
+  db_confidence         Float? 
+  final_confidence      Float? 
+  matched_workpack_id   String?   @db.Uuid 
+  matched_activity_id   String?   @db.Uuid 
+  match_candidates      Json? 
+  status                String    @default("pending") 
+  review_notes          String? 
+  reviewed_by           String?   @db.Uuid 
+  reviewed_at           DateTime? 
+  reply_sent            String? 
+  reply_sent_at         DateTime? 
+  reply_language        String? 
+  created_at            DateTime  @default(now()) 
+  updated_at            DateTime  @updatedAt 
+ 
+  @@index([organization_id, status]) 
+  @@index([phone_number, created_at]) 
+  @@index([matched_workpack_id]) 
+  @@map("whatsapp_updates") 
+} 
+ 
+model ShiftReport { 
+  id                     String    @id @default(uuid()) @db.Uuid 
+  organization_id        String    @db.Uuid 
+  site_id                String    @db.Uuid 
+  unit_id                String?   @db.Uuid 
+  shift_type             String 
+  shift_start            DateTime 
+  shift_end              DateTime 
+  report_text            String 
+  report_summary         String? 
+  activities_completed   Int       @default(0) 
+  activities_overdue     Int       @default(0) 
+  activities_in_progress Int       @default(0) 
+  whatsapp_updates_count Int       @default(0) 
+  open_constraints_count Int       @default(0) 
+  critical_constraints   Int       @default(0) 
+  sent_to_numbers        String[]  @default([]) 
+  sent_at                DateTime? 
+  meta_message_ids       String[]  @default([]) 
+  delivery_status        String    @default("pending") 
+  created_at             DateTime  @default(now()) 
+  updated_at             DateTime  @updatedAt 
+ 
+  @@index([organization_id, shift_start]) 
+  @@index([unit_id]) 
+  @@map("shift_reports") 
+} 
+ 
+model UnitShiftReportRecipient { 
+  id                     String   @id @default(uuid()) @db.Uuid 
+  unit_id                String   @db.Uuid 
+  user_id                String   @db.Uuid 
+  receives_shift_reports Boolean  @default(false) 
+  is_active              Boolean  @default(true) 
+  created_at             DateTime @default(now()) 
+  updated_at             DateTime @updatedAt 
+ 
+  @@unique([unit_id, user_id]) 
+  @@map("unit_shift_report_recipients") 
+} 
+ 
+model ActivityResource { 
+  id               String        @id @default(uuid()) @db.Uuid 
+  organization_id  String        @db.Uuid 
+  workpack_id      String        @db.Uuid 
+  activity_id      String        @db.Uuid 
+  resource_type_id String?       @db.Uuid 
+  resource_id      String?       @db.Uuid 
+  contractor_id    String?       @db.Uuid 
+  planned_hours    Decimal?      @default(0) @db.Decimal(8, 2) 
+  actual_hours     Decimal?      @default(0) @db.Decimal(8, 2) 
+  headcount        Int?          @default(1) 
+  assigned_date    DateTime?     @db.Date 
+  notes            String? 
+  created_by       String?       @db.Uuid 
+  created_at       DateTime      @default(now()) 
+  updated_at       DateTime      @updatedAt 
+  item_catalog_id  String?       @db.Uuid 
+  resource_type    ResourceType2 @default(labor) 
+  resource_name    String? 
+  crew_size        Int           @default(1) 
+  quantity         Decimal?      @db.Decimal(10, 4) 
+  unit             String? 
+} 
+ 
+model FormTemplate { 
+  id                String    @id @default(uuid()) @db.Uuid 
+  organization_id   String    @db.Uuid 
+  name              String 
+  slug              String 
+  form_type         String 
+  description       String? 
+  schema_json       Json 
+  is_active         Boolean?  @default(true) 
+  requires_approval Boolean?  @default(false) 
+  created_by        String?   @db.Uuid 
+  created_at        DateTime  @default(now()) 
+  updated_at        DateTime  @updatedAt 
+  deleted_at        DateTime? 
+ 
+  @@unique([organization_id, slug]) 
+} 
+ 
+model FormTemplateVersion { 
+  id               String   @id @default(uuid()) @db.Uuid 
+  organization_id  String   @db.Uuid 
+  form_template_id String   @db.Uuid 
+  version_number   Int 
+  schema_json      Json 
+  change_notes     String? 
+  created_by       String?  @db.Uuid 
+  created_at       DateTime @default(now()) 
+ 
+  @@unique([form_template_id, version_number]) 
+} 
+ 
+model FormInstance { 
+  id               String      @id @default(uuid()) @db.Uuid 
+  organization_id  String      @db.Uuid 
+  site_id          String      @db.Uuid 
+  workpack_id      String      @db.Uuid 
+  form_template_id String      @db.Uuid 
+  template_version Int 
+  title            String? 
+  sequence_number  Int?        @default(0) 
+  status           FormStatus? @default(draft) 
+  submitted_by     String?     @db.Uuid 
+  submitted_at     DateTime? 
+  approved_by      String?     @db.Uuid 
+  approved_at      DateTime? 
+  rejection_reason String? 
+  created_by       String?     @db.Uuid 
+  created_at       DateTime    @default(now()) 
+  updated_at       DateTime    @updatedAt 
+  deleted_at       DateTime? 
+} 
+ 
+model FormEntry { 
+  id               String   @id @default(uuid()) @db.Uuid 
+  organization_id  String   @db.Uuid 
+  form_instance_id String   @db.Uuid 
+  section_id       String 
+  field_id         String 
+  field_type       String 
+  value            String? 
+  value_type       String?  @default("string") 
+  created_by       String?  @db.Uuid 
+  created_at       DateTime @default(now()) 
+  updated_at       DateTime @updatedAt 
+ 
+  @@unique([form_instance_id, section_id, field_id]) 
+} 
+ 
+model DocumentTemplate { 
+  id               String   @id @default(uuid()) @db.Uuid 
+  organization_id  String   @db.Uuid 
+  name             String 
+  document_type    String? 
+  description      String? 
+  default_sections Json? 
+  is_active        Boolean? @default(true) 
+  created_by       String?  @db.Uuid 
+  created_at       DateTime @default(now()) 
+  updated_at       DateTime @updatedAt 
+} 
+ 
+model DocumentInstance { 
+  id                   String    @id @default(uuid()) @db.Uuid 
+  organization_id      String    @db.Uuid 
+  site_id              String    @db.Uuid 
+  workpack_id          String    @db.Uuid 
+  document_template_id String?   @db.Uuid 
+  tab_title            String 
+  sequence_number      Int?      @default(0) 
+  content_html         String? 
+  content_json         Json? 
+  document_type        String? 
+  revision             String?   @default("R0") 
+  is_locked            Boolean?  @default(false) 
+  include_in_pdf       Boolean?  @default(true) 
+  created_by           String?   @db.Uuid 
+  updated_by           String?   @db.Uuid 
+  created_at           DateTime  @default(now()) 
+  updated_at           DateTime  @updatedAt 
+  deleted_at           DateTime? 
+ 
+  @@index([workpack_id, sequence_number]) 
+} 
+ 
+model Attachment { 
+  id                String    @id @default(uuid()) @db.Uuid 
+  organization_id   String    @db.Uuid 
+  site_id           String?   @db.Uuid 
+  reference_type    String 
+  reference_id      String    @db.Uuid 
+  original_filename String 
+  stored_filename   String 
+  storage_disk      String?   @default("s3") 
+  storage_path      String 
+  mime_type         String? 
+  file_size_bytes   BigInt?   @default(0) 
+  file_extension    String? 
+  category          String? 
+  description       String? 
+  created_by        String?   @db.Uuid 
+  created_at        DateTime  @default(now()) 
+  updated_at        DateTime  @updatedAt 
+  deleted_at        DateTime? 
+ 
+  @@index([reference_type, reference_id]) 
+} 
+ 
+model WorkflowTransition { 
+  id               String          @id @default(uuid()) @db.Uuid 
+  organization_id  String          @db.Uuid 
+  workpack_id      String          @db.Uuid 
+  from_status      String? 
+  to_status        String 
+  action           WorkflowAction? 
+  comment          String? 
+  comment_required Boolean?        @default(false) 
+  performed_by     String          @db.Uuid 
+  performed_at     DateTime?       @default(now()) 
+  created_at       DateTime        @default(now()) 
+  updated_at       DateTime        @updatedAt 
+ 
+  @@index([workpack_id, performed_at]) 
+} 
+ 
+model AuditLog { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  site_id         String?  @db.Uuid 
+  auditable_type  String 
+  auditable_id    String   @db.Uuid 
+  event           String 
+  old_values      Json? 
+  new_values      Json? 
+  changed_fields  Json? 
+  user_id         String?  @db.Uuid 
+  user_name       String? 
+  user_email      String? 
+  ip_address      String? 
+  user_agent      String? 
+  url             String? 
+  method          String? 
+  context         String? 
+  session_id      String?  @db.Uuid 
+  created_at      DateTime @default(now()) 
+ 
+  @@index([auditable_type, auditable_id]) 
+  @@index([organization_id, created_at]) 
+  @@index([user_id, created_at]) 
+} 
+ 
+model Notification { 
+  id              String    @id @default(uuid()) @db.Uuid 
+  organization_id String    @db.Uuid 
+  user_id         String    @db.Uuid 
+  type            String 
+  title           String 
+  message         String? 
+  notifiable_type String? 
+  notifiable_id   String?   @db.Uuid 
+  action_url      String? 
+  is_read         Boolean?  @default(false) 
+  read_at         DateTime? 
+  triggered_by    String?   @db.Uuid 
+  created_at      DateTime  @default(now()) 
+  updated_at      DateTime  @updatedAt 
+ 
+  @@index([user_id, is_read, created_at]) 
+  @@index([notifiable_type, notifiable_id]) 
+} 
+ 
+model OrganizationDocumentSetting { 
+  id                  String   @id @default(uuid()) @db.Uuid 
+  organization_id     String   @unique @db.Uuid 
+  company_name        String? 
+  logo_path           String? 
+  primary_color       String?  @default("#003366") 
+  secondary_color     String?  @default("#666666") 
+  header_html         String? 
+  footer_html         String? 
+  show_page_numbers   Boolean? @default(true) 
+  show_logo_all_pages Boolean? @default(true) 
+  enable_watermark    Boolean? @default(false) 
+  watermark_text      String? 
+  watermark_color     String?  @default("#CCCCCC") 
+  number_prefix       String?  @default("WP") 
+  number_format       String?  @default("{PREFIX}-{YEAR}-{SEQ:5}") 
+  page_size           String?  @default("A4") 
+  page_orientation    String?  @default("portrait") 
+  margins             Json? 
+  updated_by          String?  @db.Uuid 
+  created_at          DateTime @default(now()) 
+  updated_at          DateTime @updatedAt 
+} 
+ 
+model JointIntegrityItem { 
+  id                              String            @id @default(uuid()) @db.Uuid 
+  organization_id                 String            @db.Uuid 
+  site_id                         String            @db.Uuid 
+  workpack_id                     String            @db.Uuid 
+  activity_id                     String?           @db.Uuid 
+  joint_master_id                 String?           @db.Uuid 
+  line_number                     String? 
+  location                        String? 
+  ai_generated                    Boolean?          @default(false) 
+  joint_number                    String 
+  tag_id                          String? 
+  drawing_number                  String? 
+  pipeline_number                 String? 
+  pand_id_number                  String? 
+  specification                   String? 
+  rating                          String? 
+  flange_size                     String? 
+  construct_operation_id          String?           @db.Uuid 
+  destruct_operation_id           String?           @db.Uuid 
+  flange_material                 String? 
+  flange_reference_standard       String? 
+  gasket_material                 String? 
+  gasket_reference_standard       String? 
+  flange_type                     String? 
+  gasket_item_id                  String?           @db.Uuid 
+  bolt_item_id                    String?           @db.Uuid 
+  bolt_material                   String? 
+  bolt_reference_standard         String? 
+  bolt_diameter                   String? 
+  bolt_length                     String? 
+  bolt_quantity                   Int? 
+  tightening_method               TighteningMethod? 
+  torque_tightening_value         Decimal?          @db.Decimal(10, 2) 
+  torque_pump_pressure            Decimal?          @db.Decimal(10, 2) 
+  torque_tool_reference           String? 
+  tensioning_pressure             Decimal?          @db.Decimal(10, 2) 
+  tensioning_residual_bolt_stress Decimal?          @db.Decimal(10, 2) 
+  tensioning_pass                 String? 
+  tensioning_tool_reference       String? 
+  status                          JointStatus?      @default(pending) 
+  assembled_by                    String?           @db.Uuid 
+  assembled_at                    DateTime? 
+  inspected_by                    String?           @db.Uuid 
+  inspected_at                    DateTime? 
+  signed_off_by                   String?           @db.Uuid 
+  signed_off_at                   DateTime? 
+  notes                           String? 
+  torque_witness_name             String? 
+  torque_witness_signed_at        DateTime? 
+  torque_certificate_number       String? 
+  created_by                      String?           @db.Uuid 
+  updated_by                      String?           @db.Uuid 
+  created_at                      DateTime          @default(now()) 
+  updated_at                      DateTime          @updatedAt 
+  deleted_at                      DateTime? 
+ 
+  @@unique([workpack_id, joint_number]) 
+  @@index([workpack_id, status]) 
+  @@index([workpack_id, activity_id]) 
+} 
+ 
+model Blind { 
+  id                          String         @id @default(uuid()) @db.Uuid 
+  organization_id             String         @db.Uuid 
+  site_id                     String         @db.Uuid 
+  workpack_id                 String         @db.Uuid 
+  activity_id                 String?        @db.Uuid 
+  blind_number                String 
+  blind_type                  BlindType? 
+  system                      String? 
+  pipeline_number             String? 
+  pand_id_number              String? 
+  location                    String? 
+  area                        String? 
+  flange_size                 String? 
+  rating                      String? 
+  blind_test_type             BlindTestType? 
+  blind_test_type_description String? 
+  safe_isolation_confirmed    Boolean?       @default(false) 
+  safe_isolation_reference    String? 
+  insert_activity_id          String?        @db.Uuid 
+  inserted_by                 String?        @db.Uuid 
+  inserted_at                 DateTime? 
+  insert_witness              String? 
+  remove_activity_id          String?        @db.Uuid 
+  removed_by                  String?        @db.Uuid 
+  removed_at                  DateTime? 
+  remove_witness              String? 
+  status                      BlindStatus?   @default(pending) 
+  actual_test_pressure        Decimal?       @db.Decimal(10, 2) 
+  test_result                 String? 
+  notes                       String? 
+  triage_reference            String? 
+  created_by                  String?        @db.Uuid 
+  updated_by                  String?        @db.Uuid 
+  created_at                  DateTime       @default(now()) 
+  updated_at                  DateTime       @updatedAt 
+  deleted_at                  DateTime? 
+ 
+  @@unique([workpack_id, blind_number]) 
+  @@index([workpack_id, status]) 
+} 
+ 
+model Constraint { 
+  id                     String            @id @default(uuid()) @db.Uuid 
+  organization_id        String            @db.Uuid 
+  site_id                String            @db.Uuid 
+  workpack_id            String            @db.Uuid 
+  activity_id            String?           @db.Uuid 
+  constraint_number      String? 
+  title                  String 
+  description            String? 
+  constraint_type        ConstraintType? 
+  priority               Priority?         @default(high) 
+  owner_id               String?           @db.Uuid 
+  target_resolution_date DateTime?         @db.Date 
+  actual_resolution_date DateTime?         @db.Date 
+  status                 ConstraintStatus? @default(open) 
+  resolution_notes       String? 
+  raised_by              String?           @db.Uuid 
+  raised_at              DateTime?         @default(now()) 
+  closed_by              String?           @db.Uuid 
+  closed_at              DateTime? 
+  created_by             String?           @db.Uuid 
+  updated_by             String?           @db.Uuid 
+  created_at             DateTime          @default(now()) 
+  updated_at             DateTime          @updatedAt 
+  deleted_at             DateTime? 
+ 
+  @@index([workpack_id, status]) 
+  @@index([workpack_id, constraint_type, status]) 
+  @@index([owner_id, status]) 
+} 
+ 
+model ConstraintLog { 
+  id                     String    @id @default(uuid()) @db.Uuid 
+  organization_id        String    @db.Uuid 
+  workpack_id            String    @db.Uuid 
+  portfolio_id           String?   @db.Uuid 
+  constraint_number      String? 
+  title                  String 
+  description            String 
+  category               String    @default("technical") 
+  severity               String    @default("medium") 
+  status                 String    @default("open") 
+  raised_by              String? 
+  raised_date            DateTime  @default(now()) 
+  owner                  String? 
+  target_resolution      DateTime? 
+  resolution_steps       String? 
+  resolved_by            String? 
+  resolved_date          DateTime? 
+  resolution_notes       String? 
+  impact_on_schedule     String? 
+  is_in_central_register Boolean   @default(true) 
+  ai_generated           Boolean   @default(false) 
+  deleted_at             DateTime? 
+  created_at             DateTime  @default(now()) 
+  updated_at             DateTime  @updatedAt 
+ 
+  @@index([organization_id]) 
+  @@index([workpack_id]) 
+  @@index([status]) 
+  @@map("constraint_logs") 
+} 
+ 
+model ConstraintAttachment { 
+  id            String   @id @default(uuid()) @db.Uuid 
+  constraint_id String   @db.Uuid 
+  filename      String 
+  file_path     String 
+  file_size     Int? 
+  mime_type     String?  @default("application/pdf") 
+  uploaded_by   String 
+  created_at    DateTime @default(now()) 
+ 
+  @@map("constraint_attachments") 
+} 
+ 
+model PunchListItem { 
+  id                String         @id @default(uuid()) @db.Uuid 
+  organization_id   String         @db.Uuid 
+  site_id           String         @db.Uuid 
+  workpack_id       String         @db.Uuid 
+  activity_id       String?        @db.Uuid 
+  item_number       String? 
+  title             String 
+  description       String? 
+  category          PunchCategory? 
+  discipline_id     String?        @db.Uuid 
+  raised_by         String?        @db.Uuid 
+  raised_at         DateTime?      @default(now()) 
+  location          String? 
+  drawing_reference String? 
+  assigned_to       String?        @db.Uuid 
+  target_close_date DateTime?      @db.Date 
+  status            PunchStatus?   @default(open) 
+  closed_by         String?        @db.Uuid 
+  closed_at         DateTime? 
+  close_out_notes   String? 
+  accepted_by       String?        @db.Uuid 
+  accepted_at       DateTime? 
+  created_by        String?        @db.Uuid 
+  updated_by        String?        @db.Uuid 
+  created_at        DateTime       @default(now()) 
+  updated_at        DateTime       @updatedAt 
+  deleted_at        DateTime? 
+ 
+  @@index([workpack_id, status]) 
+  @@index([workpack_id, category, status]) 
+} 
+ 
+model AiExtractionJob { 
+  id                      String       @id @default(uuid()) @db.Uuid 
+  organization_id         String       @db.Uuid 
+  site_id                 String?      @db.Uuid 
+  requested_by            String       @db.Uuid 
+  workpack_id             String?      @db.Uuid 
+  status                  AiJobStatus? 
+  provider_used           String? 
+  model_used              String? 
+  started_at              DateTime? 
+  completed_at            DateTime? 
+  processing_seconds      Int? 
+  input_tokens            Int? 
+  output_tokens           Int? 
+  estimated_cost_usd      Decimal?     @db.Decimal(10, 6) 
+  error_message           String? 
+  retry_count             Int?         @default(0) 
+  next_retry_at           DateTime? 
+  work_type_hint          String? 
+  discipline_hint         String? 
+  additional_instructions String? 
+  created_by              String?      @db.Uuid 
+  created_at              DateTime     @default(now()) 
+  updated_at              DateTime     @updatedAt 
+  deleted_at              DateTime? 
+ 
+  @@index([organization_id, status]) 
+  @@index([requested_by, created_at]) 
+} 
+ 
+model AiExtractionResult { 
+  id                        String                @id @default(uuid()) @db.Uuid 
+  organization_id           String                @db.Uuid 
+  ai_extraction_job_id      String                @unique @db.Uuid 
+  raw_ai_response           String? 
+  extracted_data_json       Json 
+  planner_review_json       Json? 
+  review_status             DocumentReviewStatus? @default(pending_review) 
+  reviewed_by               String?               @db.Uuid 
+  reviewed_at               DateTime? 
+  review_notes              String? 
+  overall_confidence        Float? 
+  field_confidence_json     Json? 
+  low_confidence_fields     Json? 
+  materials_extracted       Int?                  @default(0) 
+  materials_matched_catalog Int?                  @default(0) 
+  materials_unmatched       Int?                  @default(0) 
+  created_at                DateTime              @default(now()) 
+  updated_at                DateTime              @updatedAt 
+} 
+ 
+model ExtractionConflict { 
+  id                   String    @id @default(uuid()) @db.Uuid 
+  organization_id      String    @db.Uuid 
+  workpack_id          String    @db.Uuid 
+  ai_extraction_job_id String    @db.Uuid 
+  field_path           String 
+  field_label          String 
+  existing_value       String? 
+  existing_entered_by  String? 
+  existing_entered_at  DateTime? 
+  extracted_value      String 
+  source_document_id   String    @db.Uuid 
+  source_page          Int? 
+  source_text          String 
+  confidence           String 
+  calculated           Boolean   @default(false) 
+  calculation_basis    String? 
+  status               String    @default("pending") 
+  resolution           String? 
+  resolution_value     String? 
+  resolution_note      String    @default("") 
+  resolved_by          String?   @db.Uuid 
+  resolved_at          DateTime? 
+  created_at           DateTime  @default(now()) 
+  updated_at           DateTime  @updatedAt 
+ 
+  @@index([workpack_id, status]) 
+  @@index([ai_extraction_job_id]) 
+  @@map("extraction_conflicts") 
+} 
+ 
+model AiSuggestedItem { 
+  id                        String               @id @default(uuid()) @db.Uuid 
+  organization_id           String               @db.Uuid 
+  site_id                   String?              @db.Uuid 
+  ai_extraction_job_id      String               @db.Uuid 
+  workpack_material_id      String?              @db.Uuid 
+  suggested_name            String 
+  suggested_material_number String? 
+  suggested_category        String? 
+  suggested_uom             String? 
+  suggested_specifications  String? 
+  suggested_quantity        Decimal?             @db.Decimal(12, 3) 
+  source_document           String? 
+  confidence_score          Float? 
+  ai_reasoning              String? 
+  status                    SuggestedItemStatus? @default(pending_review) 
+  resolved_item_catalog_id  String?              @db.Uuid 
+  reviewed_by               String?              @db.Uuid 
+  reviewed_at               DateTime? 
+  review_notes              String? 
+  created_at                DateTime             @default(now()) 
+  updated_at                DateTime             @updatedAt 
+ 
+  @@index([organization_id, status]) 
+} 
+ 
+model ActivityLibrary { 
+  id                     String    @id @default(uuid()) @db.Uuid 
+  organization_id        String    @db.Uuid 
+  name                   String 
+  description            String? 
+  discipline_id          String?   @db.Uuid 
+  duration_hours         Decimal?  @db.Decimal(8, 2) 
+  is_active              Boolean?  @default(true) 
+  activity_code          String? 
+  created_by             String?   @db.Uuid 
+  created_at             DateTime  @default(now()) 
+  updated_at             DateTime  @updatedAt 
+  deleted_at             DateTime? 
+  hold_point_type        String? 
+  hold_point_description String? 
+  work_category          String? 
+  phase                  String? 
+  level_code             String? 
+} 
+ 
+model ActivityUdfDefinition { 
+  id              String    @id @default(uuid()) @db.Uuid 
+  organization_id String    @db.Uuid 
+  name            String 
+  code            String 
+  type            String 
+  is_mandatory    Boolean?  @default(false) 
+  is_active       Boolean?  @default(true) 
+  sort_order      Int? 
+  created_by      String?   @db.Uuid 
+  created_at      DateTime  @default(now()) 
+  updated_at      DateTime  @updatedAt 
+  deleted_at      DateTime? 
+ 
+  @@unique([organization_id, code]) 
+} 
+ 
+model ActivityUdfOption { 
+  id                String    @id @default(uuid()) @db.Uuid 
+  organization_id   String    @db.Uuid 
+  udf_definition_id String    @db.Uuid 
+  value             String 
+  label             String 
+  code_value        String? 
+  description       String? 
+  sort_order        Int?      @default(0) 
+  is_active         Boolean?  @default(true) 
+  created_by        String?   @db.Uuid 
+  created_at        DateTime  @default(now()) 
+  updated_at        DateTime  @updatedAt 
+  deleted_at        DateTime? 
+ 
+  @@unique([udf_definition_id, code_value]) 
+} 
+ 
+model ActivityLibraryUdfDefault { 
+  id                  String    @id @default(uuid()) @db.Uuid 
+  organization_id     String    @db.Uuid 
+  activity_library_id String    @db.Uuid 
+  udf_definition_id   String    @db.Uuid 
+  udf_option_id       String?   @db.Uuid 
+  value_string        String? 
+  value_number        Decimal?  @db.Decimal(10, 2) 
+  value_date          DateTime? @db.Date 
+  value_boolean       Boolean? 
+  created_at          DateTime  @default(now()) 
+  updated_at          DateTime  @updatedAt 
+} 
+ 
+model ActivityUdfValue { 
+  id                String    @id @default(uuid()) @db.Uuid 
+  organization_id   String    @db.Uuid 
+  activity_id       String    @db.Uuid 
+  udf_definition_id String    @db.Uuid 
+  udf_option_id     String?   @db.Uuid 
+  value_string      String? 
+  value_number      Decimal?  @db.Decimal(10, 2) 
+  value_date        DateTime? @db.Date 
+  value_boolean     Boolean? 
+  created_at        DateTime  @default(now()) 
+  updated_at        DateTime  @updatedAt 
+ 
+  @@unique([activity_id, udf_definition_id]) 
+} 
+ 
+model ScheduleExportJob { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  site_id         String?  @db.Uuid 
+  status          String 
+  file_path       String? 
+  created_by      String?  @db.Uuid 
+  created_at      DateTime @default(now()) 
+  updated_at      DateTime @updatedAt 
+} 
+ 
+model ScheduleImportJob { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  site_id         String?  @db.Uuid 
+  status          String 
+  file_path       String? 
+  created_by      String?  @db.Uuid 
+  created_at      DateTime @default(now()) 
+  updated_at      DateTime @updatedAt 
+ 
+  @@map("schedule_import_jobs") 
+} 
+ 
+model WorkpackTemplate { 
+  id              String    @id @default(uuid()) @db.Uuid 
+  organization_id String?   @db.Uuid 
+  name            String 
+  equipment_type  String 
+  job_type        String 
+  description     String? 
+  is_system       Boolean   @default(false) 
+  is_active       Boolean   @default(true) 
+  created_by      String    @db.Uuid 
+  created_at      DateTime  @default(now()) 
+  updated_at      DateTime  @updatedAt 
+  deleted_at      DateTime? 
+ 
+  @@unique([organization_id, equipment_type, job_type]) 
+  @@map("workpack_templates") 
+} 
+ 
+model WorkpackTemplateActivity { 
+  id                     String   @id @default(uuid()) @db.Uuid 
+  organization_id        String   @db.Uuid 
+  template_id            String   @db.Uuid 
+  sequence_number        Int      @default(0) 
+  activity_code          String? 
+  activity_library_id    String?  @db.Uuid 
+  description            String 
+  duration_hours         Decimal? @db.Decimal(8, 2) 
+  is_optional            Boolean  @default(false) 
+  hold_point_type        String? 
+  hold_point_description String? 
+  udf_defaults           Json? 
+  predecessor_sequences  Int[]    @default([]) 
+  created_at             DateTime @default(now()) 
+  updated_at             DateTime @updatedAt 
+ 
+  @@map("workpack_template_activities") 
+} 
+ 
+model TemplateChecklistItem { 
+  id                String        @id @default(uuid()) @db.Uuid 
+  organization_id   String        @db.Uuid 
+  template_id       String        @db.Uuid 
+  checklist_type    ChecklistType 
+  sequence_number   Int           @default(0) 
+  description       String 
+  responsible_party String? 
+  is_mandatory      Boolean       @default(true) 
+  created_at        DateTime      @default(now()) 
+  updated_at        DateTime      @updatedAt 
+ 
+  @@map("template_checklist_items") 
+} 
+ 
+model QaClearanceRecord { 
+  id                 String   @id @default(uuid()) @db.Uuid 
+  organization_id    String   @db.Uuid 
+  activity_id        String   @db.Uuid 
+  workpack_id        String   @db.Uuid 
+  cleared_by         String   @db.Uuid 
+  cleared_at         DateTime 
+  certificate_number String? 
+  witness_name       String? 
+  notes              String? 
+  created_at         DateTime @default(now()) 
+ 
+  @@map("qa_clearance_records") 
+} 
+ 
+model DroppingBoxupChecklist { 
+  id                       String        @id @default(uuid()) @db.Uuid 
+  organization_id          String        @db.Uuid 
+  workpack_id              String        @db.Uuid 
+  checklist_type           ChecklistType 
+  created_from_template_id String?       @db.Uuid 
+  created_by               String        @db.Uuid 
+  created_at               DateTime      @default(now()) 
+  updated_at               DateTime      @updatedAt 
+ 
+  @@unique([workpack_id, checklist_type]) 
+  @@map("dropping_boxup_checklists") 
+} 
+ 
+model DroppingBoxupChecklistItem { 
+  id                String    @id @default(uuid()) @db.Uuid 
+  organization_id   String    @db.Uuid 
+  checklist_id      String    @db.Uuid 
+  sequence_number   Int       @default(0) 
+  description       String 
+  responsible_party String? 
+  target_date       DateTime? 
+  is_done           Boolean   @default(false) 
+  signed_by         String?   @db.Uuid 
+  signed_at         DateTime? 
+  notes             String? 
+  created_at        DateTime  @default(now()) 
+  updated_at        DateTime  @updatedAt 
+ 
+  @@map("dropping_boxup_checklist_items") 
+} 
+ 
+model WorkpackPrintSettings { 
+  id                      String   @id @default(uuid()) @db.Uuid 
+  organization_id         String   @unique @db.Uuid 
+  updated_by              String?  @db.Uuid 
+  cover_image_path        String? 
+  cover_image_opacity     Float    @default(1.0) 
+  cover_show              Boolean  @default(true) 
+  cover_title_variable    String   @default("{workpack_number} â {title}") 
+  cover_subtitle_variable String   @default("{org_name} | {site_name}") 
+  cover_accent_color      String   @default("#E8701A") 
+  cover_bg_color          String   @default("#0D2137") 
+  header_zones            Json     @default("{}") 
+  header_bg_color         String   @default("#0D2137") 
+  header_text_color       String   @default("#FFFFFF") 
+  header_height_mm        Float    @default(18) 
+  header_show_border      Boolean  @default(false) 
+  header_border_color     String   @default("#E8701A") 
+  footer_zones            Json     @default("{}") 
+  footer_bg_color         String   @default("#0D2137") 
+  footer_text_color       String   @default("#FFFFFF") 
+  footer_height_mm        Float    @default(12) 
+  footer_show_border      Boolean  @default(true) 
+  footer_border_color     String   @default("#E8701A") 
+  page_size               String   @default("A4") 
+  margin_top_mm           Float    @default(15) 
+  margin_bottom_mm        Float    @default(15) 
+  margin_left_mm          Float    @default(15) 
+  margin_right_mm         Float    @default(15) 
+  watermark_text          String? 
+  watermark_draft_only    Boolean  @default(true) 
+  logo_library            Json     @default("[]") 
+  cover_page_settings     Json? 
+  last_page_settings      Json? 
+  created_at              DateTime @default(now()) 
+  updated_at              DateTime @updatedAt 
+ 
+  @@map("workpack_print_settings") 
+} 
+ 
+model OrgClearanceParty { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  party_name      String 
+  condition       String 
+  sequence_number Int      @default(0) 
+  is_active       Boolean  @default(true) 
+  created_at      DateTime @default(now()) 
+ 
+  @@map("org_clearance_parties") 
+} 
+ 
+model ClearanceForBoxup { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  workpack_id     String   @unique @db.Uuid 
+  created_by      String   @db.Uuid 
+  created_at      DateTime @default(now()) 
+  updated_at      DateTime @updatedAt 
+ 
+  @@map("clearance_for_boxup") 
+} 
+ 
+model ClearanceSignOff { 
+  id              String    @id @default(uuid()) @db.Uuid 
+  organization_id String    @db.Uuid 
+  clearance_id    String    @db.Uuid 
+  party_name      String 
+  condition       String 
+  signed_by       String?   @db.Uuid 
+  signed_at       DateTime? 
+  signature_path  String? 
+  notes           String? 
+  created_at      DateTime  @default(now()) 
+  updated_at      DateTime  @updatedAt 
+ 
+  @@map("clearance_sign_offs") 
+} 
+ 
+model CleaningRecord { 
+  id                   String         @id @default(uuid()) @db.Uuid 
+  organization_id      String         @db.Uuid 
+  site_id              String?        @db.Uuid 
+  workpack_id          String         @db.Uuid 
+  activity_id          String?        @db.Uuid 
+  created_by           String         @db.Uuid 
+  certificate_number   String? 
+  cleaning_method      CleaningMethod 
+  cleaning_medium      String? 
+  concentration        String? 
+  temperature_c        Decimal?       @db.Decimal(5, 2) 
+  duration_hours       Decimal?       @db.Decimal(8, 2) 
+  is_standalone        Boolean        @default(false) 
+  before_condition     String? 
+  after_condition      String? 
+  remaining_deposits   String? 
+  inspector_acceptance Boolean        @default(false) 
+  inspector_id         String?        @db.Uuid 
+  inspected_at         DateTime? 
+  notes                String? 
+  created_at           DateTime       @default(now()) 
+  updated_at           DateTime       @updatedAt 
+  deleted_at           DateTime? 
+ 
+  @@map("cleaning_records") 
+} 
+ 
+model JobCompletionCertificate { 
+  id                       String    @id @default(uuid()) @db.Uuid 
+  organization_id          String    @db.Uuid 
+  workpack_id              String    @unique @db.Uuid 
+  certificate_number       String? 
+  scope_summary            String? 
+  activities_completed     Int? 
+  open_punch_cat_b         Int       @default(0) 
+  open_punch_cat_c         Int       @default(0) 
+  pressure_tests_status    String? 
+  materials_summary        String? 
+  lessons_learnt_summary   String? 
+  maint_engineer_id        String?   @db.Uuid 
+  maint_engineer_signed_at DateTime? 
+  operations_id            String?   @db.Uuid 
+  operations_signed_at     DateTime? 
+  qa_id                    String?   @db.Uuid 
+  qa_signed_at             DateTime? 
+  client_name              String? 
+  client_signed_at         DateTime? 
+  client_signature_path    String? 
+  created_by               String    @db.Uuid 
+  created_at               DateTime  @default(now()) 
+  updated_at               DateTime  @updatedAt 
+ 
+  @@map("job_completion_certificates") 
+} 
+ 
+model CertificateTemplate { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String?  @db.Uuid 
+  cert_type       String 
+  cert_name       String 
+  equipment_types String[] 
+  fields          Json 
+  is_platform     Boolean  @default(false) 
+  is_active       Boolean  @default(true) 
+  version         Int      @default(1) 
+  created_at      DateTime @default(now()) 
+  updated_at      DateTime @updatedAt 
+ 
+  @@map("certificate_templates") 
+} 
+ 
+model CertificateInstance { 
+  id                    String    @id @default(uuid()) @db.Uuid 
+  organization_id       String    @db.Uuid 
+  workpack_id           String    @db.Uuid 
+  template_id           String    @db.Uuid 
+  cert_number           String? 
+  cert_type             String 
+  cert_name             String 
+  status                String    @default("not_started") 
+  field_values          Json      @default("{}") 
+  prepared_by           String? 
+  prepared_date         DateTime? 
+  reviewed_by           String? 
+  reviewed_date         DateTime? 
+  approved_by           String? 
+  approved_date         DateTime? 
+  third_party_inspector String? 
+  third_party_date      DateTime? 
+  pass_fail             String? 
+  remarks               String? 
+  include_in_pdf        Boolean   @default(true) 
+  deleted_at            DateTime? 
+  created_at            DateTime  @default(now()) 
+  updated_at            DateTime  @updatedAt 
+ 
+  @@index([workpack_id]) 
+  @@map("certificate_instances") 
+} 
+ 
+model LessonsLearnt { 
+  id                   String                @id @default(uuid()) @db.Uuid 
+  organization_id      String                @db.Uuid 
+  site_id              String?               @db.Uuid 
+  workpack_id          String                @db.Uuid 
+  created_by           String                @db.Uuid 
+  category             LessonsLearntCategory 
+  what_happened        String 
+  root_cause           String? 
+  recommendation       String? 
+  applicable_to_future Boolean               @default(true) 
+  equipment_type       String? 
+  created_at           DateTime              @default(now()) 
+  updated_at           DateTime              @updatedAt 
+  deleted_at           DateTime? 
+ 
+  @@map("lessons_learnt") 
+} 
+ 
+model LessonLearned { 
+  id                     String    @id @default(uuid()) @db.Uuid 
+  organization_id        String    @db.Uuid 
+  workpack_id            String    @db.Uuid 
+  portfolio_id           String?   @db.Uuid 
+  title                  String 
+  description            String 
+  category               String    @default("general") 
+  impact                 String    @default("medium") 
+  recommendation         String? 
+  applicable_to          String[] 
+  is_in_central_register Boolean   @default(true) 
+  status                 String    @default("draft") 
+  reviewed_by            String? 
+  reviewed_date          DateTime? 
+  deleted_at             DateTime? 
+  created_at             DateTime  @default(now()) 
+  updated_at             DateTime  @updatedAt 
+ 
+  @@index([organization_id]) 
+  @@index([workpack_id]) 
+  @@map("lessons_learned") 
+} 
+ 
+model ActivityCodeDefaultResource { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  library_id      String   @db.Uuid 
+  resource_id     String   @db.Uuid 
+  quantity        Decimal? @default(1) @db.Decimal(10, 2) 
+  created_at      DateTime @default(now()) 
+  updated_at      DateTime @updatedAt 
+ 
+  @@unique([library_id, resource_id]) 
+  @@map("activity_code_default_resources") 
+} 
+ 
+model Project { 
+  id             String     @id @default(uuid()) 
+  orgId          String     @map("org_id") @db.Uuid 
+  name           String 
+  code           String 
+  client         String? 
+  location       String? 
+  plantName      String?    @map("plant_name") 
+  status         String     @default("Planning") 
+  plannedSdDate  DateTime?  @map("planned_sd_date") 
+  plannedSuDate  DateTime?  @map("planned_su_date") 
+  forecastSdDate DateTime?  @map("forecast_sd_date") 
+  forecastSuDate DateTime?  @map("forecast_su_date") 
+  actualSdDate   DateTime?  @map("actual_sd_date") 
+  actualSuDate   DateTime?  @map("actual_su_date") 
+  description    String? 
+  createdBy      String?    @map("created_by") 
+  createdAt      DateTime   @default(now()) @map("created_at") 
+  updatedAt      DateTime   @updatedAt @map("updated_at") 
+  workpacks      Workpack[] 
+} 
+ 
+model ProjectUnit { 
+  id          String   @id @default(uuid()) 
+  projectId   String   @map("project_id") 
+  name        String 
+  code        String? 
+  description String? 
+  orderIndex  Int      @default(0) @map("order_index") 
+  createdAt   DateTime @default(now()) @map("created_at") 
+ 
+  @@map("project_units") 
+} 
+ 
+model EquipmentType { 
+  id          String   @id @default(uuid()) 
+  orgId       String   @map("org_id") 
+  name        String 
+  code        String? 
+  description String? 
+  isActive    Boolean  @default(true) @map("is_active") 
+  createdAt   DateTime @default(now()) @map("created_at") 
+} 
+ 
+model Equipment { 
+  id                String   @id @default(uuid()) 
+  projectId         String   @map("project_id") 
+  unitId            String?  @map("unit_id") 
+  equipmentTypeId   String?  @map("equipment_type_id") 
+  tag               String 
+  description       String? 
+  area              String? 
+  manufacturer      String? 
+  model             String? 
+  serialNumber      String?  @map("serial_number") 
+  yearOfManufacture Int?     @map("year_of_manufacture") 
+  technicalData     Json?    @map("technical_data") 
+  createdAt         DateTime @default(now()) @map("created_at") 
+  updatedAt         DateTime @updatedAt @map("updated_at") 
+} 
+ 
+model ProjectConstraint { 
+  id          String    @id @default(uuid()) 
+  projectId   String?   @map("project_id") 
+  workpackId  String?   @map("workpack_id") 
+  activityId  String?   @map("activity_id") 
+  title       String 
+  description String? 
+  owner       String? 
+  discipline  String? 
+  impact      String    @default("Medium") 
+  status      String    @default("Open") 
+  dueDate     DateTime? @map("due_date") 
+  resolution  String? 
+  resolvedAt  DateTime? @map("resolved_at") 
+  createdBy   String?   @map("created_by") 
+  createdAt   DateTime  @default(now()) @map("created_at") 
+  updatedAt   DateTime  @updatedAt @map("updated_at") 
+ 
+  @@map("project_constraints") 
+} 
+ 
+model PunchItem { 
+  id          String    @id @default(uuid()) 
+  projectId   String?   @map("project_id") 
+  workpackId  String?   @map("workpack_id") 
+  equipmentId String?   @map("equipment_id") 
+  punchNumber String?   @map("punch_number") 
+  category    String    @default("B") 
+  description String 
+  discipline  String? 
+  location    String? 
+  raisedBy    String?   @map("raised_by") 
+  assignedTo  String?   @map("assigned_to") 
+  status      String    @default("Open") 
+  dueDate     DateTime? @map("due_date") 
+  closedAt    DateTime? @map("closed_at") 
+  remarks     String? 
+  photoPaths  Json?     @map("photo_paths") 
+  createdAt   DateTime  @default(now()) @map("created_at") 
+  updatedAt   DateTime  @updatedAt @map("updated_at") 
+ 
+  @@map("punch_items") 
+} 
+ 
+model Permit { 
+  id              String    @id @default(uuid()) 
+  projectId       String?   @map("project_id") 
+  workpackId      String?   @map("workpack_id") 
+  activityId      String?   @map("activity_id") 
+  permitNumber    String    @map("permit_number") 
+  permitType      String    @map("permit_type") 
+  workDescription String?   @map("work_description") 
+  location        String? 
+  issuedBy        String?   @map("issued_by") 
+  issuedAt        DateTime? @map("issued_at") 
+  validUntil      DateTime? @map("valid_until") 
+  extendedUntil   DateTime? @map("extended_until") 
+  status          String    @default("Draft") 
+  precautions     String? 
+  gasTestResult   String?   @map("gas_test_result") 
+  closedBy        String?   @map("closed_by") 
+  closedAt        DateTime? @map("closed_at") 
+  remarks         String? 
+  createdAt       DateTime  @default(now()) @map("created_at") 
+  updatedAt       DateTime  @updatedAt @map("updated_at") 
+} 
+ 
+model ProgressLog { 
+  id               String    @id @default(uuid()) @db.Uuid 
+  activityId       String    @map("activity_id") @db.Uuid 
+  logDate          DateTime  @map("log_date") 
+  progressPercent  Decimal   @map("progress_percent") 
+  manhoursActual   Decimal?  @map("manhours_actual") 
+  loggedBy         String?   @map("logged_by") @db.Uuid 
+  remarks          String? 
+  createdAt        DateTime  @default(now()) @map("created_at") 
+  organization_id  String?   @db.Uuid 
+  recorded_at      DateTime? @default(now()) 
+  data_date        DateTime? 
+  percent_complete Float? 
+  actual_cost      Float? 
+  recorded_by      String?   @db.Uuid 
+  activity         Activity  @relation(fields: [activityId], references: [id]) 
+} 
+ 
+model ExportHistory { 
+  id            String   @id @default(uuid()) 
+  orgId         String   @map("org_id") @db.Uuid 
+  projectId     String?  @map("project_id") @db.Uuid 
+  format        String 
+  filename      String 
+  workpackCount Int      @map("workpack_count") 
+  activityCount Int      @map("activity_count") 
+  fileSizeBytes Int?     @map("file_size_bytes") 
+  exportedBy    String?  @map("exported_by") @db.Uuid 
+  exportedAt    DateTime @default(now()) @map("exported_at") 
+ 
+  @@index([orgId]) 
+  @@map("export_history") 
+} 
+ 
+model DocLibrary { 
+  id             String   @id @default(cuid()) 
+  orgId          String   @map("org_id") 
+  eventId        String?  @map("event_id") 
+  projectId      String?  @map("project_id") 
+  title          String 
+  description    String? 
+  category       String   @default("General") 
+  revision       String? 
+  documentNumber String?  @map("document_number") 
+  equipmentTags  String[] @map("equipment_tags") 
+  tags           String[] 
+  filename       String 
+  originalName   String   @map("original_name") 
+  storagePath    String   @map("storage_path") 
+  publicUrl      String   @map("public_url") 
+  fileSize       Int?     @map("file_size") 
+  mimeType       String?  @map("mime_type") 
+  pageCount      Int?     @map("page_count") 
+  aiSummary      String?  @map("ai_summary") 
+  aiText         String?  @map("ai_text") 
+  aiIndexed      Boolean  @default(false) @map("ai_indexed") 
+  uploadedBy     String?  @map("uploaded_by") 
+  uploadedByName String?  @map("uploaded_by_name") 
+  downloads      Int      @default(0) 
+  isOrgLibrary   Boolean  @default(false) @map("is_org_library") 
+  createdAt      DateTime @default(now()) @map("created_at") 
+  updatedAt      DateTime @updatedAt @map("updated_at") 
+} 
+ 
+model ScheduleBaseline { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  project_id      String   @db.Uuid 
+  name            String 
+  created_at      DateTime @default(now()) 
+  created_by      String   @db.Uuid 
+  is_current      Boolean  @default(false) 
+} 
+ 
+model BaselineActivity { 
+  id             String   @id @default(uuid()) @db.Uuid 
+  baseline_id    String   @db.Uuid 
+  activity_id    String   @db.Uuid 
+  planned_start  DateTime 
+  planned_finish DateTime 
+  duration       Float 
+  budgeted_cost  Float? 
+} 
+ 
+model ScheduleCalendar { 
+  id              String   @id @default(uuid()) @db.Uuid 
+  organization_id String   @db.Uuid 
+  name            String 
+  work_days       Int[] 
+  hours_per_day   Float    @default(10) 
+  exceptions      Json     @default("[]") 
+  is_default      Boolean  @default(false) 
+  created_at      DateTime @default(now()) 
+} 
+ 
+model ReportTemplate { 
+  id              String              @id @default(uuid()) @db.Uuid 
+  organization_id String              @db.Uuid 
+  name            String 
+  pages           Json                @default("[]") 
+  created_by      String?             @db.Uuid 
+  created_at      DateTime            @default(now()) 
+  updated_at      DateTime            @updatedAt 
+  deleted_at      DateTime? 
+  organization    Organization        @relation(fields: [organization_id], references: [id]) 
+  creator         User?               @relation(fields: [created_by], references: [id]) 
+  deliveries      ScheduledDelivery[] 
+ 
+  @@map("report_templates") 
+} 
+ 
+model ScheduledDelivery { 
+  id              String         @id @default(uuid()) @db.Uuid 
+  organization_id String         @db.Uuid 
+  template_id     String         @db.Uuid 
+  name            String 
+  recipients      String[] 
+  channels        String[] 
+  frequency       String 
+  delivery_time   String         @default("06:00") 
+  active          Boolean        @default(true) 
+  created_by      String?        @db.Uuid 
+  created_at      DateTime       @default(now()) 
+  updated_at      DateTime       @updatedAt 
+  organization    Organization   @relation(fields: [organization_id], references: [id]) 
+  template        ReportTemplate @relation(fields: [template_id], references: [id]) 
+  creator         User?          @relation(fields: [created_by], references: [id]) 
+  logs            DeliveryLog[] 
+ 
+  @@map("scheduled_deliveries") 
+} 
+ 
+model DeliveryLog { 
+  id           String            @id @default(uuid()) @db.Uuid 
+  delivery_id  String            @db.Uuid 
+  sent_at      DateTime          @default(now()) 
+  status       String 
+  channels     String[] 
+  recipient_ct Int 
+  error        String? 
+  delivery     ScheduledDelivery @relation(fields: [delivery_id], references: [id], onDelete: Cascade) 
+ 
+  @@map("delivery_logs") 
+} 
+ 
+enum WbsNodeType { 
+  EVENT 
+  UNIT 
+  SYSTEM 
+  HO_WBS 
+  TO_WBS 
+  EQUIPMENT 
+  WORKPACK 
+  CUSTOM 
+} 
+ 
+enum WorkpackStatus { 
+  pending_ai_review 
+  draft 
+  under_review 
+  approved 
+  issued 
+  closed 
+  cancelled 
+} 
+ 
+enum ActivityStatus { 
+  not_started 
+  in_progress 
+  completed 
+  on_hold 
+  cancelled 
+} 
+ 
+enum RelationshipType { 
+  FS 
+  SS 
+  FF 
+  SF 
+} 
+ 
+enum MaterialStatus { 
+  pending 
+  reserved 
+  issued 
+  returned 
+  cancelled 
+} 
+ 
+enum FormStatus { 
+  draft 
+  submitted 
+  approved 
+  rejected 
+} 
+ 
+enum WorkflowAction { 
+  submit 
+  approve 
+  reject 
+  issue 
+  close 
+  cancel 
+  reopen 
+} 
+ 
+enum AiJobStatus { 
+  pending 
+  processing 
+  completed 
+  failed 
+  cancelled 
+} 
+ 
+enum DocumentReviewStatus { 
+  pending_review 
+  in_review 
+  approved 
+  rejected 
+} 
+ 
+enum SuggestedItemStatus { 
+  pending_review 
+  added_to_catalog 
+  linked 
+  dismissed 
+} 
+ 
+enum TighteningMethod { 
+  torque 
+  tensioning 
+  manual 
+} 
+ 
+enum JointStatus { 
+  pending 
+  assembled 
+  inspected 
+  signed_off 
+  dismantled 
+} 
+ 
+enum BlindType { 
+  spectacle 
+  paddle 
+  figure_8 
+  blind_flange 
+  blanking_disc 
+} 
+ 
+enum BlindTestType { 
+  pressure 
+  leak 
+  functional 
+  not_required 
+} 
+ 
+enum BlindStatus { 
+  pending 
+  inserted 
+  pressure_tested 
+  removed 
+  cancelled 
+} 
+ 
+enum ConstraintType { 
+  material 
+  permit 
+  scaffold 
+  access 
+  vendor 
+  document 
+  manpower 
+  equipment 
+  weather 
+  inspection 
+  other 
+} 
+ 
+enum Priority { 
+  critical 
+  high 
+  medium 
+  low 
+} 
+ 
+enum ConstraintStatus { 
+  open 
+  in_progress 
+  resolved 
+  deferred 
+  cancelled 
+} 
+ 
+enum PunchCategory { 
+  A 
+  B 
+  C 
+} 
+ 
+enum PunchStatus { 
+  open 
+  in_progress 
+  closed 
+  accepted_with_comments 
+} 
+ 
+enum ToolCategory { 
+  Rigging 
+  Lifting 
+  Mechanical 
+  Electrical 
+  Hydraulic 
+  Measurement 
+  Safety 
+  Cleaning 
+  Welding 
+  Scaffolding 
+  General 
+} 
+ 
+enum ResourceType2 { 
+  labor 
+  material 
+  machine 
+} 
+ 
+enum ChecklistType { 
+  dropping 
+  boxup 
+} 
+ 
+model OnboardingRequest { 
+  id                String    @id @default(uuid()) @db.Uuid 
+  organization_name String 
+  admin_email       String    @unique 
+  notes             String? 
+  status            String    @default("PENDING") 
+  approved_at       DateTime? 
+  rejected_at       DateTime? 
+  created_at        DateTime  @default(now()) 
+  updated_at        DateTime  @updatedAt 
+ 
+  @@map("onboarding_requests") 
+} 
+ 
+enum CleaningMethod { 
+  chemical_flush 
+  hp_water 
+  steam 
+  mechanical_pigging 
+  solvent 
+} 
+ 
+enum LessonsLearntCategory { 
+  planning 
+  execution 
+  materials 
+  hse 
+  quality 
+  vendor 
+  design 
+} 

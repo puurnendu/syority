@@ -1,0 +1,147 @@
+{
+  "session": "info@syority.com",
+  "results": [
+    {
+      "path": "/platform/dashboard",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/dashboard",
+      "redirectedAway": false,
+      "signals": [
+        "COMING_SOON"
+      ],
+      "bodyLen": 357,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Dashboard 📊 Coming Soon Platform Dashboard Cross-tenant KPIs, operational health, and platfo",
+      "pass": true
+    },
+    {
+      "path": "/platform/tenants",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/tenants",
+      "redirectedAway": false,
+      "signals": [],
+      "bodyLen": 452,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Tenants Tenant Management 2 organisation s registered on the platform + New Tenant 2 Active 0",
+      "pass": true
+    },
+    {
+      "path": "/platform/users",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/users",
+      "redirectedAway": false,
+      "signals": [],
+      "bodyLen": 401,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Users All Users Users across all organisations. Name Email Organisation Role Status Last Logi",
+      "pass": true
+    },
+    {
+      "path": "/platform/features",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/features",
+      "redirectedAway": false,
+      "signals": [],
+      "bodyLen": 135,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Feature Flags Loading platform configurations...",
+      "pass": true
+    },
+    {
+      "path": "/platform/billing",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/billing",
+      "redirectedAway": false,
+      "signals": [],
+      "bodyLen": 126,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Billing Calculating platform metrics...",
+      "pass": true
+    },
+    {
+      "path": "/platform/ai-config",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/ai-config",
+      "redirectedAway": false,
+      "signals": [],
+      "bodyLen": 1640,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform AI Configuration AI Configuration Manage AI providers, customise prompts, and inspect executi",
+      "pass": true
+    },
+    {
+      "path": "/platform/system",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/system",
+      "redirectedAway": false,
+      "signals": [],
+      "bodyLen": 596,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform System Health System Health Platform-wide statistics 🏢 2 Organisations 👥 2 Total Users 📋 0",
+      "pass": true
+    },
+    {
+      "path": "/platform/storage",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/storage",
+      "redirectedAway": false,
+      "signals": [
+        "COMING_SOON"
+      ],
+      "bodyLen": 325,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Storage 🗄️ Coming Soon Platform Storage Object storage configuration, usage quotas, and rete",
+      "pass": true
+    },
+    {
+      "path": "/platform/backups",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/backups",
+      "redirectedAway": false,
+      "signals": [
+        "COMING_SOON"
+      ],
+      "bodyLen": 324,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Backups 💾 Coming Soon Platform Backups Backup schedules, restore points, and disaster-recove",
+      "pass": true
+    },
+    {
+      "path": "/platform/logs",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/logs",
+      "redirectedAway": false,
+      "signals": [
+        "COMING_SOON"
+      ],
+      "bodyLen": 298,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Logs 📜 Coming Soon Platform Logs Centralized platform audit and application logs across tena",
+      "pass": true
+    },
+    {
+      "path": "/platform/monitoring",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/monitoring",
+      "redirectedAway": false,
+      "signals": [
+        "COMING_SOON"
+      ],
+      "bodyLen": 317,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Monitoring 📡 Coming Soon Platform Monitoring Service health, latency, and alerting for the p",
+      "pass": true
+    },
+    {
+      "path": "/platform/onboarding",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/onboarding",
+      "redirectedAway": false,
+      "signals": [
+        "COMING_SOON"
+      ],
+      "bodyLen": 360,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Onboarding 📝 Coming Soon Tenant Onboarding Review and approve new organization registration ",
+      "pass": true
+    },
+    {
+      "path": "/platform/setup",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:3000/platform/setup",
+      "redirectedAway": false,
+      "signals": [],
+      "bodyLen": 199,
+      "snippet": "Syority SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Setup Setup / Health Platform bootstrap is complete. All readiness checks passed. System read",
+      "pass": true
+    }
+  ]
+}

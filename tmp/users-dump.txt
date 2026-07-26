@@ -1,0 +1,7 @@
+USER: Auriana Admin (admin@auriana.com) | ID: cf14666c-9581-48dd-bfa6-6908041aa5dd | ORG_ID: 050e19a7-8c49-45f3-b03b-b46cfedde227
+USER: Acme Admin (acme@acme.com) | ID: e155e0af-40c7-404f-96db-6421ba9b90e3 | ORG_ID: 23661409-e520-4cf8-99e0-fb5053d46706
+USER: Planner1 (planner1@aurianoa.com) | ID: 2d3ffea7-bd80-4e64-a5e5-352b72bb0f3f | ORG_ID: 050e19a7-8c49-45f3-b03b-b46cfedde227
+USER: Super Admin (superadmin@aurianoa.com) | ID: 964e9471-1772-42f7-aa3f-462724c15136 | ORG_ID: 8add6a1a-52d9-4535-b854-f75f4ac5027e
+USER: Admin (admin@auriana-demo.com) | ID: dea49b15-76a2-4ebc-b1c1-7d4666779b4c | ORG_ID: 050e19a7-8c49-45f3-b03b-b46cfedde227
+USER: Syority Super Admin (info@syority.com) | ID: 074a3811-bab5-4fe7-a93f-dc5dc8fef7ed | ORG_ID: 3dd4978c-4da5-4d5e-83ab-7218f1ab0786
+USER: Aurianoa Admin (admin@aurianoa.com) | ID: 08d2fc77-0d34-4748-a9d2-cf594357078c | ORG_ID: 050e19a7-8c49-45f3-b03b-b46cfedde227

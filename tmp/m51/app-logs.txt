@@ -1,0 +1,120 @@
+﻿app-1  |           }
+app-1  |         },
+app-1  | ?       Asset?: true,
+app-1  | ?       Area?: true,
+app-1  | ?       Contractor?: true,
+app-1  | ?       Discipline?: true,
+app-1  | ?       Plant?: true,
+app-1  | ?       Resource?: true,
+app-1  | ?       ResourceType?: true,
+app-1  | ?       Role?: true,
+app-1  | ?       TenantFeature?: true,
+app-1  | ?       Site?: true,
+app-1  | ?       System?: true,
+app-1  | ?       Unit?: true,
+app-1  | ?       User?: true,
+app-1  | ?       UserRole?: true,
+app-1  | ?       Workpack?: true,
+app-1  | ?       WorkpackMaterial?: true,
+app-1  | ?       billing_logs?: true,
+app-1  | ?       events?: true,
+app-1  | ?       joint_masters?: true,
+app-1  | ?       line_lists?: true,
+app-1  | ?       nozzles?: true,
+app-1  | ?       report_templates?: true,
+app-1  | ?       scheduled_deliveries?: true,
+app-1  | ?       unit_responsibilities?: true,
+app-1  | ?       wbs_nodes?: true,
+app-1  | ?       activities?: true,
+app-1  | ?       activityResources?: true,
+app-1  | ?       activityUdfValues?: true,
+app-1  | ?       constraintLogs?: true,
+app-1  | ?       certificateInstances?: true,
+app-1  | ?       lessonLearned?: true,
+app-1  | ?       FormTemplate?: true,
+app-1  | ?       FormInstance?: true,
+app-1  | ?       WebhookLog?: true,
+app-1  | ?       ApiKey?: true
+app-1  |       }
+app-1  |     }
+app-1  |   },
+app-1  |   orderBy: {
+app-1  |     name: "asc"
+app-1  |   }
+app-1  | }
+app-1  | 
+app-1  | Unknown field `users` for select statement on model `OrganizationCountOutputType`. Available options are marked with ?.
+app-1  | Γ¿» Error [PrismaClientValidationError]: 
+app-1  | Invalid `prisma.organization.findMany()` invocation:
+app-1  | 
+app-1  | {
+app-1  |   where: {
+app-1  |     deleted_at: null
+app-1  |   },
+app-1  |   include: {
+app-1  |     _count: {
+app-1  |       select: {
+app-1  |         users: {
+app-1  |         ~~~~~
+app-1  |           where: {
+app-1  |             deleted_at: null
+app-1  |           }
+app-1  |         },
+app-1  |         sites: true,
+app-1  |         workpacks: {
+app-1  |           where: {
+app-1  |             deleted_at: null
+app-1  |           }
+app-1  |         },
+app-1  | ?       Asset?: true,
+app-1  | ?       Area?: true,
+app-1  | ?       Contractor?: true,
+app-1  | ?       Discipline?: true,
+app-1  | ?       Plant?: true,
+app-1  | ?       Resource?: true,
+app-1  | ?       ResourceType?: true,
+app-1  | ?       Role?: true,
+app-1  | ?       TenantFeature?: true,
+app-1  | ?       Site?: true,
+app-1  | ?       System?: true,
+app-1  | ?       Unit?: true,
+app-1  | ?       User?: true,
+app-1  | ?       UserRole?: true,
+app-1  | ?       Workpack?: true,
+app-1  | ?       WorkpackMaterial?: true,
+app-1  | ?       billing_logs?: true,
+app-1  | ?       events?: true,
+app-1  | ?       joint_masters?: true,
+app-1  | ?       line_lists?: true,
+app-1  | ?       nozzles?: true,
+app-1  | ?       report_templates?: true,
+app-1  | ?       scheduled_deliveries?: true,
+app-1  | ?       unit_responsibilities?: true,
+app-1  | ?       wbs_nodes?: true,
+app-1  | ?       activities?: true,
+app-1  | ?       activityResources?: true,
+app-1  | ?       activityUdfValues?: true,
+app-1  | ?       constraintLogs?: true,
+app-1  | ?       certificateInstances?: true,
+app-1  | ?       lessonLearned?: true,
+app-1  | ?       FormTemplate?: true,
+app-1  | ?       FormInstance?: true,
+app-1  | ?       WebhookLog?: true,
+app-1  | ?       ApiKey?: true
+app-1  |       }
+app-1  |     }
+app-1  |   },
+app-1  |   orderBy: {
+app-1  |     name: "asc"
+app-1  |   }
+app-1  | }
+app-1  | 
+app-1  | Unknown field `users` for select statement on model `OrganizationCountOutputType`. Available options are marked with ?.
+app-1  |     at async i (.next/server/chunks/ssr/[root-of-the-server]__ffba2e82._.js:1:1467) {
+app-1  |   clientVersion: '7.8.0',
+app-1  |   digest: '1999621096'
+app-1  | }
+app-1  | Γ¿» TypeError: Cannot read properties of undefined (reading 'findMany')
+app-1  |     at i (.next/server/chunks/ssr/[root-of-the-server]__ffb1ba3a._.js:1:1546) {
+app-1  |   digest: '2027700084'
+app-1  | }

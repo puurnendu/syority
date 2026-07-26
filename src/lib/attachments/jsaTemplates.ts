@@ -1,0 +1,108 @@
+export const JSA_TEMPLATES = {
+  jsa_blinding: {
+    title: 'JSA — Blinding / De-blinding',
+    jobDescription: 'Installation and removal of spectacle blinds, spade blinds on process lines',
+    hazards: [
+      { hazard: 'Residual process fluid release', likelihood: 'Medium', severity: 'High',   riskRating: 'High',   controls: 'Depressurise and drain line completely. Wear full PPE. Have decontamination kit ready.' },
+      { hazard: 'Slip/trip on wet surfaces',      likelihood: 'Medium', severity: 'Medium', riskRating: 'Medium', controls: 'Non-slip footwear. Clean up spills immediately. Use drip trays.' },
+      { hazard: 'Manual handling injury',          likelihood: 'Medium', severity: 'Low',    riskRating: 'Low',    controls: 'Use mechanical aids for heavy blinds. Team lift if >25kg.' },
+      { hazard: 'Hand/finger crush injury',        likelihood: 'Medium', severity: 'Medium', riskRating: 'Medium', controls: 'Use correct hand tools. Wear heavy-duty gloves. Do not reach into blind gap.' },
+    ],
+    ppe: ['Hard hat', 'Safety glasses', 'Chemical-resistant gloves', 'Safety boots', 'Fire-resistant coverall'],
+    permits: ['Cold Work Permit'],
+    emergency: 'In case of chemical exposure: flush affected area with water for 15 minutes. Call emergency response. Do not induce vomiting.',
+  },
+  jsa_lifting: {
+    title: 'JSA — Crane / Hydra Lifting',
+    jobDescription: 'Lifting operations using mobile crane or hydra for heavy equipment (tube bundles, vessels, covers)',
+    hazards: [
+      { hazard: 'Load swing / dropped load',       likelihood: 'Low',    severity: 'Critical', riskRating: 'High',   controls: 'Rigger to check all slings before lift. Tag lines on all loads. No personnel under suspended load.' },
+      { hazard: 'Ground failure under outriggers',  likelihood: 'Low',    severity: 'Critical', riskRating: 'High',   controls: 'Check ground bearing capacity. Use spreader plates. Inspect outrigger pads.' },
+      { hazard: 'Overloading crane',               likelihood: 'Low',    severity: 'Critical', riskRating: 'High',   controls: 'Calculate load weight before lift. Check crane capacity chart. Never exceed 80% SWL.' },
+      { hazard: 'Rigging failure',                 likelihood: 'Low',    severity: 'Critical', riskRating: 'High',   controls: 'Inspect all slings, shackles, hooks before each use. Remove damaged rigging from service.' },
+    ],
+    ppe: ['Hard hat', 'Safety glasses', 'Gloves', 'Safety boots', 'Hi-visibility vest'],
+    permits: ['Lifting Permit', 'Cold Work Permit'],
+    emergency: 'In case of dropped load or crane incident: clear the area immediately. Call emergency. Do not move injured personnel unless in immediate danger.',
+  },
+  jsa_hydro_test: {
+    title: 'JSA — Hydro Test',
+    jobDescription: 'Hydraulic pressure testing of equipment, heat exchangers, vessels and piping systems',
+    hazards: [
+      { hazard: 'Sudden pressure release / rupture', likelihood: 'Low',    severity: 'Critical', riskRating: 'High',   controls: 'Install relief valve set 10% above test pressure. All personnel to stand clear during pressurisation. No one in front of blind flanges.' },
+      { hazard: 'High pressure fluid injection',     likelihood: 'Low',    severity: 'Critical', riskRating: 'High',   controls: 'Never approach pressurised system. Use remote gauges where possible.' },
+      { hazard: 'Slip from water spillage',          likelihood: 'High',   severity: 'Medium',   riskRating: 'High',   controls: 'Lay anti-slip matting. Deploy drip trays. Maintain drainage route.' },
+      { hazard: 'Equipment overpressure',            likelihood: 'Low',    severity: 'Critical', riskRating: 'High',   controls: 'Test pressure NOT to exceed 1.5x MAWP. Calibrated gauges only. Dedicated test engineer to monitor.' },
+    ],
+    ppe: ['Hard hat', 'Safety glasses/face shield', 'Waterproof gloves', 'Safety boots', 'Waterproof jacket'],
+    permits: ['Cold Work Permit', 'Pressure Test Certificate'],
+    emergency: 'In case of rupture or sudden pressure release: evacuate 30m radius. Call emergency. Shut off pump immediately. Do not re-enter until pressure confirmed zero.',
+  },
+  jsa_work_at_height: {
+    title: 'JSA — Work at Height',
+    jobDescription: 'Any work performed above 1.8m including scaffold, ladders, elevated platforms',
+    hazards: [
+      { hazard: 'Fall from height',         likelihood: 'Medium', severity: 'Critical', riskRating: 'Critical', controls: 'Use scaffolding with 3-point contact. Full-body harness above 2m. Anchor points inspected and certified.' },
+      { hazard: 'Falling objects',          likelihood: 'Medium', severity: 'High',     riskRating: 'High',     controls: 'Tool tethering. Exclusion zone below work area. Hard hats mandatory. Use tool bags.' },
+      { hazard: 'Scaffold collapse',        likelihood: 'Low',    severity: 'Critical', riskRating: 'High',     controls: 'Only certified scaffolders to erect/modify. Green tag inspection before use. No overloading.' },
+      { hazard: 'Ladder slippage',          likelihood: 'Medium', severity: 'High',     riskRating: 'High',     controls: 'Secure top and bottom of ladder. 75° angle. 3-point contact at all times. No carrying materials on ladder.' },
+    ],
+    ppe: ['Hard hat', 'Safety harness', 'Lanyard with shock absorber', 'Safety boots with ankle support', 'Gloves'],
+    permits: ['Work at Height Permit', 'Scaffolding Checklist (Green tag required)'],
+    emergency: 'In case of fall: call emergency immediately. Do not move injured person unless in immediate danger of further injury. First aider on site at all times.',
+  },
+  jsa_confined_space: {
+    title: 'JSA — Confined Space Entry',
+    jobDescription: 'Entry into vessels, heat exchanger shells, tanks, manholes for inspection or cleaning',
+    hazards: [
+      { hazard: 'Oxygen deficiency / toxic atmosphere', likelihood: 'Medium', severity: 'Critical', riskRating: 'Critical', controls: 'Gas test before entry and every 30 min. Continuous atmospheric monitoring. Ventilate with fresh air. Rescue team on standby.' },
+      { hazard: 'Engulfment',                          likelihood: 'Low',    severity: 'Critical', riskRating: 'High',     controls: 'Isolate all inlet lines. Double block and bleed. Verify isolation.' },
+      { hazard: 'Entrapment',                          likelihood: 'Low',    severity: 'High',     riskRating: 'Medium',   controls: 'Size of entry is adequate for rescue. Rescue equipment staged at entry. Communication maintained at all times.' },
+      { hazard: 'Slip/trip inside vessel',             likelihood: 'Medium', severity: 'Medium',   riskRating: 'Medium',   controls: 'Adequate lighting. Non-slip surfaces. Remove all loose material.' },
+    ],
+    ppe: ['Full-body harness with retrieval line', 'Breathing apparatus (BA set)', 'Hard hat', 'Chemical-resistant coverall', 'Gloves', 'Safety boots'],
+    permits: ['Confined Space Entry Permit', 'Gas Test Certificate'],
+    emergency: 'DO NOT ENTER to rescue an unconscious person without BA set. Call emergency. Use retrieval line. Have BA-trained rescue team standing by before any entry.',
+  },
+  jsa_torquing: {
+    title: 'JSA — Torquing / De-torquing',
+    jobDescription: 'Bolt tensioning and torque application on flanged joints using hydraulic or torque tools',
+    hazards: [
+      { hazard: 'High pressure hydraulic fluid release', likelihood: 'Low',    severity: 'High',   riskRating: 'Medium', controls: 'Check hydraulic hose connections before pressurising. Use rated hoses and fittings. Never exceed tool pressure rating.' },
+      { hazard: 'Struck by torque tool',                likelihood: 'Medium', severity: 'Medium', riskRating: 'Medium', controls: 'Secure reaction arm before applying torque. Stand clear of reaction point. Use correct tool size.' },
+      { hazard: 'Wrist/hand injury',                   likelihood: 'Medium', severity: 'Medium', riskRating: 'Medium', controls: 'Anti-vibration gloves. Correct ergonomic posture. Rotate operators to reduce fatigue.' },
+      { hazard: 'Stud breakage',                       likelihood: 'Low',    severity: 'Medium', riskRating: 'Low',    controls: 'Do not exceed specified torque values. Use calibrated torque wrench. Lubricate threads.' },
+    ],
+    ppe: ['Hard hat', 'Safety glasses', 'Heavy-duty gloves', 'Safety boots', 'Fire-resistant coverall'],
+    permits: ['Cold Work Permit'],
+    emergency: 'In case of hydraulic line failure: shut off pump immediately. Clear area. Do not attempt to stop high-pressure spray. Seek medical attention for any injection injury immediately — it is a medical emergency.',
+  },
+  jsa_insulation: {
+    title: 'JSA — Insulation Removal / Refixing',
+    jobDescription: 'Removal and reinstatement of thermal insulation on piping and equipment',
+    hazards: [
+      { hazard: 'Asbestos exposure (legacy insulation)', likelihood: 'Medium', severity: 'Critical', riskRating: 'Critical', controls: 'Survey for asbestos before removal. If suspected: STOP work, call HSE. Licensed contractor required.' },
+      { hazard: 'Skin/respiratory irritation (fibres)',  likelihood: 'High',   severity: 'Medium',   riskRating: 'High',     controls: 'Dust mask P3 or half-face respirator. Long sleeves and gloves. Wash hands before eating.' },
+      { hazard: 'Hot surface contact',                  likelihood: 'Medium', severity: 'High',     riskRating: 'High',     controls: 'Confirm equipment is cold before insulation removal. Temperature check with IR gun.' },
+      { hazard: 'Sharp edges on cladding',              likelihood: 'High',   severity: 'Low',      riskRating: 'Medium',   controls: 'Heavy-duty cut-resistant gloves. Dispose of cladding safely in skip.' },
+    ],
+    ppe: ['Hard hat', 'P3 dust mask / respirator', 'Safety glasses', 'Cut-resistant gloves', 'Long-sleeved coverall', 'Safety boots'],
+    permits: ['Cold Work Permit'],
+    emergency: 'If asbestos is suspected during removal: STOP all work. Exit area. Do not disturb material further. Report to site HSE officer immediately.',
+  },
+  jsa_hot_work: {
+    title: 'JSA — Hot Work (Welding / Cutting / Grinding)',
+    jobDescription: 'Any work involving open flame, spark-producing operations, or heat generation above 50°C',
+    hazards: [
+      { hazard: 'Fire / explosion',         likelihood: 'Medium', severity: 'Critical', riskRating: 'Critical', controls: 'Gas test area before and every 30 min during work. Remove all combustibles 10m radius. Fire watch with extinguisher. Hot work permit active.' },
+      { hazard: 'UV radiation to eyes',     likelihood: 'High',   severity: 'High',     riskRating: 'High',     controls: 'Welding shield/goggles to correct shade. Flash screens erected. No unprotected personnel in line of sight.' },
+      { hazard: 'Fume inhalation',          likelihood: 'High',   severity: 'High',     riskRating: 'High',     controls: 'Local exhaust ventilation. Air-fed respirator in confined areas. Check wind direction.' },
+      { hazard: 'Burn injuries',            likelihood: 'Medium', severity: 'High',     riskRating: 'High',     controls: 'Leather welding gloves and apron. No synthetic clothing. First aid burn kit on site.' },
+    ],
+    ppe: ['Welding shield/goggles', 'Leather welding gloves', 'Leather apron', 'Fire-resistant coverall', 'Safety boots (leather, no synthetic)', 'Respirator'],
+    permits: ['Hot Work Permit', 'Fire Watch required'],
+    emergency: 'In case of fire: activate nearest fire alarm. Use extinguisher only if fire is small and you have an exit route. Evacuate and call emergency services.',
+  },
+} as const;
+
+export type JSATemplateKey = keyof typeof JSA_TEMPLATES;

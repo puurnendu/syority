@@ -1,0 +1,29 @@
+name: Deploy to Staging (SYORITY)
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Lint and Type-check
+        run: |
+          npm ci
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Deploy to Staging via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_SERVER_HOST }}
+          username: ${{ secrets.STAGING_SERVER_USER }}
+          key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/syority-staging
+            git pull origin dev
+            ./scripts/deploy.sh

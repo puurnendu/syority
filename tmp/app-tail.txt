@@ -1,0 +1,30 @@
+﻿app-1  |     at async o (.next/server/chunks/ssr/[root-of-the-server]__33674f68._.js:1:5882) {
+app-1  |   code: 'P2037',
+app-1  |   meta: [Object],
+app-1  |   clientVersion: '7.8.0',
+app-1  |   digest: '1969427573'
+app-1  | }
+app-1  | prisma:error 
+app-1  | Invalid `prisma.area.findMany()` invocation:
+app-1  | 
+app-1  | 
+app-1  | Too many database connections opened: sorry, too many clients already
+app-1  | [hierarchy] Error [PrismaClientKnownRequestError]: 
+app-1  | Invalid `prisma.area.findMany()` invocation:
+app-1  | 
+app-1  | 
+app-1  | Too many database connections opened: sorry, too many clients already
+app-1  |     at async _.listAreas (.next/server/chunks/src_core_hierarchy_HierarchyService_ts_9327999a._.js:1:5937)
+app-1  |     at async o (.next/server/chunks/[root-of-the-server]__953312c4._.js:1:9714)
+app-1  |     at async u (.next/server/chunks/[root-of-the-server]__953312c4._.js:1:13609)
+app-1  |     at async d (.next/server/chunks/[root-of-the-server]__953312c4._.js:1:14650)
+app-1  |     at async Module.b (.next/server/chunks/[root-of-the-server]__953312c4._.js:1:15728) {
+app-1  |   code: 'P2037',
+app-1  |   meta: [Object],
+app-1  |   clientVersion: '7.8.0'
+app-1  | }
+app-1  | prisma:error 
+app-1  | Invalid `prisma.area.count()` invocation:
+app-1  | 
+app-1  | 
+app-1  | Too many database connections opened: sorry, too many clients already

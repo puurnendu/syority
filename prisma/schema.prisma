@@ -1,0 +1,3010 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Activity {
+  id                         String                 @id @db.Uuid
+  organization_id            String                 @db.Uuid
+  site_id                    String                 @db.Uuid
+  workpack_id                String?                @db.Uuid
+  event_id                   String?                @db.Uuid
+  activity_library_id        String?                @db.Uuid
+  sequence_number            Int?                   @default(0)
+  activity_number            String?
+  activity_id                String?
+  description                String
+  responsible                String?
+  work_category              String?
+  discipline_id              String?                @db.Uuid
+  duration_hours             Decimal?               @default(0) @db.Decimal(8, 2)
+  window                     String?
+  planned_start              DateTime?              @db.Date
+  planned_end                DateTime?              @db.Date
+  actual_start               DateTime?              @db.Date
+  actual_end                 DateTime?              @db.Date
+  progress_percent           Int?                   @default(0)
+  status                     ActivityStatus?        @default(not_started)
+  notes                      String?
+  is_optional                Boolean                @default(false)
+  color_label                String?
+  hold_point_type            String?
+  hold_point_description     String?
+  p6_object_id               Int?
+  p6_activity_id             String?
+  is_approved_for_scheduling Boolean?               @default(false)
+  early_start                DateTime?
+  early_finish               DateTime?
+  late_start                 DateTime?
+  late_finish                DateTime?
+  total_float                Decimal?               @db.Decimal(12, 2)
+  is_critical                Boolean?               @default(false)
+  manpower_count             Int?
+  manpower_type              String?
+  wbs_code                   String?
+  free_float                 Float?
+  budgeted_cost              Float?
+  actual_cost                Float?
+  remaining_duration         Float?
+  created_by                 String?                @db.Uuid
+  updated_by                 String?                @db.Uuid
+  created_at                 DateTime               @default(now())
+  updated_at                 DateTime               @updatedAt
+  deleted_at                 DateTime?
+  workpack                   Workpack?              @relation(fields: [workpack_id], references: [id])
+  organization               Organization           @relation(fields: [organization_id], references: [id])
+  site                       Site                   @relation(fields: [site_id], references: [id])
+  discipline                 Discipline?            @relation(fields: [discipline_id], references: [id])
+  resources                  ActivityResource[]
+  udf_values                 ActivityUdfValue[]
+  qa_clearance_records       qa_clearance_records[]
+  ProgressLog                ProgressLog[]
+  predecessors               ActivityRelationship[] @relation("activity_as_successor")
+  successors                 ActivityRelationship[] @relation("activity_as_predecessor")
+
+  @@unique([organization_id, activity_number], name: "org_activity_number")
+  @@index([workpack_id, sequence_number])
+}
+
+model Workpack {
+  id                             String                       @id @db.Uuid
+  organization_id                String                       @db.Uuid
+  site_id                        String                       @db.Uuid
+  workpack_number                String?
+  workpack_id_code               String?                      @unique
+  unit_code                      String?
+  title                          String
+  revision                       String?                      @default("R0")
+  sap_work_order                 String?
+  sap_notification               String?
+  portfolio_id                   String?                      @db.Uuid
+  sap_plant_maintenance_order    String?
+  asset_id                       String?                      @db.Uuid
+  unit_id                        String?                      @db.Uuid
+  event_id                       String?                      @db.Uuid
+  plant_id                       String?                      @db.Uuid
+  system_id                      String?                      @db.Uuid
+  discipline_id                  String?                      @db.Uuid
+  contractor_id                  String?                      @db.Uuid
+  work_type                      String?
+  priority                       String?                      @default("Normal")
+  scope_of_work                  String?
+  planned_start_date             DateTime?                    @db.Date
+  planned_end_date               DateTime?                    @db.Date
+  estimated_manhours             Int?                         @default(0)
+  status                         WorkpackStatus               @default(draft)
+  overall_progress               Int?                         @default(0)
+  is_locked                      Boolean?                     @default(false)
+  locked_at                      DateTime?
+  locked_by                      String?                      @db.Uuid
+  created_by                     String                       @db.Uuid
+  updated_by                     String?                      @db.Uuid
+  created_at                     DateTime                     @default(now())
+  updated_at                     DateTime                     @updatedAt
+  deleted_at                     DateTime?
+  template_id                    String?                      @db.Uuid
+  equipment_type                 String?
+  job_type                       String?
+  equipment_technical_data       Json?                        @default("{}")
+  ai_auto_filled                 Boolean                      @default(false)
+  ai_auto_filled_at              DateTime?
+  approval_status                String?                      @default("not_submitted")
+  approval_submitted_at          DateTime?
+  approval_decided_at            DateTime?
+  approved_by_name               String?
+  approved_by_email              String?
+  approval_notes                 String?
+  project_id                     String?
+  activities                     Activity[]
+  asset                          Asset?                       @relation(fields: [asset_id], references: [id])
+  contractor                     Contractor?                  @relation(fields: [contractor_id], references: [id])
+  User_Workpack_created_byToUser User                         @relation("Workpack_created_byToUser", fields: [created_by], references: [id])
+  discipline                     Discipline?                  @relation(fields: [discipline_id], references: [id])
+  event                          Event?                       @relation(fields: [event_id], references: [id])
+  User_Workpack_locked_byToUser  User?                        @relation("Workpack_locked_byToUser", fields: [locked_by], references: [id])
+  organization                   Organization                 @relation(fields: [organization_id], references: [id])
+  plant                          Plant?                       @relation(fields: [plant_id], references: [id])
+  project                        Project?                     @relation(fields: [project_id], references: [id])
+  site                           Site                         @relation(fields: [site_id], references: [id])
+  system                         System?                      @relation(fields: [system_id], references: [id])
+  unit                           Unit?                        @relation(fields: [unit_id], references: [id])
+  User_Workpack_updated_byToUser User?                        @relation("Workpack_updated_byToUser", fields: [updated_by], references: [id])
+  workpack_materials             WorkpackMaterial[]
+  certificateInstances           CertificateInstance[]
+  constraintLogs                 ConstraintLog[]
+  lessonLearneds                 LessonLearned[]
+  joint_integrity_items          JointIntegrityItem[]
+  blinds                         Blind[]
+  constraints                    Constraint[]
+  punch_list_items               PunchListItem[]
+  workpack_documents             WorkpackDocument[]
+  document_instances             DocumentInstance[]
+  form_instances                 FormInstance[]
+  cleaning_records               cleaning_records[]
+  workflow_transitions           WorkflowTransition[]
+  versions                       WorkpackVersion[]
+  attachments                    WorkpackAttachment[]
+  workpack_material_lines        workpack_material_lines[]
+  qa_clearance_records           qa_clearance_records[]
+  dropping_boxup_checklists      dropping_boxup_checklists[]
+  clearance_for_boxup            clearance_for_boxup?
+  job_completion_certificate     job_completion_certificates?
+
+  @@unique([organization_id, workpack_number])
+  @@index([organization_id, site_id, status])
+  @@index([organization_id, status])
+}
+
+model ProgressLog {
+  id               String    @id @db.Uuid
+  activity_id      String    @db.Uuid
+  log_date         DateTime
+  progress_percent Decimal
+  manhours_actual  Decimal?
+  logged_by        String?   @db.Uuid
+  remarks          String?
+  created_at       DateTime  @default(now())
+  organization_id  String?   @db.Uuid
+  recorded_at      DateTime? @default(now())
+  data_date        DateTime?
+  percent_complete Float?
+  actual_cost      Float?
+  recorded_by      String?   @db.Uuid
+  Activity         Activity  @relation(fields: [activity_id], references: [id])
+}
+
+model ActivityLibrary {
+  id                     String      @id @db.Uuid
+  organization_id        String      @db.Uuid
+  name                   String
+  description            String?
+  discipline_id          String?     @db.Uuid
+  duration_hours         Decimal?    @db.Decimal(8, 2)
+  is_active              Boolean?    @default(true)
+  activity_code          String?
+  created_by             String?     @db.Uuid
+  created_at             DateTime    @default(now())
+  updated_at             DateTime
+  deleted_at             DateTime?
+  hold_point_type        String?
+  hold_point_description String?
+  work_category          String?
+  phase                  String?
+  level_code             String?
+  discipline             Discipline? @relation(fields: [discipline_id], references: [id])
+}
+
+model ActivityLibraryUdfDefault {
+  id                  String    @id @db.Uuid
+  organization_id     String    @db.Uuid
+  activity_library_id String    @db.Uuid
+  udf_definition_id   String    @db.Uuid
+  udf_option_id       String?   @db.Uuid
+  value_string        String?
+  value_number        Decimal?  @db.Decimal(10, 2)
+  value_date          DateTime? @db.Date
+  value_boolean       Boolean?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime
+}
+
+model ActivityRelationship {
+  id                String            @id @db.Uuid
+  organization_id   String            @db.Uuid
+  predecessor_id    String            @db.Uuid
+  successor_id      String            @db.Uuid
+  relationship_type RelationshipType? @default(FS)
+  lag_days          Int?              @default(0)
+  created_by        String?           @db.Uuid
+  created_at        DateTime          @default(now())
+  updated_at        DateTime
+  predecessor       Activity          @relation("activity_as_predecessor", fields: [predecessor_id], references: [id])
+  successor         Activity          @relation("activity_as_successor", fields: [successor_id], references: [id])
+
+  @@unique([predecessor_id, successor_id])
+}
+
+model ActivityResource {
+  id               String        @id @db.Uuid
+  organization_id  String        @db.Uuid
+  workpack_id      String        @db.Uuid
+  activity_id      String        @db.Uuid
+  resource_type_id String?       @db.Uuid
+  resource_id      String?       @db.Uuid
+  contractor_id    String?       @db.Uuid
+  planned_hours    Decimal?      @default(0) @db.Decimal(8, 2)
+  actual_hours     Decimal?      @default(0) @db.Decimal(8, 2)
+  headcount        Int?          @default(1)
+  assigned_date    DateTime?     @db.Date
+  notes            String?
+  created_by       String?       @db.Uuid
+  created_at       DateTime      @default(now())
+  updated_at       DateTime
+  item_catalog_id  String?       @db.Uuid
+  resource_type    ResourceType2 @default(labor)
+  resource_name    String?
+  crew_size        Int           @default(1)
+  quantity         Decimal?      @db.Decimal(10, 4)
+  unit             String?
+  activity         Activity      @relation(fields: [activity_id], references: [id])
+  organization     Organization  @relation(fields: [organization_id], references: [id])
+  resource         Resource?     @relation(fields: [resource_id], references: [id])
+}
+
+model ActivityUdfDefinition {
+  id                String              @id @db.Uuid
+  organization_id   String              @db.Uuid
+  name              String
+  code              String
+  type              String
+  is_mandatory      Boolean?            @default(false)
+  is_active         Boolean?            @default(true)
+  sort_order        Int?
+  created_by        String?             @db.Uuid
+  created_at        DateTime            @default(now())
+  updated_at        DateTime
+  deleted_at        DateTime?
+  activityUdfValues ActivityUdfValue[]
+  options           ActivityUdfOption[]
+
+  @@unique([organization_id, code])
+}
+
+model ActivityUdfOption {
+  id                String                @id @db.Uuid
+  organization_id   String                @db.Uuid
+  udf_definition_id String                @db.Uuid
+  value             String
+  label             String
+  code_value        String?
+  description       String?
+  sort_order        Int?                  @default(0)
+  is_active         Boolean?              @default(true)
+  created_by        String?               @db.Uuid
+  created_at        DateTime              @default(now())
+  updated_at        DateTime
+  deleted_at        DateTime?
+  udf_definition    ActivityUdfDefinition @relation(fields: [udf_definition_id], references: [id])
+
+  @@unique([udf_definition_id, code_value])
+}
+
+model ActivityUdfValue {
+  id                String                @id @db.Uuid
+  organization_id   String                @db.Uuid
+  activity_id       String                @db.Uuid
+  udf_definition_id String                @db.Uuid
+  udf_option_id     String?               @db.Uuid
+  value_string      String?
+  value_number      Decimal?              @db.Decimal(10, 2)
+  value_date        DateTime?             @db.Date
+  value_boolean     Boolean?
+  created_at        DateTime              @default(now())
+  updated_at        DateTime
+  activity          Activity              @relation(fields: [activity_id], references: [id])
+  organization      Organization          @relation(fields: [organization_id], references: [id])
+  udf_definition    ActivityUdfDefinition @relation(fields: [udf_definition_id], references: [id])
+
+  @@unique([activity_id, udf_definition_id])
+}
+
+model AiExtractionJob {
+  id                      String       @id @db.Uuid
+  organization_id         String       @db.Uuid
+  site_id                 String?      @db.Uuid
+  requested_by            String       @db.Uuid
+  workpack_id             String?      @db.Uuid
+  status                  AiJobStatus?
+  provider_used           String?
+  model_used              String?
+  started_at              DateTime?
+  completed_at            DateTime?
+  processing_seconds      Int?
+  input_tokens            Int?
+  output_tokens           Int?
+  estimated_cost_usd      Decimal?     @db.Decimal(10, 6)
+  error_message           String?
+  retry_count             Int?         @default(0)
+  next_retry_at           DateTime?
+  work_type_hint          String?
+  discipline_hint         String?
+  additional_instructions String?
+  created_by              String?      @db.Uuid
+  created_at              DateTime     @default(now())
+  updated_at              DateTime
+  deleted_at              DateTime?
+
+  @@index([organization_id, status])
+  @@index([requested_by, created_at])
+}
+
+model AiExtractionResult {
+  id                        String                @id @db.Uuid
+  organization_id           String                @db.Uuid
+  ai_extraction_job_id      String                @unique @db.Uuid
+  raw_ai_response           String?
+  extracted_data_json       Json
+  planner_review_json       Json?
+  review_status             DocumentReviewStatus? @default(pending_review)
+  reviewed_by               String?               @db.Uuid
+  reviewed_at               DateTime?
+  review_notes              String?
+  overall_confidence        Float?
+  field_confidence_json     Json?
+  low_confidence_fields     Json?
+  materials_extracted       Int?                  @default(0)
+  materials_matched_catalog Int?                  @default(0)
+  materials_unmatched       Int?                  @default(0)
+  created_at                DateTime              @default(now())
+  updated_at                DateTime
+}
+
+model AiProviderSetting {
+  id                         String   @id @db.Uuid
+  organization_id            String   @unique @db.Uuid
+  provider                   String?  @default("anthropic")
+  model                      String?
+  api_key_encrypted          String?
+  api_endpoint               String?
+  api_version                String?
+  max_tokens                 Int?     @default(4096)
+  temperature                Float?   @default(0.1)
+  is_active                  Boolean? @default(false)
+  extraction_prompt          String?
+  fallback_provider          String?
+  fallback_api_key_encrypted String?
+  fallback_model             String?
+  created_by                 String?  @db.Uuid
+  updated_by                 String?  @db.Uuid
+  created_at                 DateTime @default(now())
+  updated_at                 DateTime
+  vision_provider            String?
+  vision_model               String?
+  vision_api_key_encrypted   String?
+  whatsapp_provider          String?  @default("openai")
+  whatsapp_model             String?  @default("gpt-4o-mini")
+  whatsapp_api_key_encrypted String?
+  whisper_api_key_encrypted  String?
+  lessons_provider           String?
+  lessons_model              String?
+}
+
+model AiSuggestedItem {
+  id                        String               @id @db.Uuid
+  organization_id           String               @db.Uuid
+  site_id                   String?              @db.Uuid
+  ai_extraction_job_id      String               @db.Uuid
+  workpack_material_id      String?              @db.Uuid
+  suggested_name            String
+  suggested_material_number String?
+  suggested_category        String?
+  suggested_uom             String?
+  suggested_specifications  String?
+  suggested_quantity        Decimal?             @db.Decimal(12, 3)
+  source_document           String?
+  confidence_score          Float?
+  ai_reasoning              String?
+  status                    SuggestedItemStatus? @default(pending_review)
+  resolved_item_catalog_id  String?              @db.Uuid
+  reviewed_by               String?              @db.Uuid
+  reviewed_at               DateTime?
+  review_notes              String?
+  created_at                DateTime             @default(now())
+  updated_at                DateTime
+
+  @@index([organization_id, status])
+}
+
+model Asset {
+  id                                         String          @id @default(uuid()) @db.Uuid
+  organization_id                            String          @db.Uuid
+  site_id                                    String          @db.Uuid
+  /// Optional denormalized parents for Workpack / reporting (System remains primary link).
+  plant_id                                   String?         @db.Uuid
+  unit_id                                    String?         @db.Uuid
+  system_id                                  String?         @db.Uuid
+  tag_number                                 String
+  name                                       String
+  asset_type                                 String?
+  sap_equipment_number                       String?
+  description                                String?
+  is_active                                  Boolean?        @default(true)
+  created_by                                 String?         @db.Uuid
+  created_at                                 DateTime        @default(now())
+  updated_at                                 DateTime        @updatedAt
+  deleted_at                                 DateTime?
+  manufacturer                               String?
+  model_number                               String?
+  serial_number                              String?
+  year_installed                             Int?
+  design_pressure_barg                       Float?
+  design_temp_c                              Float?
+  operating_pressure_barg                    Float?
+  operating_temp_c                           Float?
+  test_pressure_barg                         Float?
+  weight_empty_kg                            Float?
+  weight_operating_kg                        Float?
+  service_description                        String?
+  fluid_service                              String?
+  criticality                                String?
+  maintenance_strategy                       String?
+  inspection_interval_months                 Int?
+  p_and_id_numbers                           String[]        @default([])
+  ga_drawing_number                          String?
+  isometric_drawing_numbers                  String[]        @default([])
+  plot_area                                  String?
+  elevation                                  String?
+  train                                      String?
+  sap_functional_location                    String?
+  extracted_from_document_id                 String?         @db.Uuid
+  extraction_confidence                      Float?
+  User                                       User?           @relation(fields: [created_by], references: [id])
+  Organization                               Organization    @relation(fields: [organization_id], references: [id])
+  Site                                       Site            @relation(fields: [site_id], references: [id])
+  plant                                      Plant?          @relation(fields: [plant_id], references: [id])
+  unit                                       Unit?           @relation(fields: [unit_id], references: [id])
+  system                                     System?         @relation(fields: [system_id], references: [id])
+  Workpack                                   Workpack[]
+  asset_lines                                asset_lines[]
+  joint_masters                              joint_masters[]
+  line_lists_line_lists_from_asset_idToAsset line_lists[]    @relation("line_lists_from_asset_idToAsset")
+  line_lists_line_lists_to_asset_idToAsset   line_lists[]    @relation("line_lists_to_asset_idToAsset")
+  nozzles                                    nozzles[]
+
+  @@unique([organization_id, tag_number])
+  @@index([plant_id])
+  @@index([unit_id])
+  @@index([system_id])
+}
+
+model Attachment {
+  id                String    @id @db.Uuid
+  organization_id   String    @db.Uuid
+  site_id           String?   @db.Uuid
+  reference_type    String
+  reference_id      String    @db.Uuid
+  original_filename String
+  stored_filename   String
+  storage_disk      String?   @default("s3")
+  storage_path      String
+  mime_type         String?
+  file_size_bytes   BigInt?   @default(0)
+  file_extension    String?
+  category          String?
+  description       String?
+  created_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime
+  deleted_at        DateTime?
+
+  @@index([reference_type, reference_id])
+}
+
+model AuditLog {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  site_id         String?  @db.Uuid
+  auditable_type  String
+  auditable_id    String   @db.Uuid
+  event           String
+  old_values      Json?
+  new_values      Json?
+  changed_fields  Json?
+  user_id         String?  @db.Uuid
+  user_name       String?
+  user_email      String?
+  ip_address      String?
+  user_agent      String?
+  url             String?
+  method          String?
+  context         String?
+  session_id      String?  @db.Uuid
+  created_at      DateTime @default(now())
+
+  @@index([auditable_type, auditable_id])
+  @@index([organization_id, created_at])
+  @@index([user_id, created_at])
+}
+
+model BaselineActivity {
+  id             String   @id @db.Uuid
+  baseline_id    String   @db.Uuid
+  activity_id    String   @db.Uuid
+  planned_start  DateTime
+  planned_finish DateTime
+  duration       Float
+  budgeted_cost  Float?
+}
+
+model Blind {
+  id                          String         @id @db.Uuid
+  organization_id             String         @db.Uuid
+  site_id                     String         @db.Uuid
+  workpack_id                 String         @db.Uuid
+  activity_id                 String?        @db.Uuid
+  blind_number                String
+  blind_type                  BlindType?
+  system                      String?
+  pipeline_number             String?
+  pand_id_number              String?
+  location                    String?
+  area                        String?
+  flange_size                 String?
+  rating                      String?
+  blind_test_type             BlindTestType?
+  blind_test_type_description String?
+  safe_isolation_confirmed    Boolean?       @default(false)
+  safe_isolation_reference    String?
+  insert_activity_id          String?        @db.Uuid
+  inserted_by                 String?        @db.Uuid
+  inserted_at                 DateTime?
+  insert_witness              String?
+  remove_activity_id          String?        @db.Uuid
+  removed_by                  String?        @db.Uuid
+  removed_at                  DateTime?
+  remove_witness              String?
+  status                      BlindStatus?   @default(pending)
+  actual_test_pressure        Decimal?       @db.Decimal(10, 2)
+  test_result                 String?
+  notes                       String?
+  triage_reference            String?
+  created_by                  String?        @db.Uuid
+  updated_by                  String?        @db.Uuid
+  created_at                  DateTime       @default(now())
+  updated_at                  DateTime
+  deleted_at                  DateTime?
+  workpack                    Workpack       @relation(fields: [workpack_id], references: [id])
+
+  @@unique([workpack_id, blind_number])
+  @@index([workpack_id, status])
+}
+
+model Constraint {
+  id                     String            @id @db.Uuid
+  organization_id        String            @db.Uuid
+  site_id                String            @db.Uuid
+  workpack_id            String            @db.Uuid
+  activity_id            String?           @db.Uuid
+  constraint_number      String?
+  title                  String
+  description            String?
+  constraint_type        ConstraintType?
+  priority               Priority?         @default(high)
+  owner_id               String?           @db.Uuid
+  target_resolution_date DateTime?         @db.Date
+  actual_resolution_date DateTime?         @db.Date
+  status                 ConstraintStatus? @default(open)
+  resolution_notes       String?
+  raised_by              String?           @db.Uuid
+  raised_at              DateTime?         @default(now())
+  closed_by              String?           @db.Uuid
+  closed_at              DateTime?
+  created_by             String?           @db.Uuid
+  updated_by             String?           @db.Uuid
+  created_at             DateTime          @default(now())
+  updated_at             DateTime
+  deleted_at             DateTime?
+  workpack               Workpack          @relation(fields: [workpack_id], references: [id])
+
+  @@index([owner_id, status])
+  @@index([workpack_id, constraint_type, status])
+  @@index([workpack_id, status])
+}
+
+model Contractor {
+  id              String       @id @db.Uuid
+  organization_id String       @db.Uuid
+  site_id         String?      @db.Uuid
+  name            String
+  code            String?
+  contact_person  String?
+  contact_email   String?
+  contact_phone   String?
+  is_active       Boolean?     @default(true)
+  created_by      String?      @db.Uuid
+  created_at      DateTime     @default(now())
+  updated_at      DateTime
+  deleted_at      DateTime?
+  User            User?        @relation(fields: [created_by], references: [id])
+  Organization    Organization @relation(fields: [organization_id], references: [id])
+  Site            Site?        @relation(fields: [site_id], references: [id])
+  Resource        Resource[]
+  Workpack        Workpack[]
+}
+
+model Discipline {
+  id                String            @id @db.Uuid
+  organization_id   String            @db.Uuid
+  name              String
+  code              String
+  color             String?
+  is_active         Boolean?          @default(true)
+  created_by        String?           @db.Uuid
+  created_at        DateTime          @default(now())
+  updated_at        DateTime
+  User              User?             @relation(fields: [created_by], references: [id])
+  Organization      Organization      @relation(fields: [organization_id], references: [id])
+  ResourceType      ResourceType[]
+  Workpack          Workpack[]
+  activities        Activity[]
+  activityLibraries ActivityLibrary[]
+
+  @@unique([organization_id, code])
+}
+
+model DocLibrary {
+  id               String   @id
+  org_id           String
+  event_id         String?
+  project_id       String?
+  title            String
+  description      String?
+  category         String   @default("General")
+  revision         String?
+  document_number  String?
+  equipment_tags   String[]
+  tags             String[]
+  filename         String
+  original_name    String
+  storage_path     String
+  public_url       String
+  file_size        Int?
+  mime_type        String?
+  page_count       Int?
+  ai_summary       String?
+  ai_text          String?
+  ai_indexed       Boolean  @default(false)
+  uploaded_by      String?
+  uploaded_by_name String?
+  downloads        Int      @default(0)
+  is_org_library   Boolean  @default(false)
+  created_at       DateTime @default(now())
+  updated_at       DateTime
+}
+
+model DocumentInstance {
+  id                   String    @id @db.Uuid
+  organization_id      String    @db.Uuid
+  site_id              String    @db.Uuid
+  workpack_id          String    @db.Uuid
+  document_template_id String?   @db.Uuid
+  tab_title            String
+  sequence_number      Int?      @default(0)
+  content_html         String?
+  content_json         Json?
+  document_type        String?
+  revision             String?   @default("R0")
+  is_locked            Boolean?  @default(false)
+  include_in_pdf       Boolean?  @default(true)
+  created_by           String?   @db.Uuid
+  updated_by           String?   @db.Uuid
+  created_at           DateTime  @default(now())
+  updated_at           DateTime
+  deleted_at           DateTime?
+  workpack             Workpack  @relation(fields: [workpack_id], references: [id])
+
+  @@index([workpack_id, sequence_number])
+}
+
+model DocumentTemplate {
+  id               String   @id @db.Uuid
+  organization_id  String   @db.Uuid
+  name             String
+  document_type    String?
+  description      String?
+  default_sections Json?
+  is_active        Boolean? @default(true)
+  created_by       String?  @db.Uuid
+  created_at       DateTime @default(now())
+  updated_at       DateTime
+}
+
+model Equipment {
+  id                  String   @id
+  project_id          String
+  unit_id             String?
+  equipment_type_id   String?
+  tag                 String
+  description         String?
+  area                String?
+  manufacturer        String?
+  model               String?
+  serial_number       String?
+  year_of_manufacture Int?
+  technical_data      Json?
+  created_at          DateTime @default(now())
+  updated_at          DateTime
+}
+
+model EquipmentType {
+  id          String   @id
+  org_id      String
+  name        String
+  code        String?
+  description String?
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+}
+
+model FormEntry {
+  id               String   @id @db.Uuid
+  organization_id  String   @db.Uuid
+  form_instance_id String   @db.Uuid
+  section_id       String
+  field_id         String
+  field_type       String
+  value            String?
+  value_type       String?  @default("string")
+  created_by       String?  @db.Uuid
+  created_at       DateTime @default(now())
+  updated_at       DateTime
+
+  @@unique([form_instance_id, section_id, field_id])
+}
+
+model FormInstance {
+  id               String      @id @db.Uuid
+  organization_id  String      @db.Uuid
+  site_id          String      @db.Uuid
+  workpack_id      String      @db.Uuid
+  form_template_id String      @db.Uuid
+  template_version Int
+  title            String?
+  sequence_number  Int?        @default(0)
+  status           FormStatus? @default(draft)
+  data             Json?
+  submitted_by     String?     @db.Uuid
+  submitted_at     DateTime?
+  approved_by      String?     @db.Uuid
+  approved_at      DateTime?
+  rejection_reason String?
+  created_by       String?     @db.Uuid
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @updatedAt
+  deleted_at       DateTime?
+
+  Organization Organization @relation(fields: [organization_id], references: [id])
+  FormTemplate FormTemplate @relation(fields: [form_template_id], references: [id])
+  Workpack     Workpack     @relation(fields: [workpack_id], references: [id])
+}
+
+model FormTemplate {
+  id                String    @id @db.Uuid
+  organization_id   String    @db.Uuid
+  name              String
+  slug              String
+  form_type         String
+  description       String?
+  schema_json       Json
+  current_version   Int       @default(1)
+  is_active         Boolean?  @default(true)
+  requires_approval Boolean?  @default(false)
+  created_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+
+  Organization Organization          @relation(fields: [organization_id], references: [id])
+  Versions     FormTemplateVersion[]
+  Instances    FormInstance[]
+
+  @@unique([organization_id, slug])
+}
+
+model FormTemplateVersion {
+  id               String   @id @db.Uuid
+  organization_id  String   @db.Uuid
+  form_template_id String   @db.Uuid
+  version_number   Int
+  schema_json      Json
+  change_notes     String?
+  created_by       String?  @db.Uuid
+  created_at       DateTime @default(now())
+
+  FormTemplate FormTemplate @relation(fields: [form_template_id], references: [id])
+
+  @@unique([form_template_id, version_number])
+}
+
+model JointIntegrityItem {
+  id                              String            @id @db.Uuid
+  organization_id                 String            @db.Uuid
+  site_id                         String            @db.Uuid
+  workpack_id                     String            @db.Uuid
+  activity_id                     String?           @db.Uuid
+  joint_master_id                 String?           @db.Uuid
+  line_number                     String?
+  location                        String?
+  ai_generated                    Boolean?          @default(false)
+  joint_number                    String
+  tag_id                          String?
+  drawing_number                  String?
+  pipeline_number                 String?
+  pand_id_number                  String?
+  specification                   String?
+  rating                          String?
+  flange_size                     String?
+  construct_operation_id          String?           @db.Uuid
+  destruct_operation_id           String?           @db.Uuid
+  flange_material                 String?
+  flange_reference_standard       String?
+  gasket_material                 String?
+  gasket_reference_standard       String?
+  flange_type                     String?
+  gasket_item_id                  String?           @db.Uuid
+  bolt_item_id                    String?           @db.Uuid
+  bolt_material                   String?
+  bolt_reference_standard         String?
+  bolt_diameter                   String?
+  bolt_length                     String?
+  bolt_quantity                   Int?
+  tightening_method               TighteningMethod?
+  torque_tightening_value         Decimal?          @db.Decimal(10, 2)
+  torque_pump_pressure            Decimal?          @db.Decimal(10, 2)
+  torque_tool_reference           String?
+  tensioning_pressure             Decimal?          @db.Decimal(10, 2)
+  tensioning_residual_bolt_stress Decimal?          @db.Decimal(10, 2)
+  tensioning_pass                 String?
+  tensioning_tool_reference       String?
+  status                          JointStatus?      @default(pending)
+  assembled_by                    String?           @db.Uuid
+  assembled_at                    DateTime?
+  inspected_by                    String?           @db.Uuid
+  inspected_at                    DateTime?
+  signed_off_by                   String?           @db.Uuid
+  signed_off_at                   DateTime?
+  notes                           String?
+  torque_witness_name             String?
+  torque_witness_signed_at        DateTime?
+  torque_certificate_number       String?
+  created_by                      String?           @db.Uuid
+  updated_by                      String?           @db.Uuid
+  created_at                      DateTime          @default(now())
+  updated_at                      DateTime
+  deleted_at                      DateTime?
+  workpack                        Workpack          @relation(fields: [workpack_id], references: [id])
+
+  @@unique([workpack_id, joint_number])
+  @@index([workpack_id, activity_id])
+  @@index([workpack_id, status])
+}
+
+model Notification {
+  id              String    @id @db.Uuid
+  organization_id String    @db.Uuid
+  user_id         String    @db.Uuid
+  type            String
+  title           String
+  message         String?
+  notifiable_type String?
+  notifiable_id   String?   @db.Uuid
+  action_url      String?
+  is_read         Boolean?  @default(false)
+  read_at         DateTime?
+  triggered_by    String?   @db.Uuid
+  created_at      DateTime  @default(now())
+  updated_at      DateTime
+
+  @@index([notifiable_type, notifiable_id])
+  @@index([user_id, is_read, created_at])
+}
+
+model Organization {
+  id                     String                  @id @db.Uuid
+  name                   String
+  slug                   String?                 @unique
+  industry               String?
+  country                String?
+  timezone               String?                 @default("UTC")
+  logo_path              String?
+  logo_url               String?
+  logo_width_px          Int?                    @default(140)
+  logo_height_px         Int?                    @default(40)
+  sidebar_logo_url       String?
+  sidebar_logo_width_px  Int?                    @default(120)
+  sidebar_logo_height_px Int?                    @default(36)
+  favicon_url            String?
+  primary_color          String?                 @default("#4F46E5")
+  platform_name          String?                 @default("SYORITY")
+  is_active              Boolean?                @default(true)
+  settings               Json?
+  activity_id_increment  Int                     @default(3)
+  workpack_pdf_columns   Json?                   @default("{\"showWindow\": true, \"showDuration\": true, \"showManpower\": false, \"showContractor\": true, \"showElectrical\": true, \"showPredecessor\": false, \"showScaffolding\": true}")
+  created_at             DateTime                @default(now())
+  updated_at             DateTime
+  deleted_at             DateTime?
+  contract_start_date    DateTime?
+  contract_end_date      DateTime?
+  contract_value         Float?
+  currency               String?                 @default("USD")
+  billing_cycle          String?                 @default("annual")
+  payment_status         String?                 @default("active")
+  last_payment_date      DateTime?
+  last_payment_amount    Float?
+  payment_notes          String?
+  plan_tier              String?                 @default("professional")
+  max_users              Int?                    @default(15)
+  max_sites              Int?                    @default(3)
+  feature_flags          Json?                   @default("{}")
+  tenant_type            String?                 @default("refinery")
+  status                 String?                 @default("active")
+  suspended_at           DateTime?
+  suspension_reason      String?
+  terminated_at          DateTime?
+  onboarded_by           String?
+  onboarded_at           DateTime?
+  account_manager        String?
+  account_manager_email  String?
+  technical_contact      String?
+  technical_email        String?
+  notes                  String?
+  deployment_model       String?                 @default("shared")
+  vps_hostname           String?
+  vps_region             String?
+  Asset                  Asset[]
+  Area                   Area[]
+  Contractor             Contractor[]
+  Discipline             Discipline[]
+  Plant                  Plant[]
+  Resource               Resource[]
+  ResourceType           ResourceType[]
+  Role                   Role[]
+  TenantFeature          TenantFeature[]
+  Site                   Site[]
+  System                 System[]
+  Unit                   Unit[]
+  User                   User[]
+  UserRole               UserRole[]
+  Workpack               Workpack[]
+  WorkpackMaterial       WorkpackMaterial[]
+  billing_logs           BillingLog[]
+  events                 Event[]
+  joint_masters          joint_masters[]
+  line_lists             line_lists[]
+  nozzles                nozzles[]
+  report_templates       report_templates[]
+  scheduled_deliveries   scheduled_deliveries[]
+  unit_responsibilities  unit_responsibilities[]
+  wbs_nodes              WbsNode[]
+  activities             Activity[]
+  activityResources      ActivityResource[]
+  activityUdfValues      ActivityUdfValue[]
+  constraintLogs         ConstraintLog[]         @relation("OrganizationToConstraintLog")
+  certificateInstances   CertificateInstance[]   @relation("OrganizationToCertificateInstance")
+  lessonLearned          LessonLearned[]         @relation("OrganizationToLessonLearned")
+  FormTemplate           FormTemplate[]
+  FormInstance           FormInstance[]
+  WebhookConfig          WebhookConfig?
+  WebhookLog             WebhookLog[]
+  ApiKey                 ApiKey[]
+
+  @@index([is_active])
+}
+
+model OrganizationDocumentSetting {
+  id                  String   @id @db.Uuid
+  organization_id     String   @unique @db.Uuid
+  company_name        String?
+  logo_path           String?
+  primary_color       String?  @default("#003366")
+  secondary_color     String?  @default("#666666")
+  header_html         String?
+  footer_html         String?
+  show_page_numbers   Boolean? @default(true)
+  show_logo_all_pages Boolean? @default(true)
+  enable_watermark    Boolean? @default(false)
+  watermark_text      String?
+  watermark_color     String?  @default("#CCCCCC")
+  number_prefix       String?  @default("WP")
+  number_format       String?  @default("{PREFIX}-{YEAR}-{SEQ:5}")
+  page_size           String?  @default("A4")
+  page_orientation    String?  @default("portrait")
+  margins             Json?
+  updated_by          String?  @db.Uuid
+  created_at          DateTime @default(now())
+  updated_at          DateTime
+}
+
+model Permit {
+  id               String    @id
+  project_id       String?
+  workpack_id      String?
+  activity_id      String?
+  permit_number    String
+  permit_type      String
+  work_description String?
+  location         String?
+  issued_by        String?
+  issued_at        DateTime?
+  valid_until      DateTime?
+  extended_until   DateTime?
+  status           String    @default("Draft")
+  precautions      String?
+  gas_test_result  String?
+  closed_by        String?
+  closed_at        DateTime?
+  remarks          String?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime
+}
+
+model Plant {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  site_id         String       @db.Uuid
+  name            String
+  code            String?
+  description     String?
+  is_active       Boolean?     @default(true)
+  created_by      String?      @db.Uuid
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  deleted_at      DateTime?
+  createdByUser   User?        @relation(fields: [created_by], references: [id])
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  site            Site         @relation(fields: [site_id], references: [id])
+  areas           Area[]
+  units           Unit[]
+  assets          Asset[]
+  workpacks       Workpack[]
+
+  @@unique([site_id, code], name: "plant_site_code")
+  @@index([organization_id])
+}
+
+/// Optional level between Plant and Unit (e.g. CDU Area, Offsites).
+model Area {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  site_id         String       @db.Uuid
+  plant_id        String       @db.Uuid
+  code            String?
+  name            String
+  description     String?
+  is_active       Boolean?     @default(true)
+  created_by      String?      @db.Uuid
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  deleted_at      DateTime?
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  site            Site         @relation(fields: [site_id], references: [id])
+  plant           Plant        @relation(fields: [plant_id], references: [id])
+  units           Unit[]
+
+  @@unique([plant_id, code], name: "area_plant_code")
+  @@index([organization_id])
+  @@index([site_id, plant_id])
+}
+
+model Project {
+  id               String     @id
+  org_id           String     @db.Uuid
+  name             String
+  code             String
+  client           String?
+  location         String?
+  plant_name       String?
+  status           String     @default("Planning")
+  planned_sd_date  DateTime?
+  planned_su_date  DateTime?
+  forecast_sd_date DateTime?
+  forecast_su_date DateTime?
+  actual_sd_date   DateTime?
+  actual_su_date   DateTime?
+  description      String?
+  created_by       String?
+  created_at       DateTime   @default(now())
+  updated_at       DateTime
+  Workpack         Workpack[]
+}
+
+model PunchListItem {
+  id                String         @id @db.Uuid
+  organization_id   String         @db.Uuid
+  site_id           String         @db.Uuid
+  workpack_id       String         @db.Uuid
+  activity_id       String?        @db.Uuid
+  item_number       String?
+  title             String
+  description       String?
+  category          PunchCategory?
+  discipline_id     String?        @db.Uuid
+  raised_by         String?        @db.Uuid
+  raised_at         DateTime?      @default(now())
+  location          String?
+  drawing_reference String?
+  assigned_to       String?        @db.Uuid
+  target_close_date DateTime?      @db.Date
+  status            PunchStatus?   @default(open)
+  closed_by         String?        @db.Uuid
+  closed_at         DateTime?
+  close_out_notes   String?
+  accepted_by       String?        @db.Uuid
+  accepted_at       DateTime?
+  created_by        String?        @db.Uuid
+  updated_by        String?        @db.Uuid
+  created_at        DateTime       @default(now())
+  updated_at        DateTime
+  deleted_at        DateTime?
+  workpack          Workpack       @relation(fields: [workpack_id], references: [id])
+
+  @@index([workpack_id, category, status])
+  @@index([workpack_id, status])
+}
+
+model Resource {
+  id                String             @id @db.Uuid
+  organization_id   String             @db.Uuid
+  site_id           String?            @db.Uuid
+  resource_type_id  String             @db.Uuid
+  contractor_id     String?            @db.Uuid
+  name              String
+  employee_id       String?
+  craft_code        String?
+  is_active         Boolean?           @default(true)
+  created_by        String?            @db.Uuid
+  created_at        DateTime           @default(now())
+  updated_at        DateTime
+  deleted_at        DateTime?
+  Contractor        Contractor?        @relation(fields: [contractor_id], references: [id])
+  User              User?              @relation(fields: [created_by], references: [id])
+  Organization      Organization       @relation(fields: [organization_id], references: [id])
+  ResourceType      ResourceType       @relation(fields: [resource_type_id], references: [id])
+  Site              Site?              @relation(fields: [site_id], references: [id])
+  activityResources ActivityResource[]
+}
+
+model ResourceType {
+  id              String       @id @db.Uuid
+  organization_id String       @db.Uuid
+  discipline_id   String?      @db.Uuid
+  name            String
+  code            String?
+  is_active       Boolean?     @default(true)
+  created_by      String?      @db.Uuid
+  created_at      DateTime     @default(now())
+  updated_at      DateTime
+  Resource        Resource[]
+  User            User?        @relation(fields: [created_by], references: [id])
+  Discipline      Discipline?  @relation(fields: [discipline_id], references: [id])
+  Organization    Organization @relation(fields: [organization_id], references: [id])
+}
+
+model Role {
+  id              String       @id @db.Uuid
+  organization_id String       @db.Uuid
+  name            String
+  slug            String
+  permissions     Json?
+  is_system       Boolean?     @default(false)
+  created_by      String?      @db.Uuid
+  created_at      DateTime     @default(now())
+  updated_at      DateTime
+  User            User?        @relation(fields: [created_by], references: [id])
+  Organization    Organization @relation(fields: [organization_id], references: [id])
+  user_roles      UserRole[]
+
+  @@unique([organization_id, slug])
+}
+
+model SafetyIncident {
+  id                    String        @id @db.Uuid
+  safety_id             String?
+  safety_log_id         String        @db.Uuid
+  event_id              String        @db.Uuid
+  incident_date         DateTime
+  incident_time         String?
+  incident_type         String
+  severity              String        @default("Low")
+  title                 String
+  description           String
+  location              String?
+  unit_area             String?
+  contractor            String?
+  persons_involved      String?
+  immediate_action      String?
+  root_cause            String?
+  root_cause_category   String?
+  contributing_factors  String?
+  corrective_actions    String?
+  preventive_actions    String?
+  lesson_learned        String?
+  action_owner          String?
+  action_due_date       DateTime?     @db.Date
+  action_completed_date DateTime?     @db.Date
+  status                String        @default("Open")
+  investigation_by      String?
+  closed_by             String?
+  closed_at             DateTime?
+  remarks               String?
+  reported_by           String?
+  created_at            DateTime      @default(now())
+  updated_at            DateTime
+  event                 Event         @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  SafetyLog             SafetyLog     @relation(fields: [safety_log_id], references: [id], onDelete: Cascade)
+  SafetyPhoto           SafetyPhoto[]
+}
+
+model SafetyLog {
+  id                   String           @id @db.Uuid
+  event_id             String           @db.Uuid
+  project_id           String?          @db.Uuid
+  log_date             DateTime         @db.Date
+  shift                String           @default("day")
+  manpower_planned     Int              @default(0)
+  manpower_actual      Int              @default(0)
+  lti                  Int              @default(0)
+  lti_days_lost        Int              @default(0)
+  near_miss            Int              @default(0)
+  first_aid            Int              @default(0)
+  medical_treatment    Int              @default(0)
+  dangerous_occurrence Int              @default(0)
+  ptw_issued           Int              @default(0)
+  ptw_closed           Int              @default(0)
+  ptw_suspended        Int              @default(0)
+  toolbox_talks        Int              @default(0)
+  manhours_worked      Decimal          @default(0)
+  manhours_planned     Decimal          @default(0)
+  cumulative_manhours  Decimal          @default(0)
+  cumulative_lti       Int              @default(0)
+  lti_frequency_rate   Decimal          @default(0)
+  safety_notes         String?
+  submitted_by         String?
+  submitted_by_name    String?
+  last_updated_by      String?
+  last_updated_by_name String?
+  created_at           DateTime         @default(now())
+  updated_at           DateTime
+  SafetyIncident       SafetyIncident[]
+  event                Event            @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  SafetyPhoto          SafetyPhoto[]
+
+  @@unique([event_id, log_date])
+  @@index([event_id, log_date])
+}
+
+model SafetyPhoto {
+  id               String          @id @db.Uuid
+  safety_log_id    String?         @db.Uuid
+  incident_id      String?         @db.Uuid
+  event_id         String          @db.Uuid
+  photo_type       String          @default("general")
+  caption          String?
+  storage_path     String
+  public_url       String
+  file_size        Int?
+  mime_type        String?
+  uploaded_by      String?
+  uploaded_by_name String?
+  taken_at         DateTime        @default(now())
+  created_at       DateTime        @default(now())
+  event            Event           @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  SafetyIncident   SafetyIncident? @relation(fields: [incident_id], references: [id], onDelete: Cascade)
+  SafetyLog        SafetyLog?      @relation(fields: [safety_log_id], references: [id], onDelete: Cascade)
+}
+
+model ScheduleBaseline {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  project_id      String   @db.Uuid
+  name            String
+  created_at      DateTime @default(now())
+  created_by      String   @db.Uuid
+  is_current      Boolean  @default(false)
+}
+
+model ScheduleCalendar {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  name            String
+  work_days       Int[]
+  hours_per_day   Float    @default(10)
+  exceptions      Json     @default("[]")
+  is_default      Boolean  @default(false)
+  created_at      DateTime @default(now())
+}
+
+model ScheduleExportJob {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  site_id         String?  @db.Uuid
+  status          String
+  file_path       String?
+  created_by      String?  @db.Uuid
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+}
+
+model Site {
+  id                         String             @id @default(uuid()) @db.Uuid
+  organization_id            String             @db.Uuid
+  name                       String
+  code                       String?
+  location                   String?
+  timezone                   String?            @default("UTC")
+  is_active                  Boolean?           @default(true)
+  created_by                 String?            @db.Uuid
+  created_at                 DateTime           @default(now())
+  updated_at                 DateTime           @updatedAt
+  deleted_at                 DateTime?
+  pressure_test_standard     String             @default("ASME_VIII")
+  hydrotest_multiplier       Float              @default(1.5)
+  pneumatic_test_multiplier  Float              @default(1.1)
+  torque_standard            String             @default("ASME_PCC_1")
+  test_standard_notes        String?
+  Asset                      Asset[]
+  Area                       Area[]
+  Contractor                 Contractor[]
+  Plant                      Plant[]
+  Resource                   Resource[]
+  User_Site_created_byToUser User?              @relation("Site_created_byToUser", fields: [created_by], references: [id])
+  Organization               Organization       @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  System                     System[]
+  Unit                       Unit[]
+  users                      User[]             @relation("User_site_idToSite")
+  UserRole                   UserRole[]
+  Workpack                   Workpack[]
+  WorkpackMaterial           WorkpackMaterial[]
+  events                     Event[]
+  joint_masters              joint_masters[]
+  line_lists                 line_lists[]
+  activities                 Activity[]
+
+  @@unique([organization_id, code])
+}
+
+model System {
+  id                String              @id @default(uuid()) @db.Uuid
+  organization_id   String              @db.Uuid
+  site_id           String              @db.Uuid
+  unit_id           String              @db.Uuid
+  code              String?
+  name              String
+  description       String?
+  criticality       String?
+  status            String              @default("Active")
+  p_and_id_ref      String?
+  is_active         Boolean?            @default(true)
+  created_by        String?             @db.Uuid
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  deleted_at        DateTime?
+  assets            Asset[]
+  user              User?               @relation(fields: [created_by], references: [id])
+  organization      Organization        @relation(fields: [organization_id], references: [id])
+  site              Site                @relation(fields: [site_id], references: [id])
+  unit              Unit                @relation(fields: [unit_id], references: [id])
+  workpacks         Workpack[]
+  event_systems     EventSystem[]
+  line_lists        line_lists[]
+  system_blinds     system_blinds[]
+  system_drawings   system_drawings[]
+  system_gaskets    system_gaskets[]
+  system_procedures system_procedures[]
+  wbs_nodes         WbsNode[]
+
+  @@unique([unit_id, code], name: "system_unit_code")
+  @@index([organization_id])
+  @@index([site_id, unit_id])
+}
+
+model Unit {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  organization_id       String                  @db.Uuid
+  site_id               String                  @db.Uuid
+  plant_id              String                  @db.Uuid
+  /// Optional Area under Plant. Null = unit hangs directly off Plant.
+  area_id               String?                 @db.Uuid
+  name                  String
+  code                  String?
+  description           String?
+  is_active             Boolean?                @default(true)
+  created_by            String?                 @db.Uuid
+  created_at            DateTime                @default(now())
+  updated_at            DateTime                @updatedAt
+  deleted_at            DateTime?
+  systems               System[]
+  assets                Asset[]
+  createdByUser         User?                   @relation(fields: [created_by], references: [id])
+  organization          Organization            @relation(fields: [organization_id], references: [id])
+  plant                 Plant                   @relation(fields: [plant_id], references: [id])
+  area                  Area?                   @relation(fields: [area_id], references: [id])
+  site                  Site                    @relation(fields: [site_id], references: [id])
+  workpacks             Workpack[]
+  event_units           EventUnit[]
+  line_lists            line_lists[]
+  unit_responsibilities unit_responsibilities[]
+
+  @@unique([plant_id, code], name: "unit_plant_code")
+  @@index([organization_id])
+  @@index([area_id])
+}
+
+model User {
+  id                                  String                  @id @default(uuid()) @db.Uuid
+  organization_id                     String                  @db.Uuid
+  site_id                             String?                 @db.Uuid
+  name                                String
+  email                               String                  @unique
+  employee_id                         String?
+  password                            String
+  position                            String?
+  phone                               String?
+  whatsapp_number                     String?                 @unique
+  whatsapp_verified                   Boolean                 @default(false)
+  whatsapp_opt_in                     Boolean                 @default(false)
+  preferred_language                  String?                 @default("en")
+  avatar_path                         String?
+  is_active                           Boolean?                @default(true)
+  last_login_at                       DateTime?
+  remember_token                      String?
+  is_super_admin                      Boolean                 @default(false)
+  is_tenant_admin                     Boolean                 @default(false)
+  created_at                          DateTime                @default(now())
+  updated_at                          DateTime                @updatedAt
+  deleted_at                          DateTime?
+  must_change_password                Boolean?                @default(false)
+  Asset                               Asset[]
+  Contractor                          Contractor[]
+  Discipline                          Discipline[]
+  Plant                               Plant[]
+  Resource                            Resource[]
+  ResourceType                        ResourceType[]
+  Role                                Role[]
+  Site_Site_created_byToUser          Site[]                  @relation("Site_created_byToUser")
+  System                              System[]
+  Unit                                Unit[]
+  organization                        Organization            @relation(fields: [organization_id], references: [id])
+  site                                Site?                   @relation("User_site_idToSite", fields: [site_id], references: [id])
+  roles_assigned                      UserRole[]              @relation("UserRole_assigned_byToUser")
+  user_roles                          UserRole[]              @relation("UserRole_user_idToUser")
+  Workpack_Workpack_created_byToUser  Workpack[]              @relation("Workpack_created_byToUser")
+  Workpack_Workpack_locked_byToUser   Workpack[]              @relation("Workpack_locked_byToUser")
+  Workpack_Workpack_updated_byToUser  Workpack[]              @relation("Workpack_updated_byToUser")
+  events                              Event[]
+  report_templates                    report_templates[]
+  scheduled_deliveries                scheduled_deliveries[]
+  system_blinds                       system_blinds[]
+  unit_responsibilities               unit_responsibilities[]
+  SystemAuditLog                      SystemAuditLog[]
+  ApiKey                              ApiKey[]
+}
+
+model UserRole {
+  id               String       @id @default(uuid()) @db.Uuid
+  organization_id  String       @db.Uuid
+  user_id          String       @db.Uuid
+  role_id          String       @db.Uuid
+  site_id          String?      @db.Uuid
+  assigned_by      String?      @db.Uuid
+  assigned_at      DateTime?    @default(now())
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+  assigned_by_user User?        @relation("UserRole_assigned_byToUser", fields: [assigned_by], references: [id])
+  organization     Organization @relation(fields: [organization_id], references: [id])
+  role             Role         @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  site             Site?        @relation(fields: [site_id], references: [id])
+  user             User         @relation("UserRole_user_idToUser", fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, role_id, site_id])
+}
+
+model WorkflowTransition {
+  id               String          @id @db.Uuid
+  organization_id  String          @db.Uuid
+  workpack_id      String          @db.Uuid
+  from_status      String?
+  to_status        String
+  action           WorkflowAction?
+  comment          String?
+  comment_required Boolean?        @default(false)
+  performed_by     String          @db.Uuid
+  performed_at     DateTime?       @default(now())
+  created_at       DateTime        @default(now())
+  updated_at       DateTime
+  workpack         Workpack        @relation(fields: [workpack_id], references: [id])
+
+  @@index([workpack_id, performed_at])
+}
+
+model WorkpackAttachment {
+  id              String   @id @db.Uuid
+  workpack_id     String   @db.Uuid
+  group           String
+  sub_group       String?
+  sort_order      Int      @default(0)
+  title           String
+  attachment_type String
+  template_key    String?
+  content         Json?
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+  workpack        Workpack @relation(fields: [workpack_id], references: [id])
+
+  @@index([workpack_id])
+}
+
+model WorkpackDocument {
+  id                 String    @id @db.Uuid
+  organization_id    String    @db.Uuid
+  site_id            String    @db.Uuid
+  workpack_id        String    @db.Uuid
+  document_type      String?   @default("attachment")
+  original_filename  String
+  storage_path       String
+  mime_type          String?
+  file_size_bytes    BigInt?   @default(0)
+  title              String?
+  description        String?
+  include_in_pdf     Boolean   @default(false)
+  source             String    @default("manual")
+  created_by         String?   @db.Uuid
+  created_at         DateTime  @default(now())
+  updated_at         DateTime
+  deleted_at         DateTime?
+  workpack           Workpack  @relation(fields: [workpack_id], references: [id])
+  source_document_id String?   @db.Uuid
+  source_pages       Int[]     @default([])
+  extraction_job_id  String?   @db.Uuid
+
+  @@index([organization_id])
+  @@index([workpack_id])
+}
+
+model WorkpackMaterial {
+  id                String          @id @db.Uuid
+  organization_id   String          @db.Uuid
+  site_id           String          @db.Uuid
+  workpack_id       String          @db.Uuid
+  activity_id       String?         @db.Uuid
+  item_catalog_id   String?         @db.Uuid
+  material_number   String?
+  description       String
+  unit_of_measure   String
+  specifications    String?
+  material_category String?         @default("mechanical")
+  quantity_required Decimal?        @default(0) @db.Decimal(12, 3)
+  quantity_issued   Decimal?        @default(0) @db.Decimal(12, 3)
+  quantity_returned Decimal?        @default(0) @db.Decimal(12, 3)
+  unit_cost         Decimal?        @db.Decimal(12, 2)
+  status            MaterialStatus? @default(pending)
+  required_date     DateTime?       @db.Date
+  issue_reference   String?
+  is_critical       Boolean?        @default(false)
+  notes             String?
+  ai_generated      Boolean         @default(false)
+  created_by        String?         @db.Uuid
+  updated_by        String?         @db.Uuid
+  created_at        DateTime        @default(now())
+  updated_at        DateTime
+  deleted_at        DateTime?
+  Organization      Organization    @relation(fields: [organization_id], references: [id])
+  Site              Site            @relation(fields: [site_id], references: [id])
+  Workpack          Workpack        @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+
+  @@index([item_catalog_id])
+  @@index([workpack_id, status])
+}
+
+model WorkpackVersion {
+  id                 String   @id @db.Uuid
+  organization_id    String   @db.Uuid
+  workpack_id        String   @db.Uuid
+  revision           String
+  status_at_snapshot String
+  snapshot_json      Json
+  change_summary     String?
+  created_by         String?  @db.Uuid
+  created_at         DateTime @default(now())
+  workpack           Workpack @relation(fields: [workpack_id], references: [id])
+
+  @@unique([workpack_id, revision])
+}
+
+model activity_code_default_resources {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  library_id      String   @db.Uuid
+  resource_id     String   @db.Uuid
+  quantity        Decimal? @default(1) @db.Decimal(10, 2)
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+
+  @@unique([library_id, resource_id])
+}
+
+model asset_lines {
+  id              String     @id @db.Uuid
+  asset_id        String     @db.Uuid
+  line_id         String     @db.Uuid
+  connection_type String     @default("from")
+  Asset           Asset      @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  line_lists      line_lists @relation(fields: [line_id], references: [id], onDelete: Cascade)
+
+  @@unique([asset_id, line_id])
+}
+
+model BillingLog {
+  id              String       @id @db.Uuid
+  organization_id String       @db.Uuid
+  recorded_by     String
+  payment_date    DateTime
+  amount          Float
+  currency        String       @default("USD")
+  reference       String?
+  notes           String?
+  created_at      DateTime     @default(now())
+  Organization    Organization @relation(fields: [organization_id], references: [id])
+
+  @@map("billing_logs")
+}
+
+model CertificateInstance {
+  id                    String       @id @db.Uuid
+  organization_id       String       @db.Uuid
+  workpack_id           String       @db.Uuid
+  template_id           String       @db.Uuid
+  cert_number           String?
+  cert_type             String
+  cert_name             String
+  status                String       @default("not_started")
+  field_values          Json         @default("{}")
+  prepared_by           String?
+  prepared_date         DateTime?
+  reviewed_by           String?
+  reviewed_date         DateTime?
+  approved_by           String?
+  approved_date         DateTime?
+  third_party_inspector String?
+  third_party_date      DateTime?
+  pass_fail             String?
+  remarks               String?
+  include_in_pdf        Boolean      @default(true)
+  deleted_at            DateTime?
+  created_at            DateTime     @default(now())
+  updated_at            DateTime
+  organization          Organization @relation("OrganizationToCertificateInstance", fields: [organization_id], references: [id])
+  workpack              Workpack     @relation(fields: [workpack_id], references: [id])
+
+  @@index([workpack_id])
+  @@map("certificate_instances")
+}
+
+model certificate_templates {
+  id              String   @id @db.Uuid
+  organization_id String?  @db.Uuid
+  cert_type       String
+  cert_name       String
+  equipment_types String[]
+  fields          Json
+  is_platform     Boolean  @default(false)
+  is_active       Boolean  @default(true)
+  version         Int      @default(1)
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+}
+
+model cleaning_records {
+  id                   String         @id @db.Uuid
+  organization_id      String         @db.Uuid
+  site_id              String?        @db.Uuid
+  workpack_id          String         @db.Uuid
+  activity_id          String?        @db.Uuid
+  created_by           String         @db.Uuid
+  certificate_number   String?
+  cleaning_method      CleaningMethod
+  cleaning_medium      String?
+  concentration        String?
+  temperature_c        Decimal?       @db.Decimal(5, 2)
+  duration_hours       Decimal?       @db.Decimal(8, 2)
+  is_standalone        Boolean        @default(false)
+  before_condition     String?
+  after_condition      String?
+  remaining_deposits   String?
+  inspector_acceptance Boolean        @default(false)
+  inspector_id         String?        @db.Uuid
+  inspected_at         DateTime?
+  notes                String?
+  workpack             Workpack       @relation(fields: [workpack_id], references: [id])
+  created_at           DateTime       @default(now())
+  updated_at           DateTime
+  deleted_at           DateTime?
+}
+
+model clearance_for_boxup {
+  id              String                @id @db.Uuid
+  organization_id String                @db.Uuid
+  workpack_id     String                @unique @db.Uuid
+  created_by      String                @db.Uuid
+  created_at      DateTime              @default(now())
+  updated_at      DateTime
+  workpack        Workpack              @relation(fields: [workpack_id], references: [id])
+  sign_offs       clearance_sign_offs[]
+}
+
+model clearance_sign_offs {
+  id              String              @id @db.Uuid
+  organization_id String              @db.Uuid
+  clearance_id    String              @db.Uuid
+  party_name      String
+  condition       String
+  signed_by       String?             @db.Uuid
+  signed_at       DateTime?
+  signature_path  String?
+  notes           String?
+  created_at      DateTime            @default(now())
+  updated_at      DateTime
+  clearance       clearance_for_boxup @relation(fields: [clearance_id], references: [id])
+}
+
+model constraint_attachments {
+  id            String   @id @db.Uuid
+  constraint_id String   @db.Uuid
+  filename      String
+  file_path     String
+  file_size     Int?
+  mime_type     String?  @default("application/pdf")
+  uploaded_by   String
+  created_at    DateTime @default(now())
+}
+
+model ConstraintLog {
+  id                     String       @id @db.Uuid
+  organization_id        String       @db.Uuid
+  workpack_id            String       @db.Uuid
+  portfolio_id           String?      @db.Uuid
+  constraint_number      String?
+  title                  String
+  description            String
+  category               String       @default("technical")
+  severity               String       @default("medium")
+  status                 String       @default("open")
+  raised_by              String?
+  raised_date            DateTime     @default(now())
+  owner                  String?
+  target_resolution      DateTime?
+  resolution_steps       String?
+  resolved_by            String?
+  resolved_date          DateTime?
+  resolution_notes       String?
+  impact_on_schedule     String?
+  is_in_central_register Boolean      @default(true)
+  ai_generated           Boolean      @default(false)
+  deleted_at             DateTime?
+  created_at             DateTime     @default(now())
+  updated_at             DateTime
+  organization           Organization @relation("OrganizationToConstraintLog", fields: [organization_id], references: [id])
+  workpack               Workpack     @relation(fields: [workpack_id], references: [id])
+
+  @@index([organization_id])
+  @@index([status])
+  @@index([workpack_id])
+  @@map("constraint_logs")
+}
+
+model delivery_logs {
+  id                   String               @id @db.Uuid
+  delivery_id          String               @db.Uuid
+  sent_at              DateTime             @default(now())
+  status               String
+  channels             String[]
+  recipient_ct         Int
+  error                String?
+  scheduled_deliveries scheduled_deliveries @relation(fields: [delivery_id], references: [id], onDelete: Cascade)
+}
+
+model dropping_boxup_checklist_items {
+  id                String                    @id @db.Uuid
+  organization_id   String                    @db.Uuid
+  checklist_id      String                    @db.Uuid
+  sequence_number   Int                       @default(0)
+  description       String
+  responsible_party String?
+  target_date       DateTime?
+  is_done           Boolean                   @default(false)
+  signed_by         String?                   @db.Uuid
+  signed_at         DateTime?
+  notes             String?
+  created_at        DateTime                  @default(now())
+  updated_at        DateTime
+  checklist         dropping_boxup_checklists @relation(fields: [checklist_id], references: [id])
+}
+
+model dropping_boxup_checklists {
+  id                       String                           @id @db.Uuid
+  organization_id          String                           @db.Uuid
+  workpack_id              String                           @db.Uuid
+  checklist_type           ChecklistType
+  created_from_template_id String?                          @db.Uuid
+  created_by               String                           @db.Uuid
+  created_at               DateTime                         @default(now())
+  updated_at               DateTime
+  workpack                 Workpack                         @relation(fields: [workpack_id], references: [id])
+  items                    dropping_boxup_checklist_items[]
+
+  @@unique([workpack_id, checklist_type])
+}
+
+model EventSystem {
+  id        String @id @db.Uuid
+  event_id  String @db.Uuid
+  system_id String @db.Uuid
+  event     Event  @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  system    System @relation(fields: [system_id], references: [id], onDelete: Cascade)
+
+  @@unique([event_id, system_id])
+  @@map("event_systems")
+}
+
+model EventUnit {
+  id        String  @id @db.Uuid
+  event_id  String  @db.Uuid
+  unit_id   String  @db.Uuid
+  is_active Boolean @default(true)
+  notes     String?
+  event     Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  unit      Unit    @relation(fields: [unit_id], references: [id])
+
+  @@unique([event_id, unit_id])
+  @@map("event_units")
+}
+
+model Event {
+  id              String           @id @db.Uuid
+  organization_id String           @db.Uuid
+  site_id         String           @db.Uuid
+  name            String
+  code            String
+  event_type      String           @default("turnaround")
+  planned_start   DateTime?        @db.Date
+  planned_end     DateTime?        @db.Date
+  actual_start    DateTime?        @db.Date
+  actual_end      DateTime?        @db.Date
+  status          String           @default("planning")
+  scope_notes     String?
+  budget_manhours Int?
+  budget_cost     Decimal?         @db.Decimal(15, 2)
+  created_by      String?          @db.Uuid
+  created_at      DateTime         @default(now())
+  updated_at      DateTime
+  deleted_at      DateTime?
+  SafetyIncident  SafetyIncident[]
+  SafetyLog       SafetyLog[]
+  SafetyPhoto     SafetyPhoto[]
+  Workpack        Workpack[]
+  eventSystems    EventSystem[]
+  eventUnits      EventUnit[]
+  user            User?            @relation(fields: [created_by], references: [id])
+  organization    Organization     @relation(fields: [organization_id], references: [id])
+  site            Site             @relation(fields: [site_id], references: [id])
+  wbsNodes        WbsNode[]
+
+  @@index([organization_id, status])
+  @@index([site_id])
+  @@map("events")
+}
+
+model export_history {
+  id              String   @id
+  org_id          String   @db.Uuid
+  project_id      String?  @db.Uuid
+  format          String
+  filename        String
+  workpack_count  Int
+  activity_count  Int
+  file_size_bytes Int?
+  exported_by     String?  @db.Uuid
+  exported_at     DateTime @default(now())
+
+  @@index([org_id])
+}
+
+model extraction_conflicts {
+  id                   String    @id @db.Uuid
+  organization_id      String    @db.Uuid
+  workpack_id          String    @db.Uuid
+  ai_extraction_job_id String    @db.Uuid
+  field_path           String
+  field_label          String
+  existing_value       String?
+  existing_entered_by  String?
+  existing_entered_at  DateTime?
+  extracted_value      String
+  source_document_id   String    @db.Uuid
+  source_page          Int?
+  source_text          String
+  confidence           String
+  calculated           Boolean   @default(false)
+  calculation_basis    String?
+  status               String    @default("pending")
+  resolution           String?
+  resolution_value     String?
+  resolution_note      String    @default("")
+  resolved_by          String?   @db.Uuid
+  resolved_at          DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime
+
+  @@index([ai_extraction_job_id])
+  @@index([workpack_id, status])
+}
+
+model gasket_bolt_lookup {
+  id                 String   @id @db.Uuid
+  organization_id    String   @db.Uuid
+  pipe_size          String
+  pressure_class     String
+  flange_type        String
+  gasket_item_id     String?  @db.Uuid
+  gasket_description String?
+  bolt_item_id       String?  @db.Uuid
+  bolt_description   String?
+  bolt_count         Int      @default(4)
+  bolt_length_mm     Int?
+  nut_item_id        String?  @db.Uuid
+  nut_description    String?
+  washer_item_id     String?  @db.Uuid
+  washer_description String?
+  notes              String?
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime
+
+  @@unique([organization_id, pipe_size, pressure_class, flange_type])
+  @@index([organization_id])
+}
+
+model item_catalog {
+  id                   String    @id @db.Uuid
+  organization_id      String    @db.Uuid
+  sap_material_number  String?
+  sap_plant            String?
+  sap_storage_location String?
+  sap_material_group   String?
+  item_code            String
+  description          String
+  long_description     String?
+  item_category        String    @default("other")
+  sub_category         String?
+  unit_of_measure      String    @default("EA")
+  manufacturer         String?
+  manufacturer_part_no String?
+  specification        String?
+  standard_reference   String?
+  material_grade       String?
+  pipe_size            String?
+  pressure_rating      String?
+  flange_type          String?
+  bolt_nominal_size    String?
+  bolt_length_mm       Int?
+  unit_cost            Float?
+  currency             String?   @default("USD")
+  last_sap_sync        DateTime?
+  import_batch_id      String?
+  is_active            Boolean   @default(true)
+  deleted_at           DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime
+
+  @@unique([organization_id, item_code])
+  @@index([organization_id, item_category])
+  @@index([organization_id, pipe_size, pressure_rating])
+  @@index([organization_id, sap_material_number])
+}
+
+model item_catalog_import_logs {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  batch_id        String
+  imported_by     String
+  filename        String
+  total_rows      Int      @default(0)
+  imported_count  Int      @default(0)
+  updated_count   Int      @default(0)
+  error_count     Int      @default(0)
+  errors          Json?
+  status          String   @default("complete")
+  created_at      DateTime @default(now())
+}
+
+model job_completion_certificates {
+  id                       String    @id @db.Uuid
+  organization_id          String    @db.Uuid
+  workpack_id              String    @unique @db.Uuid
+  certificate_number       String?
+  scope_summary            String?
+  activities_completed     Int?
+  open_punch_cat_b         Int       @default(0)
+  open_punch_cat_c         Int       @default(0)
+  pressure_tests_status    String?
+  materials_summary        String?
+  lessons_learnt_summary   String?
+  maint_engineer_id        String?   @db.Uuid
+  maint_engineer_signed_at DateTime?
+  operations_id            String?   @db.Uuid
+  operations_signed_at     DateTime?
+  qa_id                    String?   @db.Uuid
+  qa_signed_at             DateTime?
+  client_name              String?
+  client_signed_at         DateTime?
+  client_signature_path    String?
+  created_by               String    @db.Uuid
+  created_at               DateTime  @default(now())
+  workpack                 Workpack  @relation(fields: [workpack_id], references: [id])
+  updated_at               DateTime
+}
+
+model joint_masters {
+  id                      String       @id @db.Uuid
+  organization_id         String       @db.Uuid
+  site_id                 String       @db.Uuid
+  joint_number            String
+  joint_type              String       @default("flanged")
+  asset_id                String?      @db.Uuid
+  nozzle_id               String?      @unique @db.Uuid
+  line_id                 String?      @db.Uuid
+  sequence_in_line        Int?
+  nominal_size_inches     Float?
+  pressure_rating         String?
+  flange_face             String?
+  default_gasket_type     String?
+  default_gasket_material String?
+  default_bolt_spec       String?
+  default_bolt_count      Int?
+  default_torque_nm       Float?
+  last_opened_date        DateTime?
+  last_workpack_id        String?      @db.Uuid
+  total_open_count        Int          @default(0)
+  is_active               Boolean      @default(true)
+  notes                   String?
+  created_by              String?      @db.Uuid
+  created_at              DateTime     @default(now())
+  updated_at              DateTime
+  Asset                   Asset?       @relation(fields: [asset_id], references: [id])
+  line_lists              line_lists?  @relation(fields: [line_id], references: [id])
+  nozzles                 nozzles?     @relation(fields: [nozzle_id], references: [id])
+  Organization            Organization @relation(fields: [organization_id], references: [id])
+  Site                    Site         @relation(fields: [site_id], references: [id])
+
+  @@unique([organization_id, joint_number])
+  @@index([asset_id])
+  @@index([line_id])
+}
+
+model LessonLearned {
+  id                     String       @id @db.Uuid
+  organization_id        String       @db.Uuid
+  workpack_id            String       @db.Uuid
+  portfolio_id           String?      @db.Uuid
+  title                  String
+  description            String
+  category               String       @default("general")
+  impact                 String       @default("medium")
+  recommendation         String?
+  applicable_to          String[]
+  is_in_central_register Boolean      @default(true)
+  status                 String       @default("draft")
+  reviewed_by            String?
+  reviewed_date          DateTime?
+  deleted_at             DateTime?
+  created_at             DateTime     @default(now())
+  updated_at             DateTime
+  organization           Organization @relation("OrganizationToLessonLearned", fields: [organization_id], references: [id])
+  workpack               Workpack     @relation(fields: [workpack_id], references: [id])
+
+  @@index([organization_id])
+  @@index([workpack_id])
+  @@map("lessons_learned")
+}
+
+model lessons_learnt {
+  id                   String                @id @db.Uuid
+  organization_id      String                @db.Uuid
+  site_id              String?               @db.Uuid
+  workpack_id          String                @db.Uuid
+  created_by           String                @db.Uuid
+  category             LessonsLearntCategory
+  what_happened        String
+  root_cause           String?
+  recommendation       String?
+  applicable_to_future Boolean               @default(true)
+  equipment_type       String?
+  created_at           DateTime              @default(now())
+  updated_at           DateTime
+  deleted_at           DateTime?
+}
+
+model line_lists {
+  id                                         String          @id @db.Uuid
+  organization_id                            String          @db.Uuid
+  site_id                                    String          @db.Uuid
+  unit_id                                    String          @db.Uuid
+  system_id                                  String?         @db.Uuid
+  line_number                                String
+  nominal_size_inches                        Float?
+  fluid_service_code                         String?
+  sequence_number                            String?
+  pipe_class                                 String?
+  design_pressure_barg                       Float?
+  design_temp_c                              Float?
+  operating_pressure_barg                    Float?
+  test_pressure_barg                         Float?
+  insulation_type                            String?
+  heat_tracing                               Boolean?        @default(false)
+  material                                   String?
+  from_asset_id                              String?         @db.Uuid
+  from_nozzle_id                             String?         @db.Uuid
+  to_asset_id                                String?         @db.Uuid
+  to_nozzle_id                               String?         @db.Uuid
+  p_and_id_number                            String?
+  isometric_number                           String?
+  total_joint_count                          Int             @default(0)
+  is_active                                  Boolean         @default(true)
+  notes                                      String?
+  created_by                                 String?         @db.Uuid
+  created_at                                 DateTime        @default(now())
+  updated_at                                 DateTime
+  deleted_at                                 DateTime?
+  asset_lines                                asset_lines[]
+  joint_masters                              joint_masters[]
+  Asset_line_lists_from_asset_idToAsset      Asset?          @relation("line_lists_from_asset_idToAsset", fields: [from_asset_id], references: [id])
+  nozzles_line_lists_from_nozzle_idTonozzles nozzles?        @relation("line_lists_from_nozzle_idTonozzles", fields: [from_nozzle_id], references: [id])
+  Organization                               Organization    @relation(fields: [organization_id], references: [id])
+  Site                                       Site            @relation(fields: [site_id], references: [id])
+  System                                     System?         @relation(fields: [system_id], references: [id])
+  Asset_line_lists_to_asset_idToAsset        Asset?          @relation("line_lists_to_asset_idToAsset", fields: [to_asset_id], references: [id])
+  nozzles_line_lists_to_nozzle_idTonozzles   nozzles?        @relation("line_lists_to_nozzle_idTonozzles", fields: [to_nozzle_id], references: [id])
+  Unit                                       Unit            @relation(fields: [unit_id], references: [id])
+
+  @@unique([organization_id, line_number])
+  @@index([system_id])
+  @@index([unit_id])
+}
+
+model nozzles {
+  id                                            String         @id @db.Uuid
+  organization_id                               String         @db.Uuid
+  asset_id                                      String         @db.Uuid
+  designation                                   String
+  service                                       String?
+  nominal_size_inches                           Float?
+  pressure_rating                               String?
+  flange_face                                   String?
+  flange_standard                               String?
+  gasket_type                                   String?
+  gasket_material                               String?
+  bolt_spec                                     String?
+  bolt_count                                    Int?
+  default_torque_nm                             Float?
+  p_and_id_number                               String?
+  connected_line_number                         String?
+  is_active                                     Boolean        @default(true)
+  sequence_number                               Int?           @default(0)
+  notes                                         String?
+  created_at                                    DateTime       @default(now())
+  updated_at                                    DateTime
+  deleted_at                                    DateTime?
+  joint_masters                                 joint_masters?
+  line_lists_line_lists_from_nozzle_idTonozzles line_lists[]   @relation("line_lists_from_nozzle_idTonozzles")
+  line_lists_line_lists_to_nozzle_idTonozzles   line_lists[]   @relation("line_lists_to_nozzle_idTonozzles")
+  Asset                                         Asset          @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  Organization                                  Organization   @relation(fields: [organization_id], references: [id])
+
+  @@index([asset_id])
+}
+
+model org_clearance_parties {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  party_name      String
+  condition       String
+  sequence_number Int      @default(0)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+}
+
+model project_constraints {
+  id          String    @id
+  project_id  String?
+  workpack_id String?
+  activity_id String?
+  title       String
+  description String?
+  owner       String?
+  discipline  String?
+  impact      String    @default("Medium")
+  status      String    @default("Open")
+  due_date    DateTime?
+  resolution  String?
+  resolved_at DateTime?
+  created_by  String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime
+}
+
+model project_units {
+  id          String   @id
+  project_id  String
+  name        String
+  code        String?
+  description String?
+  order_index Int      @default(0)
+  created_at  DateTime @default(now())
+}
+
+model punch_items {
+  id           String    @id
+  project_id   String?
+  workpack_id  String?
+  equipment_id String?
+  punch_number String?
+  category     String    @default("B")
+  description  String
+  discipline   String?
+  location     String?
+  raised_by    String?
+  assigned_to  String?
+  status       String    @default("Open")
+  due_date     DateTime?
+  closed_at    DateTime?
+  remarks      String?
+  photo_paths  Json?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime
+}
+
+model qa_clearance_records {
+  id                 String   @id @db.Uuid
+  organization_id    String   @db.Uuid
+  activity_id        String   @db.Uuid
+  workpack_id        String   @db.Uuid
+  cleared_by         String   @db.Uuid
+  cleared_at         DateTime
+  certificate_number String?
+  witness_name       String?
+  notes              String?
+  created_at         DateTime @default(now())
+  activity           Activity @relation(fields: [activity_id], references: [id])
+  workpack           Workpack @relation(fields: [workpack_id], references: [id])
+}
+
+model report_templates {
+  id                   String                 @id @db.Uuid
+  organization_id      String                 @db.Uuid
+  name                 String
+  pages                Json                   @default("[]")
+  created_by           String?                @db.Uuid
+  created_at           DateTime               @default(now())
+  updated_at           DateTime
+  deleted_at           DateTime?
+  User                 User?                  @relation(fields: [created_by], references: [id])
+  Organization         Organization           @relation(fields: [organization_id], references: [id])
+  scheduled_deliveries scheduled_deliveries[]
+}
+
+model schedule_import_jobs {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  site_id         String?  @db.Uuid
+  status          String
+  file_path       String?
+  created_by      String?  @db.Uuid
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+}
+
+model scheduled_deliveries {
+  id               String           @id @db.Uuid
+  organization_id  String           @db.Uuid
+  template_id      String           @db.Uuid
+  name             String
+  recipients       String[]
+  channels         String[]
+  frequency        String
+  delivery_time    String           @default("06:00")
+  active           Boolean          @default(true)
+  created_by       String?          @db.Uuid
+  created_at       DateTime         @default(now())
+  updated_at       DateTime
+  delivery_logs    delivery_logs[]
+  User             User?            @relation(fields: [created_by], references: [id])
+  Organization     Organization     @relation(fields: [organization_id], references: [id])
+  report_templates report_templates @relation(fields: [template_id], references: [id])
+}
+
+model shift_reports {
+  id                     String    @id @db.Uuid
+  organization_id        String    @db.Uuid
+  site_id                String    @db.Uuid
+  unit_id                String?   @db.Uuid
+  shift_type             String
+  shift_start            DateTime
+  shift_end              DateTime
+  report_text            String
+  report_summary         String?
+  activities_completed   Int       @default(0)
+  activities_overdue     Int       @default(0)
+  activities_in_progress Int       @default(0)
+  whatsapp_updates_count Int       @default(0)
+  open_constraints_count Int       @default(0)
+  critical_constraints   Int       @default(0)
+  sent_to_numbers        String[]  @default([])
+  sent_at                DateTime?
+  meta_message_ids       String[]  @default([])
+  delivery_status        String    @default("pending")
+  created_at             DateTime  @default(now())
+  updated_at             DateTime
+
+  @@index([organization_id, shift_start])
+  @@index([unit_id])
+}
+
+model system_blinds {
+  id                  String    @id @db.Uuid
+  system_id           String    @db.Uuid
+  blind_id            String
+  tag                 String
+  line_number         String
+  spec                String
+  size                String
+  material            String
+  inserted_at         DateTime?
+  removed_at          DateTime?
+  status              String    @default("Pending")
+  responsible_user_id String?   @db.Uuid
+  workpack_id         String?   @db.Uuid
+  created_at          DateTime  @default(now())
+  updated_at          DateTime
+  User                User?     @relation(fields: [responsible_user_id], references: [id])
+  System              System    @relation(fields: [system_id], references: [id], onDelete: Cascade)
+
+  @@index([system_id])
+}
+
+model system_drawings {
+  id         String    @id @db.Uuid
+  system_id  String    @db.Uuid
+  drawing_no String
+  title      String
+  revision   String
+  type       String
+  status     String    @default("For Review")
+  file_url   String?
+  date       DateTime?
+  created_at DateTime  @default(now())
+  updated_at DateTime
+  System     System    @relation(fields: [system_id], references: [id], onDelete: Cascade)
+
+  @@index([system_id])
+}
+
+model system_gaskets {
+  id              String   @id @db.Uuid
+  system_id       String   @db.Uuid
+  gasket_id       String
+  joint_ref       String
+  line_number     String
+  size            String
+  pressure_rating String
+  type            String
+  material        String
+  quantity        Int      @default(1)
+  status          String   @default("Required")
+  workpack_id     String?  @db.Uuid
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+  System          System   @relation(fields: [system_id], references: [id], onDelete: Cascade)
+
+  @@index([system_id])
+}
+
+model system_procedures {
+  id           String   @id @db.Uuid
+  system_id    String   @db.Uuid
+  procedure_no String
+  title        String
+  type         String
+  revision     String
+  status       String   @default("Draft")
+  owner        String?
+  file_url     String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime
+  System       System   @relation(fields: [system_id], references: [id], onDelete: Cascade)
+
+  @@index([system_id])
+}
+
+model template_checklist_items {
+  id                String        @id @db.Uuid
+  organization_id   String        @db.Uuid
+  template_id       String        @db.Uuid
+  checklist_type    ChecklistType
+  sequence_number   Int           @default(0)
+  description       String
+  responsible_party String?
+  is_mandatory      Boolean       @default(true)
+  created_at        DateTime      @default(now())
+  updated_at        DateTime
+}
+
+model unit_responsibilities {
+  id                         String       @id @db.Uuid
+  organization_id            String       @db.Uuid
+  unit_id                    String       @db.Uuid
+  user_id                    String       @db.Uuid
+  role                       String
+  receives_shift_reports     Boolean      @default(false)
+  receives_constraint_alerts Boolean      @default(false)
+  receives_daily_briefing    Boolean      @default(false)
+  receives_overdue_alerts    Boolean      @default(false)
+  is_active                  Boolean      @default(true)
+  valid_from                 DateTime     @default(now())
+  valid_to                   DateTime?
+  created_by                 String?      @db.Uuid
+  created_at                 DateTime     @default(now())
+  updated_at                 DateTime
+  Organization               Organization @relation(fields: [organization_id], references: [id])
+  Unit                       Unit         @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+  User                       User         @relation(fields: [user_id], references: [id])
+
+  @@unique([unit_id, user_id, role])
+  @@index([organization_id, role])
+}
+
+model unit_shift_report_recipients {
+  id                     String   @id @db.Uuid
+  unit_id                String   @db.Uuid
+  user_id                String   @db.Uuid
+  receives_shift_reports Boolean  @default(false)
+  is_active              Boolean  @default(true)
+  created_at             DateTime @default(now())
+  updated_at             DateTime
+
+  @@unique([unit_id, user_id])
+}
+
+model WbsNode {
+  id                 String       @id @db.Uuid
+  organization_id    String       @db.Uuid
+  event_id           String       @db.Uuid
+  system_id          String?      @db.Uuid
+  parent_id          String?      @db.Uuid
+  code               String
+  name               String
+  type               WbsNodeType
+  order              Int          @default(0)
+  locked             Boolean      @default(false)
+  linked_entity_id   String?      @db.Uuid
+  linked_entity_type String?
+  created_at         DateTime     @default(now())
+  updated_at         DateTime
+  event              Event        @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  organization       Organization @relation(fields: [organization_id], references: [id])
+  parent             WbsNode?     @relation("WbsNodeToWbsNode", fields: [parent_id], references: [id])
+  children           WbsNode[]    @relation("WbsNodeToWbsNode")
+  system             System?      @relation(fields: [system_id], references: [id])
+
+  @@index([organization_id, event_id])
+  @@index([parent_id])
+  @@index([system_id])
+  @@map("wbs_nodes")
+}
+
+model whatsapp_sessions {
+  id                String   @id @db.Uuid
+  organization_id   String?  @db.Uuid
+  phone_number      String   @unique
+  user_id           String?  @unique @db.Uuid
+  state             String   @default("idle")
+  pending_data      Json?
+  detected_language String?  @default("en")
+  expires_at        DateTime
+  created_at        DateTime @default(now())
+  updated_at        DateTime
+}
+
+model whatsapp_updates {
+  id                    String    @id @db.Uuid
+  organization_id       String?   @db.Uuid
+  user_id               String?   @db.Uuid
+  phone_number          String
+  meta_message_id       String?   @unique
+  message_type          String
+  raw_message_text      String?
+  detected_language     String?
+  audio_storage_path    String?
+  audio_file_size_bytes BigInt?
+  audio_duration_secs   Int?
+  audio_downloaded_at   DateTime?
+  transcript_path       String?
+  extracted_unit        String?
+  extracted_tag         String?
+  extracted_description String?
+  extracted_progress    Int?
+  confidence_breakdown  Json?
+  ai_confidence         Float?
+  db_confidence         Float?
+  final_confidence      Float?
+  matched_workpack_id   String?   @db.Uuid
+  matched_activity_id   String?   @db.Uuid
+  match_candidates      Json?
+  status                String    @default("pending")
+  review_notes          String?
+  reviewed_by           String?   @db.Uuid
+  reviewed_at           DateTime?
+  reply_sent            String?
+  reply_sent_at         DateTime?
+  reply_language        String?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime
+
+  @@index([matched_workpack_id])
+  @@index([organization_id, status])
+  @@index([phone_number, created_at])
+}
+
+model workpack_id_counters {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  unit_code       String
+  discipline_code String
+  last_number     Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+
+  @@unique([organization_id, unit_code, discipline_code])
+}
+
+model workpack_material_lines {
+  id                  String    @id @db.Uuid
+  organization_id     String    @db.Uuid
+  workpack_id         String    @db.Uuid
+  source_type         String
+  source_id           String?   @db.Uuid
+  category            String?
+  material_category   String?   @default("mechanical")
+  linked_to           String?
+  item_catalog_id     String?   @db.Uuid
+  sap_material_number String?
+  item_code           String?
+  description         String
+  specification       String?
+  unit_of_measure     String    @default("EA")
+  quantity_required   Float     @default(1)
+  quantity_issued     Float     @default(0)
+  quantity_used       Float     @default(0)
+  quantity_returned   Float     @default(0)
+  procurement_status  String    @default("not_requested")
+  is_critical         Boolean   @default(false)
+  lead_time_days      Int?
+  required_by_date    DateTime?
+  unit_cost           Float?
+  total_cost          Float?
+  notes               String?
+  sort_order          Int?
+  workpack            Workpack  @relation(fields: [workpack_id], references: [id])
+  ai_generated        Boolean   @default(false)
+  included_in_pdf     Boolean   @default(true)
+  planner_notes       String?
+  custom_name         String?
+  deleted_at          DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime
+
+  @@index([included_in_pdf])
+  @@index([material_category])
+  @@index([workpack_id])
+  @@index([workpack_id, item_catalog_id])
+  @@index([workpack_id, source_type])
+}
+
+model workpack_print_settings {
+  id                      String   @id @db.Uuid
+  organization_id         String   @unique @db.Uuid
+  updated_by              String?  @db.Uuid
+  cover_image_path        String?
+  cover_image_opacity     Float    @default(1.0)
+  cover_show              Boolean  @default(true)
+  cover_title_variable    String   @default("{workpack_number} — {title}")
+  cover_subtitle_variable String   @default("{org_name} | {site_name}")
+  cover_accent_color      String   @default("#E8701A")
+  cover_bg_color          String   @default("#0D2137")
+  header_zones            Json     @default("{}")
+  header_bg_color         String   @default("#0D2137")
+  header_text_color       String   @default("#FFFFFF")
+  header_height_mm        Float    @default(18)
+  header_show_border      Boolean  @default(false)
+  header_border_color     String   @default("#E8701A")
+  footer_zones            Json     @default("{}")
+  footer_bg_color         String   @default("#0D2137")
+  footer_text_color       String   @default("#FFFFFF")
+  footer_height_mm        Float    @default(12)
+  footer_show_border      Boolean  @default(true)
+  footer_border_color     String   @default("#E8701A")
+  page_size               String   @default("A4")
+  margin_top_mm           Float    @default(15)
+  margin_bottom_mm        Float    @default(15)
+  margin_left_mm          Float    @default(15)
+  margin_right_mm         Float    @default(15)
+  watermark_text          String?
+  watermark_draft_only    Boolean  @default(true)
+  logo_library            Json     @default("[]")
+  cover_page_settings     Json?
+  last_page_settings      Json?
+  created_at              DateTime @default(now())
+  updated_at              DateTime
+}
+
+model workpack_template_activities {
+  id                     String   @id @db.Uuid
+  organization_id        String   @db.Uuid
+  template_id            String   @db.Uuid
+  sequence_number        Int      @default(0)
+  activity_code          String?
+  activity_library_id    String?  @db.Uuid
+  description            String
+  duration_hours         Decimal? @db.Decimal(8, 2)
+  is_optional            Boolean  @default(false)
+  hold_point_type        String?
+  hold_point_description String?
+  udf_defaults           Json?
+  predecessor_sequences  Int[]    @default([])
+  created_at             DateTime @default(now())
+  updated_at             DateTime
+}
+
+model workpack_templates {
+  id              String    @id @db.Uuid
+  organization_id String?   @db.Uuid
+  name            String
+  equipment_type  String
+  job_type        String
+  description     String?
+  is_system       Boolean   @default(false)
+  is_active       Boolean   @default(true)
+  created_by      String    @db.Uuid
+  created_at      DateTime  @default(now())
+  updated_at      DateTime
+  deleted_at      DateTime?
+
+  @@unique([organization_id, equipment_type, job_type])
+}
+
+model workpack_tools {
+  id              String       @id
+  workpack_id     String       @db.Uuid
+  organization_id String       @db.Uuid
+  category        ToolCategory
+  name            String
+  description     String?
+  quantity        Int?         @default(1)
+  unit            String       @default("EA")
+  tool_type       String       @default("Standard")
+  source          String       @default("manual")
+  cert_required   Boolean      @default(false)
+  notes           String?
+  status          String       @default("Required")
+  ai_generated    Boolean      @default(false)
+  created_at      DateTime     @default(now())
+  updated_at      DateTime
+
+  @@index([workpack_id])
+}
+
+enum ActivityStatus {
+  not_started
+  in_progress
+  completed
+  on_hold
+  cancelled
+}
+
+enum WorkpackStatus {
+  pending_ai_review
+  draft
+  under_review
+  approved
+  issued
+  closed
+  cancelled
+}
+
+enum AiJobStatus {
+  pending
+  processing
+  completed
+  failed
+  cancelled
+}
+
+enum BlindStatus {
+  pending
+  inserted
+  pressure_tested
+  removed
+  cancelled
+}
+
+enum BlindTestType {
+  pressure
+  leak
+  functional
+  not_required
+}
+
+enum BlindType {
+  spectacle
+  paddle
+  figure_8
+  blind_flange
+  blanking_disc
+}
+
+enum ChecklistType {
+  dropping
+  boxup
+}
+
+enum CleaningMethod {
+  chemical_flush
+  hp_water
+  steam
+  mechanical_pigging
+  solvent
+}
+
+enum ConstraintStatus {
+  open
+  in_progress
+  resolved
+  deferred
+  cancelled
+}
+
+enum ConstraintType {
+  material
+  permit
+  scaffold
+  access
+  vendor
+  document
+  manpower
+  equipment
+  weather
+  inspection
+  other
+}
+
+enum DocumentReviewStatus {
+  pending_review
+  in_review
+  approved
+  rejected
+}
+
+enum FormStatus {
+  draft
+  submitted
+  approved
+  rejected
+}
+
+enum JointStatus {
+  pending
+  assembled
+  inspected
+  signed_off
+  dismantled
+}
+
+enum LessonsLearntCategory {
+  planning
+  execution
+  materials
+  hse
+  quality
+  vendor
+  design
+}
+
+enum MaterialStatus {
+  pending
+  reserved
+  issued
+  returned
+  cancelled
+}
+
+enum Priority {
+  critical
+  high
+  medium
+  low
+}
+
+enum PunchCategory {
+  A
+  B
+  C
+}
+
+enum PunchStatus {
+  open
+  in_progress
+  closed
+  accepted_with_comments
+}
+
+enum RelationshipType {
+  FS
+  SS
+  FF
+  SF
+}
+
+enum ResourceType2 {
+  labor
+  material
+  machine
+}
+
+enum SuggestedItemStatus {
+  pending_review
+  added_to_catalog
+  linked
+  dismissed
+}
+
+enum TighteningMethod {
+  torque
+  tensioning
+  manual
+}
+
+enum ToolCategory {
+  Rigging
+  Lifting
+  Mechanical
+  Electrical
+  Hydraulic
+  Measurement
+  Safety
+  Cleaning
+  Welding
+  Scaffolding
+  General
+}
+
+enum WbsNodeType {
+  EVENT
+  UNIT
+  SYSTEM
+  HO_WBS
+  TO_WBS
+  EQUIPMENT
+  WORKPACK
+  CUSTOM
+}
+
+enum WorkflowAction {
+  submit
+  approve
+  reject
+  issue
+  close
+  cancel
+  reopen
+}
+
+model FeatureFlag {
+  key         String   @id
+  isEnabled   Boolean  @default(true)
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  TenantFeature TenantFeature[]
+
+  @@map("feature_flags_registry")
+}
+
+model TenantFeature {
+  feature_key     String
+  organization_id String   @db.Uuid
+  isEnabled       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  FeatureFlag  FeatureFlag  @relation(fields: [feature_key], references: [key], onDelete: Cascade)
+  Organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@id([feature_key, organization_id])
+  @@map("tenant_feature_overrides")
+}
+
+model SystemAuditLog {
+  id               String   @id @default(uuid()) @db.Uuid
+  user_id          String   @db.Uuid
+  target_tenant_id String?  @db.Uuid
+  action           String
+  metadata         Json?    @default("{}")
+  created_at       DateTime @default(now())
+
+  User User @relation(fields: [user_id], references: [id])
+
+  @@map("system_audit_logs")
+}
+
+/// Tenant outbound webhook endpoint (Settings → System → API Access).
+model WebhookConfig {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @unique @db.Uuid
+  url             String       @default("")
+  secret          String?
+  is_active       Boolean      @default(true)
+  events          String[]     @default([])
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  logs            WebhookLog[]
+
+  @@map("webhook_configs")
+}
+
+model WebhookLog {
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  webhook_id      String?       @db.Uuid
+  event           String
+  status_code     Int?
+  response        String?
+  created_at      DateTime      @default(now())
+  organization    Organization  @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  webhook         WebhookConfig? @relation(fields: [webhook_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id, created_at])
+  @@map("webhook_logs")
+}
+
+/// Tenant API keys (hashed). Raw key is returned once at creation.
+model ApiKey {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  name            String
+  key_hash        String
+  last_used_at    DateTime?
+  expires_at      DateTime?
+  created_by      String?      @db.Uuid
+  created_at      DateTime     @default(now())
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  createdByUser   User?        @relation(fields: [created_by], references: [id])
+
+  @@index([organization_id])
+  @@index([key_hash])
+  @@map("api_keys")
+}

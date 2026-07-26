@@ -1,0 +1,76 @@
+UPSERT ERROR for MECH in Org a159b20a-290a-4e87-8384-353555ebee7d: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\ssr\[root-of-the-server]__aa387466._.js:103:161
+
+  100 }
+  101 for (const d of DEFAULT_DISCIPLINES){
+  102     try {
+→ 103         await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert(
+Foreign key constraint violated on the constraint: `Discipline_organization_id_fkey`
+META: {"modelName":"Discipline","driverAdapterError":{"name":"DriverAdapterError","cause":{"originalCode":"23503","originalMessage":"insert or update on table \"Discipline\" violates foreign key constraint \"Discipline_organization_id_fkey\"","kind":"ForeignKeyConstraintViolation","constraint":{"index":"Discipline_organization_id_fkey"}}}}
+GLOBAL ERROR for Org a159b20a-290a-4e87-8384-353555ebee7d: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\ssr\[root-of-the-server]__aa387466._.js:103:161
+
+  100 }
+  101 for (const d of DEFAULT_DISCIPLINES){
+  102     try {
+→ 103         await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert(
+Foreign key constraint violated on the constraint: `Discipline_organization_id_fkey`
+UPSERT ERROR for MECH in Org a159b20a-290a-4e87-8384-353555ebee7d: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\ssr\[root-of-the-server]__aa387466._.js:103:161
+
+  100 }
+  101 for (const d of DEFAULT_DISCIPLINES){
+  102     try {
+→ 103         await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert(
+Foreign key constraint violated on the constraint: `Discipline_organization_id_fkey`
+META: {"modelName":"Discipline","driverAdapterError":{"name":"DriverAdapterError","cause":{"originalCode":"23503","originalMessage":"insert or update on table \"Discipline\" violates foreign key constraint \"Discipline_organization_id_fkey\"","kind":"ForeignKeyConstraintViolation","constraint":{"index":"Discipline_organization_id_fkey"}}}}
+GLOBAL ERROR for Org a159b20a-290a-4e87-8384-353555ebee7d: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\ssr\[root-of-the-server]__aa387466._.js:103:161
+
+  100 }
+  101 for (const d of DEFAULT_DISCIPLINES){
+  102     try {
+→ 103         await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert(
+Foreign key constraint violated on the constraint: `Discipline_organization_id_fkey`
+UPSERT ERROR for MECH in Org a159b20a-290a-4e87-8384-353555ebee7d: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\ssr\[root-of-the-server]__aa387466._.js:103:161
+
+  100 }
+  101 for (const d of DEFAULT_DISCIPLINES){
+  102     try {
+→ 103         await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert(
+Foreign key constraint violated on the constraint: `Discipline_organization_id_fkey`
+META: {"modelName":"Discipline","driverAdapterError":{"name":"DriverAdapterError","cause":{"originalCode":"23503","originalMessage":"insert or update on table \"Discipline\" violates foreign key constraint \"Discipline_organization_id_fkey\"","kind":"ForeignKeyConstraintViolation","constraint":{"index":"Discipline_organization_id_fkey"}}}}
+GLOBAL ERROR for Org a159b20a-290a-4e87-8384-353555ebee7d: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\ssr\[root-of-the-server]__aa387466._.js:103:161
+
+  100 }
+  101 for (const d of DEFAULT_DISCIPLINES){
+  102     try {
+→ 103         await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert(
+Foreign key constraint violated on the constraint: `Discipline_organization_id_fkey`
+UPSERT ERROR for MECH in Org a159b20a-290a-4e87-8384-353555ebee7d: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\ssr\[root-of-the-server]__aa387466._.js:103:161
+
+  100 }
+  101 for (const d of DEFAULT_DISCIPLINES){
+  102     try {
+→ 103         await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert(
+Foreign key constraint violated on the constraint: `Discipline_organization_id_fkey`
+META: {"modelName":"Discipline","driverAdapterError":{"name":"DriverAdapterError","cause":{"originalCode":"23503","originalMessage":"insert or update on table \"Discipline\" violates foreign key constraint \"Discipline_organization_id_fkey\"","kind":"ForeignKeyConstraintViolation","constraint":{"index":"Discipline_organization_id_fkey"}}}}
+GLOBAL ERROR for Org a159b20a-290a-4e87-8384-353555ebee7d: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert()` invocation in
+C:\Users\purne\.gemini\antigravity\scratch\STO\aurianoa-sto-v2\.next\dev\server\chunks\ssr\[root-of-the-server]__aa387466._.js:103:161
+
+  100 }
+  101 for (const d of DEFAULT_DISCIPLINES){
+  102     try {
+→ 103         await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].discipline.upsert(
+Foreign key constraint violated on the constraint: `Discipline_organization_id_fkey`

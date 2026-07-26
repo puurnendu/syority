@@ -1,0 +1,18 @@
+2026-02-27 00:05:34.039 IST [47320] LOG:  starting PostgreSQL 16.2, compiled by Visual C++ build 1937, 64-bit
+2026-02-27 00:05:34.056 IST [47320] LOG:  could not bind IPv6 address "::1": Permission denied
+2026-02-27 00:05:34.056 IST [47320] LOG:  could not bind IPv4 address "127.0.0.1": Permission denied
+2026-02-27 00:05:34.056 IST [47320] WARNING:  could not create listen socket for "localhost"
+2026-02-27 00:05:34.057 IST [47320] FATAL:  could not create any TCP/IP sockets
+2026-02-27 00:05:34.061 IST [47320] LOG:  database system is shut down
+2026-02-27 00:08:13.565 IST [37644] LOG:  starting PostgreSQL 16.2, compiled by Visual C++ build 1937, 64-bit
+2026-02-27 00:08:13.573 IST [37644] LOG:  listening on IPv6 address "::1", port 5435
+2026-02-27 00:08:13.574 IST [37644] LOG:  listening on IPv4 address "127.0.0.1", port 5435
+2026-02-27 00:08:13.664 IST [40376] LOG:  database system was shut down at 2026-02-26 23:58:49 IST
+2026-02-27 00:08:13.691 IST [37644] LOG:  database system is ready to accept connections
+2026-02-27 00:13:13.653 IST [40132] LOG:  checkpoint starting: time
+2026-02-27 00:13:47.245 IST [40132] LOG:  checkpoint complete: wrote 308 buffers (1.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=33.385 s, sync=0.183 s, total=33.593 s; sync files=293, longest=0.011 s, average=0.001 s; distance=2707 kB, estimate=2707 kB; lsn=0/181D6A0, redo lsn=0/181D668
+2026-02-27 02:45:53.723 IST [37644] LOG:  background worker "logical replication launcher" (PID 42104) was terminated by exception 0xC000013A
+2026-02-27 02:45:53.723 IST [37644] HINT:  See C include file "ntstatus.h" for a description of the hexadecimal value.
+2026-02-27 02:45:53.724 IST [37644] LOG:  terminating any other active server processes
+2026-02-27 02:45:53.890 IST [37644] LOG:  received fast shutdown request
+^C

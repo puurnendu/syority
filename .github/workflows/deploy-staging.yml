@@ -1,0 +1,168 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  deploy:
+    name: Deploy with Rollback (Staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Code Verification (Non-blocking for Staging)
+        continue-on-error: true
+        run: |
+          echo "⚠️ Running lint and type-checks (Non-blocking)..."
+          npm run lint || echo "❌ Lint errors ignored for staging"
+          npx tsc --noEmit || echo "❌ Type errors ignored for staging"
+
+      - name: Production Build Verification
+        run: |
+          npx prisma generate
+          npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'temporary-secret-for-build' }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || '12345678901234567890123456789012' }}
+
+      - name: Multi-Stage Deployment & Rollback
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: 22
+          timeout: 20m
+          script_stop: true
+          script: |
+            set -e
+            echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🚀 Deployment Process Started..."
+            
+            REPO_PATH="/var/www/syority"
+            REPO_URL="https://github.com/purnendu-syority/syority.git"
+            
+            # --- 0. Initialize Directory if needed ---
+            if [ ! -d "$REPO_PATH" ]; then
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 📂 Creating deployment directory: $REPO_PATH"
+              sudo mkdir -p "$REPO_PATH"
+              sudo chown -R $USER:$USER "$REPO_PATH"
+            fi
+            
+            cd "$REPO_PATH"
+
+            # --- 1. Version Backup & Repo Check ---
+            if [ ! -d ".git" ]; then
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🔄 First time setup: Cloning repository..."
+              git clone -b dev "$REPO_URL" .
+              PREVIOUS_COMMIT="INITIAL"
+            else
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 💾 Backing up current version reference..."
+              PREVIOUS_COMMIT=$(git rev-parse HEAD || echo "INITIAL")
+              echo "$PREVIOUS_COMMIT" > previous_version.txt
+              
+              # --- 2. Update Codebase ---
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🔄 Pulling latest changes (dev)..."
+              git fetch origin dev
+              git reset --hard origin/dev
+            fi
+            
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 📍 New Version: $CURRENT_COMMIT"
+
+            # --- 3. Functional Definitions ---
+            echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🏗️ Building and updating containers..."
+            deploy_stack() {
+              docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --build --remove-orphans
+            }
+
+            run_health_check() {
+              local HEALTH_URL="http://localhost:3000/api/health"
+              local MAX_RETRIES=10
+              for i in $(seq 1 $MAX_RETRIES); do
+                echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🩺 Health attempt $i/$MAX_RETRIES..."
+                if curl -s -f "$HEALTH_URL" > /dev/null; then
+                  return 0
+                fi
+                sleep 5
+              done
+              return 1
+            }
+
+            # --- 4. Main Deployment ---
+            if ! deploy_stack; then
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] ❌ Deployment failed during build/startup."
+              exit 1
+            fi
+
+            echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🔄 Running database migrations..."
+            docker compose exec -T app npx prisma migrate deploy || echo "⚠️ Migration step skipped or failed."
+
+            # --- 5. Health Check & Rollback Logic ---
+            if run_health_check; then
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] ✅ Health check PASSED!"
+              echo "$CURRENT_COMMIT" > current_version.txt
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🏁 Deployment successful. New Version: $CURRENT_COMMIT"
+              docker image prune -f
+              exit 0
+            else
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🚨 Health check FAILED. Initiating rollback..."
+              
+              if [ ! -f previous_version.txt ]; then
+                echo "[$(date +'%Y-%m-%dT%H:%M:%S')] ⚠️ WARNING: previous_version.txt missing. Cannot rollback!"
+                exit 1
+              fi
+
+              # Execute Rollback
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🔄 Rolling back to: $PREVIOUS_COMMIT..."
+              git reset --hard "$PREVIOUS_COMMIT"
+              
+              if ! deploy_stack; then
+                echo "[$(date +'%Y-%m-%dT%H:%M:%S')] ❌ CRITICAL FAILURE: Rollback build failed!"
+                echo "📍 Current Commit: $CURRENT_COMMIT"
+                echo "📍 Previous Commit: $PREVIOUS_COMMIT"
+                exit 1
+              fi
+
+              # Health check AFTER rollback
+              echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🧪 Verifying system health after rollback..."
+              if run_health_check; then
+                echo "[$(date +'%Y-%m-%dT%H:%M:%S')] ✅ Rollback successful. System restored to: $PREVIOUS_COMMIT."
+                echo "❌ Deployment failed (New Version was unstable), system rolled back."
+                exit 1
+              else
+                echo "[$(date +'%Y-%m-%dT%H:%M:%S')] 🔥 CRITICAL FAILURE: Rollback also failed. System may be unstable!"
+                echo "📍 Failed Version: $CURRENT_COMMIT"
+                echo "📍 Attempted Rollback Version: $PREVIOUS_COMMIT"
+                exit 1
+              fi
+            fi
+
+      - name: Notify Slack on Failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "[$(date +'%Y-%m-%dT%H:%M:%S')] ⚠️ No Slack webhook configured, skipping notification."
+            exit 0
+          fi
+          
+          curl -X POST -H 'Content-type: application/json' --data "{
+            \"text\": \"[SYORITY DEPLOYMENT ALERT]\n\n*Environment:* Staging\n*Status:* FAILED / ROLLBACK FAILED\n*Commit:* ${{ github.sha }}\n*Time:* $(date +'%Y-%m-%d %H:%M:%S')\n\n*Check logs:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+          }" "$SLACK_WEBHOOK_URL"

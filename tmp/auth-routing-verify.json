@@ -1,0 +1,128 @@
+{
+  "pass": 7,
+  "fail": 0,
+  "results": [
+    {
+      "case": "anonymous /",
+      "finalStatus": 200,
+      "hops": [
+        {
+          "url": "/",
+          "status": 307,
+          "location": "/login"
+        },
+        {
+          "url": "/login",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "case": "anonymous change-password",
+      "finalStatus": 200,
+      "hops": [
+        {
+          "url": "/auth/change-password",
+          "status": 307,
+          "location": "/login?callbackUrl=%2Fauth%2Fchange-password"
+        },
+        {
+          "url": "/login?callbackUrl=%2Fauth%2Fchange-password",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "case": "tenant",
+      "must": false,
+      "sessionUser": "audit-admin@syority.test",
+      "rRoot": {
+        "finalStatus": 200,
+        "hops": [
+          {
+            "url": "/",
+            "status": 307,
+            "location": "/dashboard"
+          },
+          {
+            "url": "/dashboard",
+            "status": 200,
+            "location": null
+          }
+        ]
+      },
+      "rDash": {
+        "finalStatus": 200,
+        "hops": [
+          {
+            "url": "/dashboard",
+            "status": 200,
+            "location": null
+          }
+        ]
+      },
+      "rCp": {
+        "finalStatus": 200,
+        "hops": [
+          {
+            "url": "/auth/change-password",
+            "status": 307,
+            "location": "/dashboard"
+          },
+          {
+            "url": "/dashboard",
+            "status": 200,
+            "location": null
+          }
+        ]
+      }
+    },
+    {
+      "case": "platform",
+      "must": true,
+      "sessionUser": "info@syority.com",
+      "rRoot": {
+        "finalStatus": 200,
+        "hops": [
+          {
+            "url": "/",
+            "status": 307,
+            "location": "/auth/change-password"
+          },
+          {
+            "url": "/auth/change-password",
+            "status": 200,
+            "location": null
+          }
+        ]
+      },
+      "rDash": {
+        "finalStatus": 200,
+        "hops": [
+          {
+            "url": "/dashboard",
+            "status": 307,
+            "location": "/auth/change-password"
+          },
+          {
+            "url": "/auth/change-password",
+            "status": 200,
+            "location": null
+          }
+        ]
+      },
+      "rCp": {
+        "finalStatus": 200,
+        "hops": [
+          {
+            "url": "/auth/change-password",
+            "status": 200,
+            "location": null
+          }
+        ]
+      }
+    }
+  ]
+}

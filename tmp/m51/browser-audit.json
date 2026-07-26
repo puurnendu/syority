@@ -1,0 +1,159 @@
+{
+  "afterLogin": "http://127.0.0.1:3000/platform/tenants",
+  "results": [
+    {
+      "path": "/platform/dashboard",
+      "finalUrl": "/platform/dashboard",
+      "screenshot": "tmp\\m51\\screenshots\\platform_dashboard.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Dashboard 📊 Coming Soon Platform Dashboa"
+    },
+    {
+      "path": "/platform/tenants",
+      "finalUrl": "/platform/tenants",
+      "screenshot": "tmp\\m51\\screenshots\\platform_tenants.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Tenants Tenant Management 2 organisations"
+    },
+    {
+      "path": "/platform/users",
+      "finalUrl": "/platform/users",
+      "screenshot": "tmp\\m51\\screenshots\\platform_users.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Users All Users Users across all organisa"
+    },
+    {
+      "path": "/platform/features",
+      "finalUrl": "/platform/features",
+      "screenshot": "tmp\\m51\\screenshots\\platform_features.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Feature Flags Platform Feature Flags Cont"
+    },
+    {
+      "path": "/platform/billing",
+      "finalUrl": "/platform/billing",
+      "screenshot": "tmp\\m51\\screenshots\\platform_billing.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Billing Platform Billing Intelligence Glo"
+    },
+    {
+      "path": "/platform/ai-config",
+      "finalUrl": "/platform/ai-config",
+      "screenshot": "tmp\\m51\\screenshots\\platform_ai-config.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform AI Configuration AI Configuration Manage "
+    },
+    {
+      "path": "/platform/system",
+      "finalUrl": "/platform/system",
+      "screenshot": "tmp\\m51\\screenshots\\platform_system.png",
+      "comingSoon": false,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform System Health System Health Platform-wide"
+    },
+    {
+      "path": "/platform/storage",
+      "finalUrl": "/platform/storage",
+      "screenshot": "tmp\\m51\\screenshots\\platform_storage.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Storage 🗄️ Coming Soon Platform Storage "
+    },
+    {
+      "path": "/platform/backups",
+      "finalUrl": "/platform/backups",
+      "screenshot": "tmp\\m51\\screenshots\\platform_backups.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Backups 💾 Coming Soon Platform Backups B"
+    },
+    {
+      "path": "/platform/logs",
+      "finalUrl": "/platform/logs",
+      "screenshot": "tmp\\m51\\screenshots\\platform_logs.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Logs 📜 Coming Soon Platform Logs Central"
+    },
+    {
+      "path": "/platform/monitoring",
+      "finalUrl": "/platform/monitoring",
+      "screenshot": "tmp\\m51\\screenshots\\platform_monitoring.png",
+      "comingSoon": true,
+      "hasOverlay": false,
+      "consoleErrors": [
+        "Manifest: Line: 1, column: 1, Syntax error."
+      ],
+      "pageErrors": [],
+      "failedApis": [],
+      "pass": true,
+      "snippet": "SYORITY PLATFORM 🔷 Platform Dashboard Master Data Tenants Platform P Platform Monitoring 📡 Coming Soon Platform Monito"
+    }
+  ]
+}
