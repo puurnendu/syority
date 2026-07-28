@@ -23,10 +23,12 @@ export default async function PlatformLayout({ children }: { children: React.Rea
         .filter((i) => ['/platform/tenants', '/platform/onboarding'].includes(i.href) && can(i.permission))
         .map((i) => ({ href: i.href, label: i.label }));
 
+    // Dashboard is rendered as a top-level nav link; keep it out of the Platform dropdown.
     const platformItems = (tenantsGroup?.items || [])
         .filter(
             (i) =>
-                !['/platform/tenants', '/platform/onboarding'].includes(i.href) && can(i.permission)
+                !['/platform/dashboard', '/platform/tenants', '/platform/onboarding'].includes(i.href) &&
+                can(i.permission)
         )
         .map((i) => ({ href: i.href, label: i.label }));
 
@@ -61,8 +63,8 @@ export default async function PlatformLayout({ children }: { children: React.Rea
                         currentRole="platform_admin"
                         user={{ name: dbUser?.name, email: dbUser?.email }}
                         orgName="SYORITY PLATFORM"
-                        homeLinkHref="/platform/tenants"
-                        homeLinkLabel="Platform Home"
+                        homeLinkHref="/platform/dashboard"
+                        homeLinkLabel="Dashboard"
                     />
                 </div>
             </header>

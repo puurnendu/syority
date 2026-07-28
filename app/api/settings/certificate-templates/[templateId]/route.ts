@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export async function PATCH(
     req: Request,
@@ -42,6 +43,13 @@ export async function PATCH(
     const updated = await prisma.certificateTemplate.update({
         where: { id: templateId },
         data: data,
+    });
+    enqueueKnowledgeCapture({
+        organizationId: orgId,
+        category: 'CERTIFICATE_TEMPLATE',
+        assetType: 'certificate_templates',
+        title: updated.cert_name,
+        payload: updated as unknown as Record<string, unknown>,
     });
     return NextResponse.json(updated);
 }

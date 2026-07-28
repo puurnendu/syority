@@ -68,11 +68,24 @@ export function resolveAuthorization(input: {
         ['tenant_administrator', 'super_admin', 'org_admin'].includes(r)
     );
 
+    const platformPriority = [
+        'platform_super_admin',
+        'platform_product_manager',
+        'platform_master_scheduler',
+        'platform_support',
+        'platform_finance',
+        'platform_admin',
+    ];
     let primaryRole = roles[0] || 'viewer';
-    if (roles.includes('platform_super_admin')) primaryRole = 'platform_super_admin';
-    else if (roles.includes('platform_admin')) primaryRole = 'platform_admin';
-    else if (roles.includes('tenant_administrator')) primaryRole = 'tenant_administrator';
-    else if (roles.includes('super_admin')) primaryRole = 'tenant_administrator';
+    for (const p of platformPriority) {
+        if (roles.includes(p)) {
+            primaryRole = p;
+            break;
+        }
+    }
+    if (!isPlatform && roles.includes('tenant_administrator')) primaryRole = 'tenant_administrator';
+    else if (!isPlatform && roles.includes('super_admin')) primaryRole = 'tenant_administrator';
+    else if (!isPlatform && roles.includes('lead_planner')) primaryRole = 'lead_planner';
 
     return {
         identity: {
@@ -107,18 +120,35 @@ export function authHasPermission(auth: AuthAuthorization, permission: Permissio
 export function displayRoleName(slug: string): string {
     const n = resolveRoleSlug(normalizeRole(slug));
     const labels: Record<string, string> = {
-        platform_super_admin: 'Platform Administrator',
-        platform_admin: 'Platform Operations',
+        platform_super_admin: 'Platform Super Admin',
+        platform_product_manager: 'Platform Product Manager',
+        platform_master_scheduler: 'Platform Master Scheduler',
+        platform_support: 'Platform Support',
+        platform_finance: 'Platform Finance',
+        platform_admin: 'Platform Admin (legacy)',
         tenant_administrator: 'Tenant Administrator',
+        lead_planner: 'Lead Planner',
+        planner: 'Planner',
+        scheduler: 'Scheduler',
+        project_manager: 'Project Manager',
+        safety_officer: 'Safety Officer',
+        qa_qc_inspector: 'QA/QC Inspector',
+        material_coordinator: 'Material Coordinator',
+        mechanical_engineer: 'Mechanical Engineer',
+        electrical_engineer: 'Electrical Engineer',
+        instrumentation_engineer: 'Instrumentation Engineer',
+        civil_engineer: 'Civil Engineer',
+        execution_engineer: 'Execution Engineer',
+        warehouse: 'Warehouse',
+        document_controller: 'Document Controller',
+        viewer: 'Viewer',
         super_admin: 'Tenant Administrator',
         org_admin: 'Organization Administrator',
         tenant_admin: 'Tenant Admin (ops)',
-        planner: 'Planner',
         workpack_manager: 'Execution Manager',
         engineer: 'Engineer',
         reviewer: 'Reviewer',
         contractor: 'Contractor Coordinator',
-        viewer: 'Viewer',
     };
     return labels[n] || n.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }

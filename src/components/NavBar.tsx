@@ -354,13 +354,21 @@ export default function NavBar({
 
   const handleExitProxy = useCallback(async () => {
     await fetch('/api/proxy/exit', { method: 'POST' });
-    router.push('/platform/tenants');
+    router.push('/platform/dashboard');
     router.refresh();
   }, [router]);
 
   const finalPlanningItems = rewriteItems(planningItems);
   const finalExecutionItems = rewriteItems(executionItems);
   const finalIntelligenceItems = rewriteItems(intelligenceItems);
+
+  // Platform console home — never use tenant /dashboard (middleware bounces that to tenants).
+  const isPlatformConsole = showPlatform && !isProxy;
+  const dashboardHref = isPlatformConsole ? '/platform/dashboard' : '/dashboard';
+  // Dashboard is a top-level link; keep it out of the Platform dropdown to avoid duplicates.
+  const platformMenuItems = isPlatformConsole
+    ? platformItems.filter((i) => i.href !== '/platform/dashboard')
+    : platformItems;
 
   // Groups used for mobile drawer
   const mobileGroups = [
@@ -373,11 +381,11 @@ export default function NavBar({
     ...(showAdmin && adminItems.length > 0 ? [{ label: 'Org Settings', items: adminItems }] : []),
     ...(showPlatformData && platformDataItems.length > 0 ? [{ label: 'Master Data', items: platformDataItems }] : []),
     ...(showPlatform && tenantsItems.length > 0 ? [{ label: 'Tenants', items: tenantsItems }] : []),
-    ...(showPlatform && platformItems.length > 0 ? [{ label: 'Platform', items: platformItems }] : []),
+    ...(showPlatform && platformMenuItems.length > 0 ? [{ label: 'Platform', items: platformMenuItems }] : []),
   ];
 
   // Resolve mobile drawer home link
-  const resolvedHomeLinkHref = homeLinkHref ?? '/dashboard';
+  const resolvedHomeLinkHref = homeLinkHref ?? dashboardHref;
   const resolvedHomeLinkLabel = homeLinkLabel ?? 'Dashboard';
 
   return (
@@ -398,7 +406,7 @@ export default function NavBar({
 
           {/* Logo — href is role-aware */}
           <Link
-            href={showPlatform ? '/platform/tenants' : '/dashboard'}
+            href={dashboardHref}
             className="flex items-center gap-2 flex-shrink-0 mr-2"
           >
             {branding.logoUrl ? (
@@ -433,7 +441,7 @@ export default function NavBar({
 
           {/* Desktop nav — hidden below lg */}
           <nav className="hidden lg:flex items-center gap-0.5 flex-1 min-w-0">
-            <NavLink href="/dashboard" label="Dashboard" />
+            <NavLink href={dashboardHref} label="Dashboard" />
             <NavDropdown
               label="Planning"
               isActive={['/events', '/workpacks', '/schedule', '/asset-register'].some((p) =>
@@ -481,15 +489,24 @@ export default function NavBar({
             {showPlatform && tenantsItems.length > 0 && (
               <NavDropdown
                 label="Tenants"
-                isActive={pathname.startsWith('/platform/tenants')}
+                isActive={
+                  pathname.startsWith('/platform/tenants') ||
+                  pathname.startsWith('/platform/onboarding')
+                }
                 items={tenantsItems}
               />
             )}
-            {showPlatform && platformItems.length > 0 && (
+            {showPlatform && platformMenuItems.length > 0 && (
               <NavDropdown
                 label="Platform"
-                isActive={pathname.startsWith('/platform') && !pathname.startsWith('/platform-data')}
-                items={platformItems}
+                isActive={
+                  pathname.startsWith('/platform') &&
+                  !pathname.startsWith('/platform-data') &&
+                  !pathname.startsWith('/platform/tenants') &&
+                  !pathname.startsWith('/platform/onboarding') &&
+                  pathname !== '/platform/dashboard'
+                }
+                items={platformMenuItems}
               />
             )}
           </nav>

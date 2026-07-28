@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export async function GET(
     _req: NextRequest,
@@ -56,6 +57,14 @@ export async function PUT(
                 ...(sort_order != null && { sort_order: Number(sort_order) }),
             },
             include: { options: { where: { deleted_at: null }, orderBy: { value: 'asc' } } },
+        });
+
+        enqueueKnowledgeCapture({
+            organizationId: orgId,
+            category: 'UDF_DEFINITION',
+            assetType: 'ActivityUdfDefinition',
+            title: definition.name,
+            payload: definition as unknown as Record<string, unknown>,
         });
 
         return NextResponse.json(JSON.parse(JSON.stringify(definition)));

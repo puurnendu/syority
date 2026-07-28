@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export async function GET() {
     const { session, error } = await guardApi('settings.templates.view');
@@ -49,6 +50,13 @@ export async function POST(req: Request) {
                 version: 1,
                 updated_at: new Date(),
             },
+        });
+        enqueueKnowledgeCapture({
+            organizationId: orgId,
+            category: 'CERTIFICATE_TEMPLATE',
+            assetType: 'certificate_templates',
+            title: template.cert_name,
+            payload: template as unknown as Record<string, unknown>,
         });
         return NextResponse.json(template, { status: 201 });
     } catch (error) {

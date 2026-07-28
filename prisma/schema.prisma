@@ -651,6 +651,7 @@ model Discipline {
   Workpack          Workpack[]
   activities        Activity[]
   activityLibraries ActivityLibrary[]
+  events            Event[]
 
   @@unique([organization_id, code])
 }
@@ -1325,6 +1326,7 @@ model ScheduleCalendar {
   exceptions      Json     @default("[]")
   is_default      Boolean  @default(false)
   created_at      DateTime @default(now())
+  events          Event[]
 }
 
 model ScheduleExportJob {
@@ -1874,38 +1876,71 @@ model EventUnit {
 }
 
 model Event {
-  id              String           @id @db.Uuid
-  organization_id String           @db.Uuid
-  site_id         String           @db.Uuid
-  name            String
-  code            String
-  event_type      String           @default("turnaround")
-  planned_start   DateTime?        @db.Date
-  planned_end     DateTime?        @db.Date
-  actual_start    DateTime?        @db.Date
-  actual_end      DateTime?        @db.Date
-  status          String           @default("planning")
-  scope_notes     String?
-  budget_manhours Int?
-  budget_cost     Decimal?         @db.Decimal(15, 2)
-  created_by      String?          @db.Uuid
-  created_at      DateTime         @default(now())
-  updated_at      DateTime
-  deleted_at      DateTime?
-  SafetyIncident  SafetyIncident[]
-  SafetyLog       SafetyLog[]
-  SafetyPhoto     SafetyPhoto[]
-  Workpack        Workpack[]
-  eventSystems    EventSystem[]
-  eventUnits      EventUnit[]
-  user            User?            @relation(fields: [created_by], references: [id])
-  organization    Organization     @relation(fields: [organization_id], references: [id])
-  site            Site             @relation(fields: [site_id], references: [id])
-  wbsNodes        WbsNode[]
+  id               String           @id @db.Uuid
+  organization_id  String           @db.Uuid
+  site_id          String           @db.Uuid
+  /// Parent event for multi-shutdown campaigns (child = linked shutdown window)
+  parent_event_id  String?          @db.Uuid
+  name             String
+  code             String
+  event_type       String           @default("turnaround")
+  planned_start    DateTime?        @db.Date
+  planned_end      DateTime?        @db.Date
+  actual_start     DateTime?        @db.Date
+  actual_end       DateTime?        @db.Date
+  status           String           @default("planning")
+  scope_notes      String?
+  description      String?
+  budget_manhours  Int?
+  budget_cost      Decimal?         @db.Decimal(15, 2)
+  calendar_id      String?          @db.Uuid
+  discipline_id    String?          @db.Uuid
+  created_by       String?          @db.Uuid
+  created_at       DateTime         @default(now())
+  updated_at       DateTime
+  deleted_at       DateTime?
+  SafetyIncident   SafetyIncident[]
+  SafetyLog        SafetyLog[]
+  SafetyPhoto      SafetyPhoto[]
+  Workpack         Workpack[]
+  eventSystems     EventSystem[]
+  eventUnits       EventUnit[]
+  milestones       EventMilestone[]
+  parentEvent      Event?           @relation("EventShutdownTree", fields: [parent_event_id], references: [id])
+  childEvents      Event[]          @relation("EventShutdownTree")
+  user             User?            @relation(fields: [created_by], references: [id])
+  organization     Organization     @relation(fields: [organization_id], references: [id])
+  site             Site             @relation(fields: [site_id], references: [id])
+  calendar         ScheduleCalendar? @relation(fields: [calendar_id], references: [id])
+  discipline       Discipline?      @relation(fields: [discipline_id], references: [id])
+  wbsNodes         WbsNode[]
 
   @@index([organization_id, status])
   @@index([site_id])
+  @@index([parent_event_id])
   @@map("events")
+}
+
+/// Planning milestones for a shutdown event (not execution progress).
+model EventMilestone {
+  id              String    @id @default(uuid()) @db.Uuid
+  organization_id String    @db.Uuid
+  event_id        String    @db.Uuid
+  name            String
+  code            String?
+  milestone_type  String    @default("planning")
+  planned_date    DateTime? @db.Date
+  actual_date     DateTime? @db.Date
+  status          String    @default("pending")
+  sort_order      Int       @default(0)
+  notes           String?
+  created_by      String?   @db.Uuid
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  event           Event     @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@index([event_id, sort_order])
+  @@map("event_milestones")
 }
 
 model export_history {
@@ -2678,21 +2713,74 @@ model workpack_template_activities {
   updated_at             DateTime
 }
 
-model workpack_templates {
-  id              String    @id @db.Uuid
-  organization_id String?   @db.Uuid
-  name            String
-  equipment_type  String
-  job_type        String
-  description     String?
-  is_system       Boolean   @default(false)
-  is_active       Boolean   @default(true)
-  created_by      String    @db.Uuid
-  created_at      DateTime  @default(now())
-  updated_at      DateTime
-  deleted_at      DateTime?
+enum TemplateLibraryScope {
+  PLATFORM
+  TENANT
+  KNOWLEDGE
+}
 
-  @@unique([organization_id, equipment_type, job_type])
+enum TemplateLifecycleStatus {
+  DRAFT
+  PUBLISHED
+  DEPRECATED
+}
+
+/// Enterprise Workpack Template — versioned planning knowledge (M6.1–M6.2).
+model workpack_templates {
+  id                 String                  @id @db.Uuid
+  organization_id    String?                 @db.Uuid
+  /// Stable identity across revisions
+  template_family_id String                  @db.Uuid
+  revision           Int                     @default(1)
+  version_label      String?
+  /// PLATFORM | TENANT | KNOWLEDGE
+  library_scope      TemplateLibraryScope    @default(TENANT)
+  lifecycle_status   TemplateLifecycleStatus @default(DRAFT)
+  name               String
+  category           String?
+  equipment_type     String
+  equipment_class    String?
+  job_type           String
+  discipline_id      String?                 @db.Uuid
+  description        String?
+  /// Section payloads (Planning metrics, Materials, Safety, QA/QC, References, AI)
+  planning_json      Json                    @default("{}")
+  resources_json     Json                    @default("[]")
+  materials_json     Json                    @default("[]")
+  safety_json        Json                    @default("{}")
+  qaqc_json          Json                    @default("{}")
+  references_json    Json                    @default("[]")
+  ai_metadata_json   Json                    @default("{}")
+  is_system          Boolean                 @default(false)
+  is_active          Boolean                 @default(true)
+  created_by         String                  @db.Uuid
+  updated_by         String?                 @db.Uuid
+  published_at       DateTime?
+  deprecated_at      DateTime?
+  created_at         DateTime                @default(now())
+  updated_at         DateTime
+  deleted_at         DateTime?
+  cloned_from_id     String?                 @db.Uuid
+  knowledge_asset_id String?                 @db.Uuid
+
+  @@unique([template_family_id, revision])
+  @@index([library_scope, lifecycle_status])
+  @@index([organization_id, name])
+}
+
+model workpack_template_logic_links {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  template_id     String   @db.Uuid
+  predecessor_seq Int
+  successor_seq   Int
+  link_type       String   @default("FS")
+  lag_hours       Float    @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+
+  @@index([template_id])
+  @@map("workpack_template_logic_links")
 }
 
 model workpack_tools {
@@ -3007,4 +3095,85 @@ model ApiKey {
   @@index([organization_id])
   @@index([key_hash])
   @@map("api_keys")
+}
+
+// ── Knowledge Engine (Platform-only repository) ───────────────────────────
+
+enum KnowledgeAssetCategory {
+  ACTIVITY_CODE
+  UDF_DEFINITION
+  WORKPACK_TEMPLATE
+  EQUIPMENT_TYPE
+  RESOURCE_TYPE
+  CERTIFICATE_TEMPLATE
+  PRINT_SETTINGS
+  QA_QC_TEMPLATE
+  SAFETY_TEMPLATE
+}
+
+enum KnowledgeAssetStatus {
+  INCOMING
+  AI_ANALYSIS
+  REVIEW_QUEUE
+  APPROVED
+  REJECTED
+}
+
+enum KnowledgeReviewDecision {
+  APPROVE
+  MERGE
+  REJECT
+  REQUEST_REVISION
+}
+
+/// Sanitized knowledge copies collected from tenant saves (never operational data).
+model KnowledgeAsset {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  status             KnowledgeAssetStatus   @default(INCOMING)
+  category           KnowledgeAssetCategory
+  asset_type         String
+  title              String
+  /// Fingerprint of sanitized payload for duplicate detection
+  content_hash       String
+  /// Tenant-identifying fields stripped; domain knowledge only
+  sanitized_payload  Json
+  source_industry    String?
+  /// Opaque hash of source org — never store raw tenant id/name for privacy
+  source_org_hash    String?
+  similarity_score   Float?
+  ai_suggestion      String?
+  /// APPROVE-as-new | MERGE | REJECT hints from AI
+  ai_recommendation  String?
+  matched_asset_id   String?                @db.Uuid
+  matched_asset      KnowledgeAsset?        @relation("KnowledgeDuplicate", fields: [matched_asset_id], references: [id])
+  duplicate_of       KnowledgeAsset[]       @relation("KnowledgeDuplicate")
+  first_seen_at      DateTime               @default(now())
+  last_seen_at       DateTime               @default(now())
+  times_seen         Int                    @default(1)
+  times_used         Int                    @default(0)
+  reviewer_notes     String?
+  reviewed_by        String?                @db.Uuid
+  reviewed_at        DateTime?
+  promoted_at        DateTime?
+  created_at         DateTime               @default(now())
+  updated_at         DateTime               @updatedAt
+  reviews            KnowledgeReviewLog[]
+
+  @@index([status, category])
+  @@index([content_hash])
+  @@index([category, title])
+  @@map("knowledge_assets")
+}
+
+model KnowledgeReviewLog {
+  id            String                  @id @default(uuid()) @db.Uuid
+  asset_id      String                  @db.Uuid
+  decision      KnowledgeReviewDecision
+  notes         String?
+  reviewed_by   String?                 @db.Uuid
+  created_at    DateTime                @default(now())
+  asset         KnowledgeAsset          @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id, created_at])
+  @@map("knowledge_review_logs")
 }

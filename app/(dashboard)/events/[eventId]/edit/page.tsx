@@ -16,11 +16,35 @@ export default async function EditEventPage({ params }: { params: Promise<{ even
   });
   if (!event) notFound();
 
-  // Fetch sites to pass to the client component
-  const sites = await prisma.site.findMany({
-    where: { organization_id: orgId },
-    select: { id: true, name: true }
-  });
+  const [sites, calendars, disciplines, parentEvents] = await Promise.all([
+    prisma.site.findMany({
+      where: { organization_id: orgId },
+      select: { id: true, name: true },
+    }),
+    prisma.scheduleCalendar.findMany({
+      where: { organization_id: orgId },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.discipline.findMany({
+      where: { organization_id: orgId },
+      select: { id: true, name: true, code: true },
+      orderBy: { code: 'asc' },
+    }),
+    prisma.event.findMany({
+      where: { organization_id: orgId, deleted_at: null, id: { not: eventId } },
+      select: { id: true, name: true, code: true },
+      orderBy: { code: 'asc' },
+    }),
+  ]);
 
-  return <EventEditClient event={event} sites={sites} />;
+  return (
+    <EventEditClient
+      event={event}
+      sites={sites}
+      calendars={calendars}
+      disciplines={disciplines}
+      parentEvents={parentEvents}
+    />
+  );
 }

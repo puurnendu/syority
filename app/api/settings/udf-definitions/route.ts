@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { guardApi } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export async function GET(req: NextRequest) {
     const { session, error } = await guardApi('settings.udf.view');
@@ -44,6 +45,14 @@ export async function POST(req: NextRequest) {
                 created_by: user.id,
             },
             include: { options: true },
+        });
+
+        enqueueKnowledgeCapture({
+            organizationId: orgId,
+            category: 'UDF_DEFINITION',
+            assetType: 'ActivityUdfDefinition',
+            title: definition.name,
+            payload: definition as unknown as Record<string, unknown>,
         });
 
         return NextResponse.json(JSON.parse(JSON.stringify(definition)), { status: 201 });

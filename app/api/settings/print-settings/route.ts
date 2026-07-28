@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { DEFAULT_HEADER_ZONES, DEFAULT_FOOTER_ZONES } from '@/types/printSettings.types';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -146,6 +147,13 @@ export async function POST(req: NextRequest) {
       where: { organization_id: orgId },
       create: createData,
       update: updateData,
+    });
+    enqueueKnowledgeCapture({
+      organizationId: orgId,
+      category: 'PRINT_SETTINGS',
+      assetType: 'workpack_print_settings',
+      title: 'Workpack Print Settings',
+      payload: updated as unknown as Record<string, unknown>,
     });
     return NextResponse.json(updated);
   } catch (err: unknown) {

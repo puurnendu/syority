@@ -71,12 +71,28 @@ export function WorkpackDashboard({
                     >
                         📥 Export CSV
                     </a>
-                    <Link
-                        href={newWorkpackHref}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        + New Workpack
-                    </Link>
+                    <div className="relative group">
+                        <button
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors peer"
+                        >
+                            + New Workpack
+                            <svg className="w-3 h-3 ml-1" fill="none" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </button>
+                        <div className="absolute right-0 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                            <Link
+                                href={newWorkpackHref}
+                                className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg"
+                            >
+                                📝 Blank Workpack
+                            </Link>
+                            <Link
+                                href="/planning/templates?mode=select"
+                                className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-b-lg border-t border-gray-100"
+                            >
+                                📋 Create from Template
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
 

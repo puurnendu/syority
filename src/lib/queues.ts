@@ -30,3 +30,17 @@ export const reportDeliveryQueue = new Queue('report-delivery', {
     removeOnFail: 25,
   },
 });
+
+/**
+ * Jobs: { assetId: string }
+ * Knowledge Engine: Incoming → AI Analysis → Review Queue
+ */
+export const knowledgeEngineQueue = new Queue('knowledge-engine', {
+  connection: redis,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 3000 },
+    removeOnComplete: 100,
+    removeOnFail: 50,
+  },
+});

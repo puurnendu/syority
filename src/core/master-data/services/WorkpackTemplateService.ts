@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/lib/audit';
 import { eventBus } from '@/lib/eventBus';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export class WorkpackTemplateService {
     // ── CRUD Operations ──────────────────────────────────────────────────────
@@ -59,6 +60,13 @@ export class WorkpackTemplateService {
             model_id: created.id,
             new_values: created as Record<string, unknown>,
         });
+        enqueueKnowledgeCapture({
+            organizationId: data.organization_id,
+            category: 'WORKPACK_TEMPLATE',
+            assetType: 'workpack_templates',
+            title: created.name,
+            payload: created as unknown as Record<string, unknown>,
+        });
         return created;
     }
 
@@ -74,6 +82,13 @@ export class WorkpackTemplateService {
             model_name: 'WorkpackTemplate',
             model_id: id,
             new_values: data as Record<string, unknown>,
+        });
+        enqueueKnowledgeCapture({
+            organizationId: orgId,
+            category: 'WORKPACK_TEMPLATE',
+            assetType: 'workpack_templates',
+            title: updated.name,
+            payload: updated as unknown as Record<string, unknown>,
         });
         return updated;
     }

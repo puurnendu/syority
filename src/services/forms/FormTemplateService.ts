@@ -3,6 +3,7 @@ import { AuditService } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import { enqueueKnowledgeCapture, formTemplateCategory } from '@/core/knowledge-engine/capture';
 
 const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
@@ -78,6 +79,14 @@ export class FormTemplateService {
             new_values: template,
         });
 
+        enqueueKnowledgeCapture({
+            organizationId: input.organization_id,
+            category: formTemplateCategory(template.form_type),
+            assetType: 'FormTemplate',
+            title: template.name,
+            payload: template as unknown as Record<string, unknown>,
+        });
+
         return template;
     }
 
@@ -132,6 +141,14 @@ export class FormTemplateService {
             model_id: id,
             old_values: current,
             new_values: updated,
+        });
+
+        enqueueKnowledgeCapture({
+            organizationId: organizationId,
+            category: formTemplateCategory(updated.form_type),
+            assetType: 'FormTemplate',
+            title: updated.name,
+            payload: updated as unknown as Record<string, unknown>,
         });
 
         return updated;

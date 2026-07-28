@@ -12,21 +12,42 @@ export default function NewEventPage() {
     planned_start: '',
     planned_end: '',
     budget_manhours: '',
-    budget_cost: ''
+    budget_cost: '',
+    status: 'planning',
+    description: '',
+    calendar_id: '',
+    discipline_id: '',
+    parent_event_id: '',
   });
   const [sites, setSites] = useState<any[]>([]);
+  const [calendars, setCalendars] = useState<any[]>([]);
+  const [disciplines, setDisciplines] = useState<any[]>([]);
+  const [parentEvents, setParentEvents] = useState<any[]>([]);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    // Fetch sites for the dropdown
-    // Note: Since this is a simple page, we might just assume we have an API to get sites or we handle it gracefully.
-    // For this implementation, we will mock a fetch or just allow a text input for site_id if no sites are loaded.
     fetch('/api/admin/sites')
-      .then(res => res.ok ? res.json() : [])
-      .then(data => {
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
         if (Array.isArray(data)) setSites(data);
+        else if (Array.isArray(data?.data)) setSites(data.data);
       })
+      .catch(() => {});
+
+    fetch('/api/settings/calendars')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setCalendars(Array.isArray(data) ? data : data?.items ?? []))
+      .catch(() => {});
+
+    fetch('/api/master-data/disciplines')
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((data) => setDisciplines(data?.disciplines ?? data?.data ?? []))
+      .catch(() => {});
+
+    fetch('/api/events')
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((data) => setParentEvents(data?.items ?? []))
       .catch(() => {});
   }, []);
 
@@ -39,7 +60,12 @@ export default function NewEventPage() {
       const res = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          calendar_id: formData.calendar_id || null,
+          discipline_id: formData.discipline_id || null,
+          parent_event_id: formData.parent_event_id || null,
+        }),
       });
 
       if (!res.ok) {
@@ -58,7 +84,9 @@ export default function NewEventPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6 flex items-center gap-4">
-        <Link href="/events" className="text-gray-500 hover:text-gray-700 text-sm">← Events</Link>
+        <Link href="/events" className="text-gray-500 hover:text-gray-700 text-sm">
+          ← Events
+        </Link>
         <h1 className="text-2xl font-bold text-gray-900">Create New Event</h1>
       </div>
 
@@ -77,8 +105,8 @@ export default function NewEventPage() {
                 required
                 type="text"
                 value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 placeholder="e.g. 2026 Spring Turnaround"
               />
             </div>
@@ -88,8 +116,8 @@ export default function NewEventPage() {
                 required
                 type="text"
                 value={formData.code}
-                onChange={e => setFormData({ ...formData, code: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 placeholder="e.g. TA-2026-SP"
               />
             </div>
@@ -98,8 +126,8 @@ export default function NewEventPage() {
               <select
                 required
                 value={formData.event_type}
-                onChange={e => setFormData({ ...formData, event_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                onChange={(e) => setFormData({ ...formData, event_type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               >
                 <option value="turnaround">Turnaround</option>
                 <option value="shutdown">Shutdown</option>
@@ -108,35 +136,100 @@ export default function NewEventPage() {
               </select>
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="planning">Planning</option>
+                <option value="ready">Ready</option>
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Site *</label>
               {sites.length > 0 ? (
                 <select
                   required
                   value={formData.site_id}
-                  onChange={e => setFormData({ ...formData, site_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 >
                   <option value="">Select a Site...</option>
-                  {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {sites.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
                 </select>
               ) : (
                 <input
                   required
                   type="text"
                   value={formData.site_id}
-                  onChange={e => setFormData({ ...formData, site_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                   placeholder="Enter Site UUID"
                 />
               )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Calendar</label>
+              <select
+                value={formData.calendar_id}
+                onChange={(e) => setFormData({ ...formData, calendar_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="">None</option>
+                {calendars.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Discipline</label>
+              <select
+                value={formData.discipline_id}
+                onChange={(e) => setFormData({ ...formData, discipline_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="">None</option>
+                {disciplines.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.code ? `${d.code} — ` : ''}
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Parent event (multi-shutdown)
+              </label>
+              <select
+                value={formData.parent_event_id}
+                onChange={(e) => setFormData({ ...formData, parent_event_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="">None (top-level)</option>
+                {parentEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.code} — {ev.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Planned Start</label>
               <input
                 type="date"
                 value={formData.planned_start}
-                onChange={e => setFormData({ ...formData, planned_start: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                onChange={(e) => setFormData({ ...formData, planned_start: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               />
             </div>
             <div>
@@ -144,8 +237,8 @@ export default function NewEventPage() {
               <input
                 type="date"
                 value={formData.planned_end}
-                onChange={e => setFormData({ ...formData, planned_end: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                onChange={(e) => setFormData({ ...formData, planned_end: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               />
             </div>
             <div>
@@ -153,9 +246,8 @@ export default function NewEventPage() {
               <input
                 type="number"
                 value={formData.budget_manhours}
-                onChange={e => setFormData({ ...formData, budget_manhours: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="e.g. 50000"
+                onChange={(e) => setFormData({ ...formData, budget_manhours: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               />
             </div>
             <div>
@@ -164,11 +256,20 @@ export default function NewEventPage() {
                 type="number"
                 step="0.01"
                 value={formData.budget_cost}
-                onChange={e => setFormData({ ...formData, budget_cost: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="e.g. 1500000.00"
+                onChange={(e) => setFormData({ ...formData, budget_cost: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              rows={3}
+            />
           </div>
 
           <div className="pt-4 flex gap-3 border-t border-gray-100">

@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import EventActionsClient from './EventActionsClient';
+import EventMilestonesClient from './EventMilestonesClient';
 
 export default async function EventDetailPage({ params }: { params: Promise<{ eventId: string }> }) {
   const session = await getServerSession(authOptions);
@@ -16,10 +17,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ ev
     where: { id: eventId, organization_id: orgId, deleted_at: null },
     include: {
       site: { select: { id: true, name: true, code: true } },
+      discipline: { select: { id: true, name: true, code: true } },
+      calendar: { select: { id: true, name: true } },
+      parentEvent: { select: { id: true, code: true, name: true } },
+      childEvents: {
+        where: { deleted_at: null },
+        select: { id: true, code: true, name: true, status: true },
+      },
+      milestones: { orderBy: { sort_order: 'asc' } },
       eventUnits: {
         include: { unit: { select: { id: true, name: true, code: true } } },
       },
-      _count: { select: { Workpack: true } },
+      _count: { select: { Workpack: true, wbsNodes: true } },
     },
   });
   if (!event) notFound();
@@ -30,13 +39,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ ev
     orderBy: { updated_at: 'desc' },
     take: 20,
   });
-
-  const availableUnits = await prisma.unit.findMany({
-    where: { site_id: event.site_id, organization_id: orgId },
-    select: { id: true, name: true, code: true }
-  });
-
-  const initialSelectedUnits = event.eventUnits.map(eu => eu.unit.id);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6">
@@ -86,13 +88,46 @@ export default async function EventDetailPage({ params }: { params: Promise<{ ev
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <dt className="text-gray-500">Site</dt>
             <dd>{event.site?.name ?? '—'}</dd>
+            <dt className="text-gray-500">Discipline</dt>
+            <dd>{event.discipline ? `${event.discipline.code ?? ''} ${event.discipline.name}`.trim() : '—'}</dd>
+            <dt className="text-gray-500">Calendar</dt>
+            <dd>{event.calendar?.name ?? '—'}</dd>
+            <dt className="text-gray-500">Parent event</dt>
+            <dd>
+              {event.parentEvent ? (
+                <Link href={`/events/${event.parentEvent.id}`} className="text-blue-600 hover:underline">
+                  {event.parentEvent.code}
+                </Link>
+              ) : (
+                '—'
+              )}
+            </dd>
+            <dt className="text-gray-500">Child shutdowns</dt>
+            <dd>{event.childEvents.length}</dd>
+            <dt className="text-gray-500">WBS nodes</dt>
+            <dd>{event._count.wbsNodes}</dd>
             <dt className="text-gray-500">Planned start</dt>
             <dd>{event.planned_start ? new Date(event.planned_start).toLocaleDateString() : '—'}</dd>
             <dt className="text-gray-500">Planned end</dt>
             <dd>{event.planned_end ? new Date(event.planned_end).toLocaleDateString() : '—'}</dd>
             <dt className="text-gray-500">Workpacks</dt>
-            <dd>{event._count.workpacks}</dd>
+            <dd>{event._count.Workpack}</dd>
           </dl>
+          {event.description ? (
+            <p className="mt-4 text-sm text-gray-600 border-t border-gray-100 pt-3">{event.description}</p>
+          ) : null}
+          {event.childEvents.length > 0 ? (
+            <ul className="mt-3 space-y-1 border-t border-gray-100 pt-3">
+              {event.childEvents.map((c) => (
+                <li key={c.id} className="text-sm">
+                  <Link href={`/events/${c.id}`} className="text-blue-600 hover:underline">
+                    {c.code} — {c.name}
+                  </Link>
+                  <span className="ml-2 text-xs text-gray-500">{c.status}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
 
         <section className="bg-white rounded-lg border border-gray-200 p-6">
@@ -118,6 +153,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ ev
           </div>
         </section>
       </div>
+
+      <EventMilestonesClient
+        eventId={eventId}
+        initial={event.milestones.map((m) => ({
+          id: m.id,
+          name: m.name,
+          code: m.code,
+          milestone_type: m.milestone_type,
+          planned_date: m.planned_date ? m.planned_date.toISOString() : null,
+          status: m.status,
+        }))}
+      />
 
       <section className="mt-6 bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Workpacks in this event</h2>

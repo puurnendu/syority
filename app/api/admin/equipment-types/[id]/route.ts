@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { guardApi } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export const PATCH = withTenantGuard(async (req, { params }, session) => {
   const { error } = await guardApi('admin.edit');
@@ -24,6 +25,14 @@ export const PATCH = withTenantGuard(async (req, { params }, session) => {
       code: body.code || null,
       description: body.description || null,
     },
+  });
+
+  enqueueKnowledgeCapture({
+    organizationId: orgId,
+    category: 'EQUIPMENT_TYPE',
+    assetType: 'EquipmentType',
+    title: type.name,
+    payload: type as unknown as Record<string, unknown>,
   });
 
   return NextResponse.json({

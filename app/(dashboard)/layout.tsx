@@ -45,6 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     const planningItems = [
         { href: '/events', label: 'Events / TAs' },
+        { href: '/planning/templates', label: 'Workpack Templates' },
         { href: '/planning/units', label: 'Units' },
         { href: '/workpacks', label: 'Workpacks' },
         { href: '/projects', label: 'Projects' },
@@ -61,6 +62,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             if (['/planning/units', '/planning/systems', '/asset-register', '/workpacks'].includes(item.href)) return false;
         }
 
+        if (item.href === '/planning/templates') {
+            return hasPermission(role, 'settings.templates.view') || hasPermission(role, 'workpacks.create');
+        }
         if (item.href === '/planning/units') return hasPermission(role, 'unit:view');
         if (item.href === '/planning/systems') return hasPermission(role, 'system:view');
         if (item.href === '/schedule' || item.href === '/imported-schedule') return hasPermission(role, 'workpacks.view');

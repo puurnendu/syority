@@ -106,32 +106,33 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/settings', request.url));
         }
         if (access.reason === 'PROXY_REQUIRED_FOR_PLATFORM_ADMIN') {
-            return NextResponse.redirect(new URL('/platform/tenants', request.url));
+            return NextResponse.redirect(new URL('/platform/dashboard', request.url));
         }
         if (access.reason === 'MISSING_PERMISSION') {
-            return NextResponse.redirect(new URL('/dashboard', request.url));
+            return NextResponse.redirect(new URL('/platform/dashboard', request.url));
         }
     }
 
+    // Unproxied platform admins must not use tenant shell routes.
+    // Send them to the Platform Dashboard (not Tenants — that is a separate menu).
     if (
         isPlatformAdmin &&
         !isProxyModeActive &&
-        pathname !== '/dashboard' &&
         pathname !== '/' &&
-        access.meta?.scope === Scope.TENANT
+        (pathname === '/dashboard' || access.meta?.scope === Scope.TENANT)
     ) {
-        return NextResponse.redirect(new URL('/platform/tenants', request.url));
+        return NextResponse.redirect(new URL('/platform/dashboard', request.url));
     }
 
     if (isPlatformAdmin && !isProxyModeActive && !access.meta && pathname !== '/dashboard' && pathname !== '/') {
         if (!isPlatformNamespace && !isPlatformDataNamespace) {
-            return NextResponse.redirect(new URL('/platform/tenants', request.url));
+            return NextResponse.redirect(new URL('/platform/dashboard', request.url));
         }
     }
 
     if (pathname === '/') {
         if (isPlatformAdmin && !isProxyModeActive) {
-            return NextResponse.redirect(new URL('/platform/tenants', request.url));
+            return NextResponse.redirect(new URL('/platform/dashboard', request.url));
         }
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }

@@ -35,6 +35,7 @@ export const PLATFORM_NAV: NavGroupMeta[] = [
             { href: '/platform/billing', label: 'Licensing & Billing', scope: Scope.PLATFORM, permission: 'nav.billing', icon: '💳' },
             { href: '/platform/users', label: 'Platform Users', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '👥' },
             { href: '/platform/ai-config', label: 'AI Providers', scope: Scope.PLATFORM, permission: 'settings.ai.view', icon: '🤖' },
+            { href: '/platform/knowledge', label: 'Knowledge Engine', scope: Scope.PLATFORM, permission: 'knowledge.view', icon: '🧠' },
             { href: '/platform/system', label: 'SMTP & System', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '⚙️' },
             { href: '/platform/features', label: 'Feature Flags', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '🚩' },
             { href: '/platform/storage', label: 'Storage', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '🗄️' },

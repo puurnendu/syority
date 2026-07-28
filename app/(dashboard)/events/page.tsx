@@ -14,7 +14,13 @@ export default async function EventsPage() {
     where: { organization_id: orgId, deleted_at: null },
     include: {
       site: { select: { id: true, name: true, code: true } },
-      _count: { select: { Workpack: true, eventUnits: true } },
+      discipline: { select: { id: true, name: true, code: true } },
+      calendar: { select: { id: true, name: true } },
+      childEvents: {
+        where: { deleted_at: null },
+        select: { id: true, code: true },
+      },
+      _count: { select: { Workpack: true, eventUnits: true, milestones: true, wbsNodes: true } },
     },
     orderBy: [{ planned_start: 'desc' }, { created_at: 'desc' }],
   });
@@ -22,7 +28,13 @@ export default async function EventsPage() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Events / TAs</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Events / Shutdowns</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Planning foundation — status, calendar, discipline, WBS, milestones. Multi-shutdown via
+            child events.
+          </p>
+        </div>
         <Link href="/events/new" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
           + New Event
         </Link>
@@ -33,16 +45,19 @@ export default async function EventsPage() {
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Site</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Discipline</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Calendar</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Milestones</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">WBS</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Children</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Workpacks</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {events.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No events yet.</td>
+                <td colSpan={9} className="px-4 py-8 text-center text-gray-500">No events yet.</td>
               </tr>
             ) : (
               events.map((ev) => (
@@ -51,9 +66,12 @@ export default async function EventsPage() {
                     <Link href={`/events/${ev.id}`} className="text-blue-600 hover:underline">{ev.code}</Link>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{ev.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{ev.event_type}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{ev.site?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{ev.status}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{ev.discipline?.code ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{ev.calendar?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{ev._count.milestones}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{ev._count.wbsNodes}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{ev.childEvents.length}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{ev._count.Workpack}</td>
                 </tr>
               ))

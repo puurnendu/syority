@@ -17,6 +17,8 @@
     "seed:syority": "tsx prisma/seed-syority.ts",
     "seed:gasket-lookup": "tsx prisma/seed-gasket-lookup.ts",
     "seed:cert-templates": "tsx prisma/seed-certificate-templates.ts",
+    "seed:role-catalog": "tsx prisma/seed-role-catalog.ts",
+    "seed:enterprise-demo": "tsx prisma/seed-enterprise-demo.ts",
     "migrate:consumable-to-catalog": "tsx prisma/migrate-consumable-to-item-catalog.ts",
     "backfill:workpack-ids": "tsx prisma/backfill-workpack-ids.ts",
     "backfill:activity-codes": "tsx prisma/backfill-activity-codes.ts",

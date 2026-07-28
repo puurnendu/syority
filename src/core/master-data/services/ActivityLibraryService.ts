@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/lib/audit';
 import { generateNextActivityCode } from '@/lib/activityIdGenerator';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export class ActivityLibraryService {
     static async getAll(orgId: string) {
@@ -44,6 +45,14 @@ export class ActivityLibraryService {
             new_values: { ...item },
         });
 
+        enqueueKnowledgeCapture({
+            organizationId: orgId,
+            category: 'ACTIVITY_CODE',
+            assetType: 'ActivityLibrary',
+            title: item.name,
+            payload: item as unknown as Record<string, unknown>,
+        });
+
         return item;
     }
 
@@ -76,6 +85,14 @@ export class ActivityLibraryService {
             model_id: id,
             old_values: old,
             new_values: updated,
+        });
+
+        enqueueKnowledgeCapture({
+            organizationId: orgId,
+            category: 'ACTIVITY_CODE',
+            assetType: 'ActivityLibrary',
+            title: updated.name,
+            payload: updated as unknown as Record<string, unknown>,
         });
 
         return updated;

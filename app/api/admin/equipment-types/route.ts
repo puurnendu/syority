@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { guardApi } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
+import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 
 export const GET = withTenantGuard(async (_req, _ctx, session) => {
   const { error } = await guardApi('admin.view');
@@ -44,6 +45,14 @@ export const POST = withTenantGuard(async (req, _ctx, session) => {
       description: body.description || null,
       is_active: true,
     },
+  });
+
+  enqueueKnowledgeCapture({
+    organizationId: orgId,
+    category: 'EQUIPMENT_TYPE',
+    assetType: 'EquipmentType',
+    title: type.name,
+    payload: type as unknown as Record<string, unknown>,
   });
 
   return NextResponse.json(
