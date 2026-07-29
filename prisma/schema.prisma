@@ -89,6 +89,7 @@ model Workpack {
   system_id                      String?                      @db.Uuid
   discipline_id                  String?                      @db.Uuid
   contractor_id                  String?                      @db.Uuid
+  work_type_id                   String?                      @db.Uuid
   work_type                      String?
   priority                       String?                      @default("Normal")
   scope_of_work                  String?
@@ -118,6 +119,10 @@ model Workpack {
   approved_by_email              String?
   approval_notes                 String?
   project_id                     String?
+  /// M7.4 — Workpack Intelligence fields
+  scope_item_id                  String?                      @db.Uuid
+  readiness_score                Int?                         @default(0)
+  compliance_score               Int?                         @default(0)
   activities                     Activity[]
   asset                          Asset?                       @relation(fields: [asset_id], references: [id])
   contractor                     Contractor?                  @relation(fields: [contractor_id], references: [id])
@@ -132,6 +137,7 @@ model Workpack {
   system                         System?                      @relation(fields: [system_id], references: [id])
   unit                           Unit?                        @relation(fields: [unit_id], references: [id])
   User_Workpack_updated_byToUser User?                        @relation("Workpack_updated_byToUser", fields: [updated_by], references: [id])
+  instantiation                  WorkpackInstantiation?
   workpack_materials             WorkpackMaterial[]
   certificateInstances           CertificateInstance[]
   constraintLogs                 ConstraintLog[]
@@ -152,6 +158,7 @@ model Workpack {
   dropping_boxup_checklists      dropping_boxup_checklists[]
   clearance_for_boxup            clearance_for_boxup?
   job_completion_certificate     job_completion_certificates?
+  scope_items                    ScopeItem[]
 
   @@unique([organization_id, workpack_number])
   @@index([organization_id, site_id, status])
@@ -255,20 +262,23 @@ model ActivityResource {
 }
 
 model ActivityUdfDefinition {
-  id                String              @id @db.Uuid
-  organization_id   String              @db.Uuid
-  name              String
-  code              String
-  type              String
-  is_mandatory      Boolean?            @default(false)
-  is_active         Boolean?            @default(true)
-  sort_order        Int?
-  created_by        String?             @db.Uuid
-  created_at        DateTime            @default(now())
-  updated_at        DateTime
-  deleted_at        DateTime?
-  activityUdfValues ActivityUdfValue[]
-  options           ActivityUdfOption[]
+  id                      String              @id @db.Uuid
+  organization_id         String              @db.Uuid
+  name                    String
+  code                    String
+  type                    String
+  is_mandatory            Boolean?            @default(false)
+  is_active               Boolean?            @default(true)
+  /// M7.5 — Contractor Editable UDF flag
+  is_contractor_editable  Boolean             @default(false)
+  contractor_edit_label   String?             /// Optional label shown to contractor
+  sort_order              Int?
+  created_by              String?             @db.Uuid
+  created_at              DateTime            @default(now())
+  updated_at              DateTime
+  deleted_at              DateTime?
+  activityUdfValues       ActivityUdfValue[]
+  options                 ActivityUdfOption[]
 
   @@unique([organization_id, code])
 }
@@ -450,8 +460,6 @@ model Asset {
   service_description                        String?
   fluid_service                              String?
   criticality                                String?
-  maintenance_strategy                       String?
-  inspection_interval_months                 Int?
   p_and_id_numbers                           String[]        @default([])
   ga_drawing_number                          String?
   isometric_drawing_numbers                  String[]        @default([])
@@ -473,6 +481,9 @@ model Asset {
   line_lists_line_lists_from_asset_idToAsset line_lists[]    @relation("line_lists_from_asset_idToAsset")
   line_lists_line_lists_to_asset_idToAsset   line_lists[]    @relation("line_lists_to_asset_idToAsset")
   nozzles                                    nozzles[]
+  asset_document_links                       AssetDocumentLink[]
+  engineering_issues                         EngineeringIssue[]
+  scope_items                                ScopeItem[]         @relation("ScopeItemAsset")
 
   @@unique([organization_id, tag_number])
   @@index([plant_id])
@@ -723,22 +734,6 @@ model DocumentTemplate {
   updated_at       DateTime
 }
 
-model Equipment {
-  id                  String   @id
-  project_id          String
-  unit_id             String?
-  equipment_type_id   String?
-  tag                 String
-  description         String?
-  area                String?
-  manufacturer        String?
-  model               String?
-  serial_number       String?
-  year_of_manufacture Int?
-  technical_data      Json?
-  created_at          DateTime @default(now())
-  updated_at          DateTime
-}
 
 model EquipmentType {
   id          String   @id
@@ -1001,6 +996,10 @@ model Organization {
   WebhookConfig          WebhookConfig?
   WebhookLog             WebhookLog[]
   ApiKey                 ApiKey[]
+  digital_plant_projects DigitalPlantProject[]
+  issue_batches          IssueBatch[]
+  engineering_issues     EngineeringIssue[]
+  shutdown_scopes        ShutdownScope[]
 
   @@index([is_active])
 }
@@ -1071,6 +1070,7 @@ model Plant {
   units           Unit[]
   assets          Asset[]
   workpacks       Workpack[]
+  digital_plant_projects DigitalPlantProject[]
 
   @@unique([site_id, code], name: "plant_site_code")
   @@index([organization_id])
@@ -1374,6 +1374,7 @@ model Site {
   joint_masters              joint_masters[]
   line_lists                 line_lists[]
   activities                 Activity[]
+  digital_plant_projects     DigitalPlantProject[]
 
   @@unique([organization_id, code])
 }
@@ -1439,6 +1440,7 @@ model Unit {
   event_units           EventUnit[]
   line_lists            line_lists[]
   unit_responsibilities unit_responsibilities[]
+  digital_plant_projects DigitalPlantProject[]
 
   @@unique([plant_id, code], name: "unit_plant_code")
   @@index([organization_id])
@@ -1493,6 +1495,7 @@ model User {
   unit_responsibilities               unit_responsibilities[]
   SystemAuditLog                      SystemAuditLog[]
   ApiKey                              ApiKey[]
+  preferences                         UserPreference[]
 }
 
 model UserRole {
@@ -1512,6 +1515,21 @@ model UserRole {
   user             User         @relation("UserRole_user_idToUser", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, role_id, site_id])
+}
+
+/// M7.5 — User preferences (column layouts, view settings, etc.)
+model UserPreference {
+  id               String   @id @default(uuid()) @db.Uuid
+  user_id          String   @db.Uuid
+  preference_key   String
+  preference_value Json     @default("{}")
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, preference_key], name: "user_id_preference_key")
+  @@map("user_preferences")
 }
 
 model WorkflowTransition {
@@ -1914,6 +1932,7 @@ model Event {
   calendar         ScheduleCalendar? @relation(fields: [calendar_id], references: [id])
   discipline       Discipline?      @relation(fields: [discipline_id], references: [id])
   wbsNodes         WbsNode[]
+  shutdown_scope   ShutdownScope?
 
   @@index([organization_id, status])
   @@index([site_id])
@@ -2740,7 +2759,10 @@ model workpack_templates {
   category           String?
   equipment_type     String
   equipment_class    String?
-  job_type           String
+  job_type           String                  /// Legacy — new code uses work_type_id
+  work_type_id       String?                 @db.Uuid
+  /// Relation to TemplateFamily
+  template_family    TemplateFamily?         @relation(fields: [template_family_id], references: [id])
   discipline_id      String?                 @db.Uuid
   description        String?
   /// Section payloads (Planning metrics, Materials, Safety, QA/QC, References, AI)
@@ -3176,4 +3198,739 @@ model KnowledgeReviewLog {
 
   @@index([asset_id, created_at])
   @@map("knowledge_review_logs")
+}
+
+// ── M7.1 Digital Plant Builder ─────────────────────────────────────────────
+
+enum CandidateStatus {
+  pending_review
+  approved
+  rejected
+  merged
+  edited
+}
+
+enum PlantProjectStatus {
+  active
+  completed
+  archived
+}
+
+/// Digital Plant project — scoped container for extraction work on a Unit/System.
+model DigitalPlantProject {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  site_id             String              @db.Uuid
+  plant_id            String              @db.Uuid
+  area_id             String?             @db.Uuid
+  unit_id             String              @db.Uuid
+  system_id           String?             @db.Uuid
+  name                String
+  description         String?
+  status              PlantProjectStatus  @default(active)
+  total_documents     Int                 @default(0)
+  total_candidates    Int                 @default(0)
+  approved_count      Int                 @default(0)
+  rejected_count      Int                 @default(0)
+  created_by          String              @db.Uuid
+  updated_by          String?             @db.Uuid
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  deleted_at          DateTime?
+  documents           PlantDocument[]
+  candidates          ExtractionCandidate[]
+  Organization        Organization        @relation(fields: [organization_id], references: [id])
+  Site                Site                @relation(fields: [site_id], references: [id])
+  Plant               Plant               @relation(fields: [plant_id], references: [id])
+  Unit                Unit                @relation(fields: [unit_id], references: [id])
+
+  @@index([organization_id, status])
+  @@index([organization_id, site_id])
+  @@map("digital_plant_projects")
+}
+
+/// Versioned engineering document (P&ID, PFD, GA, Isometric, OEM Manual, Datasheet, etc.)
+model PlantDocument {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  project_id          String              @db.Uuid
+  document_type       String              /// P&ID, PFD, GA, Equipment Layout, Isometric, OEM Manual, Datasheet, etc.
+  drawing_number      String?
+  title               String
+  revision            String?             @default("0")
+  issue_date          DateTime?           @db.Date
+  discipline          String?             /// Mechanical, Piping, Electrical, Instrumentation, Civil, Process
+  status              String              @default("uploaded") /// uploaded, extracting, extracted, reviewed
+  unit_id             String?             @db.Uuid
+  system_id           String?             @db.Uuid
+  original_filename   String
+  stored_filename     String
+  storage_path        String
+  mime_type           String?
+  file_size_bytes     BigInt?             @default(0)
+  page_count          Int?
+  version_number      Int                 @default(1)
+  supersedes_id       String?             @db.Uuid
+  ai_text_extracted   String?             /// OCR / AI-extracted full text
+  uploaded_by         String              @db.Uuid
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  deleted_at          DateTime?
+  project             DigitalPlantProject @relation(fields: [project_id], references: [id])
+  candidates          ExtractionCandidate[]
+  asset_links         AssetDocumentLink[]
+
+  @@index([project_id, document_type])
+  @@index([organization_id, drawing_number])
+  @@map("plant_documents")
+}
+
+/// AI-extracted candidate object awaiting planner review. Never auto-committed.
+model ExtractionCandidate {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  project_id          String              @db.Uuid
+  source_document_id  String              @db.Uuid
+  extraction_job_id   String?             @db.Uuid
+  candidate_type      String              /// equipment, valve, pipeline, instrument, motor, pump, compressor, etc.
+  tag_number          String
+  description         String?
+  confidence_score    Float?              @default(0)
+  extracted_attributes Json               @default("{}") /// {manufacturer, model, size, rating, material, class, serial, ...}
+  source_page         Int?
+  source_region       String?             /// bounding box or region hint from AI
+  status              CandidateStatus     @default(pending_review)
+  approved_asset_id   String?             @db.Uuid
+  merge_target_id     String?             @db.Uuid  /// If merged, which asset did we merge into
+  reviewed_by         String?             @db.Uuid
+  reviewed_at         DateTime?
+  review_notes        String?
+  import_batch_id     String?             /// If created from Excel import
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  project             DigitalPlantProject @relation(fields: [project_id], references: [id])
+  source_document     PlantDocument       @relation(fields: [source_document_id], references: [id])
+  review_actions      CandidateReviewAction[]
+
+  @@index([project_id, status])
+  @@index([organization_id, tag_number])
+  @@index([source_document_id])
+  @@index([extraction_job_id])
+  @@map("extraction_candidates")
+}
+
+/// Every planner action on a candidate — audit trail + AI learning signal.
+model CandidateReviewAction {
+  id                  String              @id @default(uuid()) @db.Uuid
+  candidate_id        String              @db.Uuid
+  user_id             String              @db.Uuid
+  action              String              /// approve, reject, merge, edit, bulk_approve, bulk_reject
+  field_name          String?             /// Which field was edited (null for approve/reject)
+  original_value      String?
+  corrected_value     String?
+  reason              String?
+  confidence_before   Float?
+  confidence_after    Float?
+  created_at          DateTime            @default(now())
+  candidate           ExtractionCandidate @relation(fields: [candidate_id], references: [id], onDelete: Cascade)
+
+  @@index([candidate_id, created_at])
+  @@index([user_id, created_at])
+  @@map("candidate_review_actions")
+}
+
+/// Many-to-many link between Asset and PlantDocument — permanent engineering knowledge.
+model AssetDocumentLink {
+  id                  String              @id @default(uuid()) @db.Uuid
+  asset_id            String              @db.Uuid
+  document_id         String              @db.Uuid
+  link_type           String              @default("source") /// source, reference, oem_manual, datasheet, inspection, photo
+  notes               String?
+  created_by          String?             @db.Uuid
+  created_at          DateTime            @default(now())
+  asset               Asset               @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  document            PlantDocument       @relation(fields: [document_id], references: [id], onDelete: Cascade)
+
+  @@unique([asset_id, document_id, link_type])
+  @@index([asset_id])
+  @@index([document_id])
+  @@map("asset_document_links")
+}
+
+// ── M7.2 Engineering Scope Intelligence ────────────────────────────────────
+
+enum IssueStatus {
+  draft
+  pending_review
+  matched
+  unmatched
+  duplicate
+  resolved
+  rejected
+}
+
+enum IssuePriority {
+  critical
+  high
+  medium
+  low
+  unclassified
+}
+
+/// Import batch — container for a set of issues from one source.
+model IssueBatch {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  site_id             String?             @db.Uuid
+  name                String              /// Human label, e.g. "Mech Dept Q3 2026"
+  description         String?
+  source_type         String              /// excel, csv, pdf, word, email, whatsapp, api, cmms, sap, maximo, manual, inspection
+  source_filename     String?
+  source_department   String?             /// Department that submitted this batch
+  uploaded_by         String              @db.Uuid
+  total_rows          Int                 @default(0)
+  matched_count       Int                 @default(0)
+  unmatched_count     Int                 @default(0)
+  duplicate_count     Int                 @default(0)
+  error_count         Int                 @default(0)
+  status              String              @default("pending") /// pending, processing, completed, rolled_back
+  column_mapping_id   String?             @db.Uuid
+  ai_extraction_used  Boolean             @default(false)
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  deleted_at          DateTime?
+  issues              EngineeringIssue[]
+  Organization        Organization        @relation(fields: [organization_id], references: [id])
+
+  @@index([organization_id, status])
+  @@index([organization_id, source_department])
+  @@map("issue_batches")
+}
+
+/// Core engineering issue — linked to Asset, classified, audited.
+model EngineeringIssue {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  site_id             String?             @db.Uuid
+  batch_id            String?             @db.Uuid
+  issue_number        String?             /// Original issue number from source
+  /// Raw equipment tag from source (before matching)
+  equipment_tag_raw   String?
+  equipment_desc_raw  String?
+  /// Matched asset (null = unmatched or pending review)
+  asset_id            String?             @db.Uuid
+  match_confidence    Float?              /// 0.0–1.0 matching confidence
+  match_method        String?             /// exact, normalized, fuzzy, manual, placeholder
+  /// Hierarchy context (resolved from asset or from import)
+  plant_id            String?             @db.Uuid
+  unit_id             String?             @db.Uuid
+  system_id           String?             @db.Uuid
+  /// Issue content
+  department          String?             /// Process, Maintenance, Inspection, Mechanical, etc.
+  discipline          String?             /// AI-classified discipline
+  problem             String              /// The engineering problem description
+  recommendation      String?
+  priority            IssuePriority       @default(unclassified)
+  severity            String?             /// critical, major, minor, cosmetic
+  status              IssueStatus         @default(draft)
+  target_ta           String?             /// Target turnaround / event name (free text for now)
+  originator          String?             /// Person who raised the issue
+  raised_date         DateTime?           @db.Date
+  due_date            DateTime?           @db.Date
+  comments            String?
+  /// AI enrichment
+  ai_discipline       String?             /// AI-suggested discipline
+  ai_discipline_confidence Float?
+  ai_failure_mode     String?             /// AI-detected failure mode
+  ai_category         String?             /// AI-recommended category
+  ai_template_hint    String?             /// Suggested workpack template (future use, never auto-creates)
+  ai_drawing_refs     String[]            @default([]) /// Drawing references found in text
+  /// Metadata
+  created_by          String?             @db.Uuid
+  updated_by          String?             @db.Uuid
+  reviewed_by         String?             @db.Uuid
+  reviewed_at         DateTime?
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  deleted_at          DateTime?
+  batch               IssueBatch?         @relation(fields: [batch_id], references: [id])
+  asset               Asset?              @relation(fields: [asset_id], references: [id])
+  Organization        Organization        @relation(fields: [organization_id], references: [id])
+  attachments         IssueAttachment[]
+  audit_logs          IssueAuditLog[]
+  classifications     IssueClassification[]
+  duplicates_as_a     IssueDuplicate[]    @relation("IssueDuplicateA")
+  duplicates_as_b     IssueDuplicate[]    @relation("IssueDuplicateB")
+  scope_links         ScopeItemIssueLink[]
+
+  @@unique([organization_id, issue_number], name: "issue_org_number")
+  @@index([organization_id, status])
+  @@index([organization_id, department])
+  @@index([organization_id, asset_id])
+  @@index([batch_id])
+  @@index([equipment_tag_raw])
+  @@map("engineering_issues")
+}
+
+/// File attachment linked to an engineering issue.
+model IssueAttachment {
+  id                  String              @id @default(uuid()) @db.Uuid
+  issue_id            String              @db.Uuid
+  filename            String
+  stored_path         String
+  mime_type           String?
+  file_size_bytes     Int?
+  uploaded_by         String?             @db.Uuid
+  created_at          DateTime            @default(now())
+  issue               EngineeringIssue    @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+
+  @@index([issue_id])
+  @@map("issue_attachments")
+}
+
+/// Audit trail for every status change, edit, or merge on an issue.
+model IssueAuditLog {
+  id                  String              @id @default(uuid()) @db.Uuid
+  issue_id            String              @db.Uuid
+  user_id             String?             @db.Uuid
+  action              String              /// create, update, match, unmatch, classify, merge, resolve, reject, attach
+  field_name          String?
+  old_value           String?
+  new_value           String?
+  notes               String?
+  created_at          DateTime            @default(now())
+  issue               EngineeringIssue    @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+
+  @@index([issue_id, created_at])
+  @@map("issue_audit_logs")
+}
+
+/// Detected duplicate pair with planner resolution.
+model IssueDuplicate {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  issue_a_id          String              @db.Uuid
+  issue_b_id          String              @db.Uuid
+  similarity_score    Float               /// 0.0–1.0 text/semantic similarity
+  similarity_method   String              /// text, ai_semantic, tag_match
+  ai_reasoning        String?             /// AI explanation of why these are duplicates
+  resolution          String?             /// merge_into_a, merge_into_b, keep_separate, rejected
+  resolved_by         String?             @db.Uuid
+  resolved_at         DateTime?
+  created_at          DateTime            @default(now())
+  issue_a             EngineeringIssue    @relation("IssueDuplicateA", fields: [issue_a_id], references: [id], onDelete: Cascade)
+  issue_b             EngineeringIssue    @relation("IssueDuplicateB", fields: [issue_b_id], references: [id], onDelete: Cascade)
+
+  @@unique([issue_a_id, issue_b_id])
+  @@index([organization_id])
+  @@map("issue_duplicates")
+}
+
+/// Persisted column mapping template for repeated imports.
+model IssueColumnMapping {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  name                String              /// e.g. "SAP PM Export", "CMMS Standard"
+  source_type         String              /// excel, csv, cmms, sap, maximo
+  mappings            Json                /// { "Excel Column Name": "issue_field_name", ... }
+  is_default          Boolean             @default(false)
+  created_by          String?             @db.Uuid
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+
+  @@index([organization_id, source_type])
+  @@map("issue_column_mappings")
+}
+
+/// AI classification result per issue — stores per-discipline confidence.
+model IssueClassification {
+  id                  String              @id @default(uuid()) @db.Uuid
+  issue_id            String              @db.Uuid
+  discipline          String              /// Mechanical, Inspection, Electrical, etc.
+  confidence          Float               /// 0.0–1.0
+  failure_mode        String?
+  category            String?
+  template_hint       String?             /// Suggested template name (never auto-creates)
+  ai_model_used       String?
+  created_at          DateTime            @default(now())
+  issue               EngineeringIssue    @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+
+  @@index([issue_id])
+  @@map("issue_classifications")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// M7.3 — Shutdown Scope Manager
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ScopeStatus {
+  draft
+  review
+  approved
+  frozen
+  closed
+}
+
+enum ScopeChangeType {
+  added
+  removed
+  deferred
+  cancelled
+  modified
+  emergency
+  opportunity
+}
+
+/// Top-level scope container. 1:1 with Event. Owns all ScopeItems.
+model ShutdownScope {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  event_id            String              @unique @db.Uuid
+  site_id             String              @db.Uuid
+  /// Scope metadata
+  name                String              /// e.g. "TA-2028 Shutdown Scope"
+  description         String?
+  objectives          String?             /// Scope objectives / goals
+  status              ScopeStatus         @default(draft)
+  /// Planning dates
+  freeze_date         DateTime?           @db.Date
+  frozen_at           DateTime?
+  frozen_by           String?             @db.Uuid
+  approved_at         DateTime?
+  approved_by         String?             @db.Uuid
+  closed_at           DateTime?
+  closed_by           String?             @db.Uuid
+  /// Budget placeholders
+  budget_manhours     Int?
+  budget_cost         Decimal?            @db.Decimal(15, 2)
+  /// Aggregated stats (denormalized for dashboard)
+  total_items         Int                 @default(0)
+  total_estimated_hrs Int                 @default(0)
+  /// Audit
+  created_by          String              @db.Uuid
+  updated_by          String?             @db.Uuid
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  deleted_at          DateTime?
+  /// Relations
+  event               Event               @relation(fields: [event_id], references: [id])
+  organization        Organization        @relation(fields: [organization_id], references: [id])
+  items               ScopeItem[]
+  change_requests     ScopeChangeRequest[]
+  deferrals           ScopeDeferral[]
+  audit_logs          ScopeAuditLog[]
+  packages            ScopePackage[]
+  comparisons_as_a    ScopeComparison[]   @relation("ScopeCompareA")
+  comparisons_as_b    ScopeComparison[]   @relation("ScopeCompareB")
+
+  @@index([organization_id, status])
+  @@map("shutdown_scopes")
+}
+
+/// Individual scope item — one asset's work for this shutdown.
+model ScopeItem {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organization_id     String              @db.Uuid
+  scope_id            String              @db.Uuid
+  /// Asset linkage (required — every scope item tied to an asset)
+  asset_id            String              @db.Uuid
+  /// Hierarchy context (denormalized from asset for fast filtering)
+  plant_id            String?             @db.Uuid
+  unit_id             String?             @db.Uuid
+  system_id           String?             @db.Uuid
+  /// Scope detail
+  reason              String              /// Why this asset is in scope
+  discipline          String?             /// Mechanical, Electrical, Inspection, etc.
+  priority            String              @default("medium") /// critical, high, medium, low
+  complexity          String              @default("standard") /// simple, standard, complex, critical
+  requested_by        String?             /// Person or department who requested
+  estimated_hours     Int                 @default(0)
+  /// Template recommendation (advisory, never auto-creates workpack)
+  template_id         String?             @db.Uuid
+  template_name       String?             /// Denormalized for display
+  /// AI enrichment
+  ai_recommendation   String?             /// include / exclude
+  ai_confidence       Float?
+  ai_grouping_hint    String?             /// Suggested package grouping
+  ai_missing_docs     String[]            @default([])
+  ai_previous_ta      String?             /// Previous TA reference
+  /// Planner notes
+  planner_notes       String?
+  /// Status tracking
+  is_deferred         Boolean             @default(false)
+  is_additional       Boolean             @default(false) /// Late addition / emergency / opportunity
+  additional_type     String?             /// late_addition, emergency, opportunity
+  /// Package assignment
+  package_id          String?             @db.Uuid
+  /// Sort & order
+  sort_order          Int                 @default(0)
+  /// Audit
+  created_by          String              @db.Uuid
+  updated_by          String?             @db.Uuid
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  deleted_at          DateTime?
+  /// Relations
+  scope               ShutdownScope       @relation(fields: [scope_id], references: [id], onDelete: Cascade)
+  asset               Asset               @relation("ScopeItemAsset", fields: [asset_id], references: [id])
+  package             ScopePackage?       @relation(fields: [package_id], references: [id])
+  issue_links         ScopeItemIssueLink[]
+  deferrals           ScopeDeferral[]
+  /// M7.4 — Workpack created from this scope item
+  workpack_id         String?             @db.Uuid
+  workpack            Workpack?           @relation(fields: [workpack_id], references: [id])
+
+  @@index([scope_id, discipline])
+  @@index([scope_id, priority])
+  @@index([asset_id])
+  @@index([package_id])
+  @@unique([scope_id, asset_id], name: "scope_asset_unique")
+  @@map("scope_items")
+}
+
+/// Many-to-many join: ScopeItem ↔ EngineeringIssue.
+model ScopeItemIssueLink {
+  id          String            @id @default(uuid()) @db.Uuid
+  scope_item_id String          @db.Uuid
+  issue_id    String            @db.Uuid
+  created_at  DateTime          @default(now())
+  scope_item  ScopeItem         @relation(fields: [scope_item_id], references: [id], onDelete: Cascade)
+  issue       EngineeringIssue  @relation(fields: [issue_id], references: [id])
+
+  @@unique([scope_item_id, issue_id])
+  @@index([issue_id])
+  @@map("scope_item_issue_links")
+}
+
+/// Post-freeze change request.
+model ScopeChangeRequest {
+  id              String            @id @default(uuid()) @db.Uuid
+  organization_id String            @db.Uuid
+  scope_id        String            @db.Uuid
+  /// What changed
+  change_type     ScopeChangeType
+  scope_item_id   String?           @db.Uuid   /// Item being changed (null for additions)
+  asset_id        String?           @db.Uuid   /// Asset for new additions
+  /// Details
+  title           String
+  reason          String
+  justification   String?
+  estimated_hours Int?
+  discipline      String?
+  priority        String?
+  /// Approval
+  status          String            @default("pending") /// pending, approved, rejected
+  submitted_by    String            @db.Uuid
+  submitted_at    DateTime          @default(now())
+  reviewed_by     String?           @db.Uuid
+  reviewed_at     DateTime?
+  review_notes    String?
+  /// Applied
+  applied_at      DateTime?
+  applied_by      String?           @db.Uuid
+  /// Audit
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+  /// Relations
+  scope           ShutdownScope     @relation(fields: [scope_id], references: [id], onDelete: Cascade)
+
+  @@index([scope_id, status])
+  @@index([organization_id])
+  @@map("scope_change_requests")
+}
+
+/// Deferred work — never deleted. Permanent record.
+model ScopeDeferral {
+  id              String          @id @default(uuid()) @db.Uuid
+  organization_id String          @db.Uuid
+  scope_id        String          @db.Uuid
+  scope_item_id   String          @db.Uuid
+  /// Deferral info
+  reason          String
+  deferred_by     String          @db.Uuid
+  deferred_at     DateTime        @default(now())
+  target_event    String?         /// Name of next TA (free text)
+  target_event_id String?         @db.Uuid   /// Link to next event if known
+  /// Carry-forward tracking
+  carried_forward Boolean         @default(false)
+  carried_to_scope_id String?     @db.Uuid
+  carried_at      DateTime?
+  /// Relations
+  scope           ShutdownScope   @relation(fields: [scope_id], references: [id], onDelete: Cascade)
+  scope_item      ScopeItem       @relation(fields: [scope_item_id], references: [id])
+
+  @@index([scope_id])
+  @@index([organization_id])
+  @@map("scope_deferrals")
+}
+
+/// Scope-level audit log.
+model ScopeAuditLog {
+  id          String          @id @default(uuid()) @db.Uuid
+  scope_id    String          @db.Uuid
+  user_id     String?         @db.Uuid
+  action      String          /// create, add_item, remove_item, update_item, freeze, approve, close, change_request, defer, carry_forward, clone
+  entity_type String?         /// scope_item, change_request, deferral, package
+  entity_id   String?         @db.Uuid
+  old_value   String?
+  new_value   String?
+  notes       String?
+  created_at  DateTime        @default(now())
+  scope       ShutdownScope   @relation(fields: [scope_id], references: [id], onDelete: Cascade)
+
+  @@index([scope_id, created_at])
+  @@map("scope_audit_logs")
+}
+
+/// Logical grouping of scope items for handover.
+model ScopePackage {
+  id              String          @id @default(uuid()) @db.Uuid
+  organization_id String          @db.Uuid
+  scope_id        String          @db.Uuid
+  name            String          /// e.g. "Mechanical Package A", "Inspection — Vessels"
+  package_type    String          @default("discipline") /// discipline, area, contractor, risk, custom
+  discipline      String?
+  area            String?
+  contractor      String?
+  risk_level      String?
+  description     String?
+  estimated_hours Int             @default(0)
+  sort_order      Int             @default(0)
+  created_by      String          @db.Uuid
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  /// Relations
+  scope           ShutdownScope   @relation(fields: [scope_id], references: [id], onDelete: Cascade)
+  items           ScopeItem[]
+
+  @@index([scope_id])
+  @@unique([scope_id, name], name: "scope_package_name")
+  @@map("scope_packages")
+}
+
+/// Comparison snapshot between two shutdowns.
+model ScopeComparison {
+  id            String          @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  scope_a_id    String          @db.Uuid
+  scope_b_id    String          @db.Uuid
+  /// Summary counts
+  total_added   Int             @default(0)
+  total_removed Int             @default(0)
+  total_deferred Int            @default(0)
+  total_same    Int             @default(0)
+  /// Detail stored as JSON for flexible display
+  diff_detail   Json            @default("[]")
+  created_by    String          @db.Uuid
+  created_at    DateTime        @default(now())
+  /// Relations
+  scope_a       ShutdownScope   @relation("ScopeCompareA", fields: [scope_a_id], references: [id])
+  scope_b       ShutdownScope   @relation("ScopeCompareB", fields: [scope_b_id], references: [id])
+
+  @@index([organization_id])
+  @@map("scope_comparisons")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// M7.4 — WORKPACK INTELLIGENCE ENGINE
+// ═══════════════════════════════════════════════════════════════════════
+
+// MaintenanceStrategy REMOVED per ADR-0012.
+// Workpack Templates are the only reusable execution object.
+// See: docs/adr/ADR-0012-Workpack-Template-Architecture.md
+
+/// Workpack Instantiation — full traceability record for every workpack created via the Intelligence Engine.
+model WorkpackInstantiation {
+  id                    String             @id @default(uuid()) @db.Uuid
+  organization_id       String             @db.Uuid
+  /// Core references
+  workpack_id           String             @unique @db.Uuid
+  scope_item_id         String?            @db.Uuid
+  scope_id              String?            @db.Uuid
+  /// Template snapshot
+  template_id           String?            @db.Uuid
+  template_revision     Int?
+  template_family_id    String?            @db.Uuid
+  /// Asset context
+  asset_id              String?            @db.Uuid
+  event_id              String?            @db.Uuid
+  /// Scores (computed, cached)
+  readiness_score       Int                @default(0)
+  compliance_score      Int                @default(100)
+  readiness_detail      Json               @default("{}")
+  compliance_detail     Json               @default("{}")
+  /// AI context (advisory) — recommends templates only (ADR-0012)
+  ai_recommendations    Json               @default("{}")
+  ai_recommended_template String?
+  /// Materialization counts
+  activities_created    Int                @default(0)
+  resources_created     Int                @default(0)
+  materials_created     Int                @default(0)
+  certificates_created  Int                @default(0)
+  documents_attached    Int                @default(0)
+  /// Audit
+  instantiated_by       String             @db.Uuid
+  instantiated_at       DateTime           @default(now())
+  /// Relations
+  workpack              Workpack           @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+
+  @@index([scope_id])
+  @@index([scope_item_id])
+  @@index([organization_id])
+  @@map("workpack_instantiations")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// WORK TYPE MASTER & TEMPLATE FAMILY (ADR-0012)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Work Type Master — structured work classification for templates and reporting.
+/// Two-level taxonomy: Category (e.g. Mechanical) → Name (e.g. Bundle Pulling).
+/// Belongs to Planning, NOT Asset Integrity.
+model WorkType {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String?  @db.Uuid  /// null = platform-level
+  /// Two-level taxonomy
+  category        String   /// e.g. "Mechanical", "Rotating", "Valve", "Inspection"
+  name            String   /// e.g. "Bundle Pulling", "Pump Overhaul", "Hydro Test"
+  code            String   /// e.g. "MECH-BP", "ROT-PO", "VLV-HT"
+  description     String?
+  /// Ordering and status
+  sort_order      Int      @default(0)
+  is_active       Boolean  @default(true)
+  /// Audit
+  created_by      String?  @db.Uuid
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@unique([organization_id, code], name: "work_type_org_code")
+  @@index([organization_id, category])
+  @@map("work_types")
+}
+
+/// Template Family — groups related templates by equipment type and maintenance context.
+/// Example: "Heat Exchanger Maintenance" family contains Bundle Pulling, Retubing, etc.
+/// Planner workflow: Equipment → Equipment Type → Template Family → Template.
+model TemplateFamily {
+  id              String              @id @default(uuid()) @db.Uuid
+  organization_id String?             @db.Uuid  /// null = platform-level
+  /// Identity
+  name            String              /// e.g. "Heat Exchanger Maintenance"
+  code            String              /// e.g. "HX-MAINT"
+  description     String?
+  /// Equipment type linkage
+  equipment_type  String              /// e.g. "Heat Exchanger", "Centrifugal Pump"
+  /// Ordering and status
+  sort_order      Int                 @default(0)
+  is_active       Boolean             @default(true)
+  /// Audit
+  created_by      String?             @db.Uuid
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+  /// Relations
+  templates       workpack_templates[]
+
+  @@unique([organization_id, code], name: "template_family_org_code")
+  @@index([organization_id, equipment_type])
+  @@map("template_families")
 }

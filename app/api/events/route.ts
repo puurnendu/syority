@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { EventPlanningService } from '@/core/planning/EventPlanningService';
+import { isUuid } from '@/lib/uuid';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -25,6 +26,20 @@ export async function POST(req: NextRequest) {
 
     if (!name || !code || !site_id) {
       return NextResponse.json({ error: 'Name, code, and site_id are required' }, { status: 400 });
+    }
+
+    // Validate UUID format for all foreign key fields
+    if (!isUuid(site_id)) {
+      return NextResponse.json({ error: 'site_id must be a valid UUID' }, { status: 400 });
+    }
+    if (body.calendar_id && !isUuid(body.calendar_id)) {
+      return NextResponse.json({ error: 'calendar_id must be a valid UUID' }, { status: 400 });
+    }
+    if (body.discipline_id && !isUuid(body.discipline_id)) {
+      return NextResponse.json({ error: 'discipline_id must be a valid UUID' }, { status: 400 });
+    }
+    if (body.parent_event_id && !isUuid(body.parent_event_id)) {
+      return NextResponse.json({ error: 'parent_event_id must be a valid UUID' }, { status: 400 });
     }
 
     const event = await EventPlanningService.create(orgId, userId, {

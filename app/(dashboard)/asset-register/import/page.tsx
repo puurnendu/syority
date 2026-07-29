@@ -1,33 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { HierarchySelector, type HierarchySelection } from '@/components/hierarchy/HierarchySelector';
 
 export default function AssetImportPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [sites, setSites] = useState<any[]>([]);
-  const [units, setUnits] = useState<any[]>([]);
-  const [selectedSite, setSelectedSite] = useState('');
-  const [selectedUnit, setSelectedUnit] = useState('');
+  const [hierarchySelection, setHierarchySelection] = useState<Partial<HierarchySelection>>({
+    site_id: '', plant_id: '', area_id: '', unit_id: '',
+  });
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [result, setResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // We could fetch sites/units from an API, but for simplicity here we assume they're passed or we fetch them client side.
-  // We'll just provide placeholders or a simple fetch if we had a dedicated endpoint. 
-  // In a real implementation we'd use SWR or server components to pass down the sites.
-
   const handleUpload = async () => {
-    if (!file || !selectedSite || !selectedUnit) {
+    if (!file || !hierarchySelection.site_id || !hierarchySelection.unit_id) {
       setErrorMsg('Please select a file, site, and unit.');
       return;
     }
     
     setStatus('uploading');
+    setErrorMsg('');
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('site_id', selectedSite);
-    formData.append('unit_id', selectedUnit);
+    formData.append('site_id', hierarchySelection.site_id);
+    formData.append('unit_id', hierarchySelection.unit_id);
 
     try {
       const res = await fetch('/api/line-lists/import', {
@@ -60,24 +57,12 @@ export default function AssetImportPage() {
         <p className="text-sm text-gray-600 mb-6">Upload an Excel (.xlsx) file containing your Line List (Sheet 1) and Joint Masters (Sheet 2).</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Site ID</label>
-            <input 
-              type="text" 
-              placeholder="UUID of Site" 
-              className="w-full border-gray-300 rounded-md shadow-sm text-sm p-2 border"
-              value={selectedSite}
-              onChange={e => setSelectedSite(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Unit ID</label>
-            <input 
-              type="text" 
-              placeholder="UUID of Unit" 
-              className="w-full border-gray-300 rounded-md shadow-sm text-sm p-2 border"
-              value={selectedUnit}
-              onChange={e => setSelectedUnit(e.target.value)}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Hierarchy *</label>
+            <HierarchySelector
+              value={hierarchySelection}
+              onChange={setHierarchySelection}
+              requiredLevel="unit"
             />
           </div>
         </div>

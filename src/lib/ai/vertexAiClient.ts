@@ -16,7 +16,10 @@
 import { VertexAI, HarmBlockThreshold, HarmCategory } from '@google-cloud/vertexai';
 import { GoogleAuth } from 'google-auth-library';
 
-// ── Startup ADC check (runs once per cold-start) ──────────────────────────────
+// ── Lazy ADC check (runs once on first Vertex AI call) ────────────────────────
+//
+// Previously ran at module load — moved to lazy to prevent network calls
+// during `next build` or static generation.
 
 let _adcCheckDone = false;
 
@@ -41,8 +44,7 @@ async function checkADC(): Promise<void> {
     }
 }
 
-// Run the ADC check immediately on module load (non-blocking)
-checkADC();
+// ADC check is now invoked lazily inside callVertexAI() — NOT at module load.
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -131,6 +133,9 @@ function createVertexClient(projectId: string, location: string): VertexAI {
  * Authentication is handled via ADC — no API key required or accepted.
  */
 export async function callVertexAI(options: VertexAiCallOptions): Promise<string> {
+    // Lazy ADC check — runs once on first call, not at module load
+    await checkADC();
+
     const {
         model,
         prompt,

@@ -837,4 +837,375 @@ export class HierarchyService {
     await audit(orgId, userId, 'restored', 'Asset', id, old, updated);
     return updated;
   }
+
+  // ── Universal Hierarchy Methods ────────────────────────────────────────
+
+  /**
+   * Lazy-load one level of children for a parent entity.
+   * Returns only immediate children — not the full subtree.
+   */
+  static async loadChildren(
+    orgId: string,
+    level: HierarchyEntity,
+    parentId?: string
+  ): Promise<{ id: string; name: string; code?: string | null }[]> {
+    const where = { organization_id: orgId, deleted_at: null };
+    const select = { id: true, name: true, code: true };
+
+    switch (level) {
+      case 'site':
+        return prisma.site.findMany({ where, select, orderBy: { name: 'asc' } });
+      case 'plant':
+        if (!parentId) return [];
+        return prisma.plant.findMany({
+          where: { ...where, site_id: parentId },
+          select,
+          orderBy: { name: 'asc' },
+        });
+      case 'area':
+        if (!parentId) return [];
+        return prisma.area.findMany({
+          where: { ...where, plant_id: parentId },
+          select,
+          orderBy: { name: 'asc' },
+        });
+      case 'unit':
+        if (!parentId) return [];
+        // parentId can be a plant_id or area_id; detect by trying area first
+        const areaMatch = await prisma.area.findFirst({
+          where: { id: parentId, organization_id: orgId },
+          select: { id: true },
+        });
+        if (areaMatch) {
+          return prisma.unit.findMany({
+            where: { ...where, area_id: parentId },
+            select,
+            orderBy: { name: 'asc' },
+          });
+        }
+        return prisma.unit.findMany({
+          where: { ...where, plant_id: parentId },
+          select,
+          orderBy: { name: 'asc' },
+        });
+      case 'system':
+        if (!parentId) return [];
+        return prisma.system.findMany({
+          where: { ...where, unit_id: parentId },
+          select,
+          orderBy: { name: 'asc' },
+        });
+      case 'asset':
+        if (!parentId) return [];
+        // Asset uses tag_number instead of code
+        const assets = await prisma.asset.findMany({
+          where: { ...where, system_id: parentId },
+          select: { id: true, name: true, tag_number: true },
+          orderBy: { name: 'asc' },
+        });
+        return assets.map((a) => ({ id: a.id, name: a.name, code: a.tag_number }));
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Given an entity type and ID, return the full ancestry path from Site down.
+   */
+  static async loadPath(
+    orgId: string,
+    entityType: HierarchyEntity,
+    entityId: string
+  ): Promise<{ level: HierarchyEntity; id: string; name: string; code?: string | null }[]> {
+    const path: { level: HierarchyEntity; id: string; name: string; code?: string | null }[] = [];
+
+    if (entityType === 'asset') {
+      const asset = await prisma.asset.findFirst({
+        where: { id: entityId, organization_id: orgId },
+        select: { id: true, name: true, tag_number: true, system_id: true, site_id: true },
+      });
+      if (!asset) return [];
+      path.unshift({ level: 'asset', id: asset.id, name: asset.name, code: asset.tag_number });
+      if (asset.system_id) {
+        entityType = 'system';
+        entityId = asset.system_id;
+      } else {
+        // Derive site from site_id
+        const site = await prisma.site.findFirst({
+          where: { id: asset.site_id, organization_id: orgId },
+          select: { id: true, name: true, code: true },
+        });
+        if (site) path.unshift({ level: 'site', id: site.id, name: site.name, code: site.code });
+        return path;
+      }
+    }
+
+    if (entityType === 'system') {
+      const system = await prisma.system.findFirst({
+        where: { id: entityId, organization_id: orgId },
+        select: { id: true, name: true, code: true, unit_id: true },
+      });
+      if (!system) return path;
+      path.unshift({ level: 'system', id: system.id, name: system.name, code: system.code });
+      entityType = 'unit';
+      entityId = system.unit_id;
+    }
+
+    if (entityType === 'unit') {
+      const unit = await prisma.unit.findFirst({
+        where: { id: entityId, organization_id: orgId },
+        select: { id: true, name: true, code: true, plant_id: true, area_id: true },
+      });
+      if (!unit) return path;
+      path.unshift({ level: 'unit', id: unit.id, name: unit.name, code: unit.code });
+      if (unit.area_id) {
+        entityType = 'area';
+        entityId = unit.area_id;
+      } else {
+        entityType = 'plant';
+        entityId = unit.plant_id;
+      }
+    }
+
+    if (entityType === 'area') {
+      const area = await prisma.area.findFirst({
+        where: { id: entityId, organization_id: orgId },
+        select: { id: true, name: true, code: true, plant_id: true },
+      });
+      if (!area) return path;
+      path.unshift({ level: 'area', id: area.id, name: area.name, code: area.code });
+      entityType = 'plant';
+      entityId = area.plant_id;
+    }
+
+    if (entityType === 'plant') {
+      const plant = await prisma.plant.findFirst({
+        where: { id: entityId, organization_id: orgId },
+        select: { id: true, name: true, code: true, site_id: true },
+      });
+      if (!plant) return path;
+      path.unshift({ level: 'plant', id: plant.id, name: plant.name, code: plant.code });
+      entityType = 'site';
+      entityId = plant.site_id;
+    }
+
+    if (entityType === 'site') {
+      const site = await prisma.site.findFirst({
+        where: { id: entityId, organization_id: orgId },
+        select: { id: true, name: true, code: true },
+      });
+      if (site) path.unshift({ level: 'site', id: site.id, name: site.name, code: site.code });
+    }
+
+    return path;
+  }
+
+  /**
+   * Returns a formatted breadcrumb string: "Site > Plant > Area > Unit > System > Asset"
+   */
+  static async getBreadcrumb(orgId: string, entityType: HierarchyEntity, entityId: string): Promise<string> {
+    const path = await HierarchyService.loadPath(orgId, entityType, entityId);
+    return path.map((p) => p.code || p.name).join(' > ');
+  }
+
+  /**
+   * Formats a hierarchy path as "Site / Plant / Unit / System / Asset"
+   */
+  static formatPath(ancestors: { name: string }[]): string {
+    return ancestors.map((a) => a.name).join(' / ');
+  }
+
+  /**
+   * Cross-level search for hierarchy entities by name or code.
+   */
+  static async searchHierarchy(
+    orgId: string,
+    query: string,
+    levels?: HierarchyEntity[]
+  ): Promise<{ level: HierarchyEntity; id: string; name: string; code?: string | null }[]> {
+    const results: { level: HierarchyEntity; id: string; name: string; code?: string | null }[] = [];
+    const search = query.trim();
+    if (!search) return results;
+    const searchLevels = levels?.length ? levels : (['site', 'plant', 'area', 'unit', 'system', 'asset'] as HierarchyEntity[]);
+    const where = { organization_id: orgId, deleted_at: null };
+    const nameSearch = { contains: search, mode: 'insensitive' as const };
+
+    if (searchLevels.includes('site')) {
+      const items = await prisma.site.findMany({
+        where: { ...where, OR: [{ name: nameSearch }, { code: nameSearch }] },
+        select: { id: true, name: true, code: true },
+        take: 10,
+      });
+      results.push(...items.map((i) => ({ level: 'site' as const, ...i })));
+    }
+    if (searchLevels.includes('plant')) {
+      const items = await prisma.plant.findMany({
+        where: { ...where, OR: [{ name: nameSearch }, { code: nameSearch }] },
+        select: { id: true, name: true, code: true },
+        take: 10,
+      });
+      results.push(...items.map((i) => ({ level: 'plant' as const, ...i })));
+    }
+    if (searchLevels.includes('area')) {
+      const items = await prisma.area.findMany({
+        where: { ...where, OR: [{ name: nameSearch }, { code: nameSearch }] },
+        select: { id: true, name: true, code: true },
+        take: 10,
+      });
+      results.push(...items.map((i) => ({ level: 'area' as const, ...i })));
+    }
+    if (searchLevels.includes('unit')) {
+      const items = await prisma.unit.findMany({
+        where: { ...where, OR: [{ name: nameSearch }, { code: nameSearch }] },
+        select: { id: true, name: true, code: true },
+        take: 10,
+      });
+      results.push(...items.map((i) => ({ level: 'unit' as const, ...i })));
+    }
+    if (searchLevels.includes('system')) {
+      const items = await prisma.system.findMany({
+        where: { ...where, OR: [{ name: nameSearch }, { code: nameSearch }] },
+        select: { id: true, name: true, code: true },
+        take: 10,
+      });
+      results.push(...items.map((i) => ({ level: 'system' as const, ...i })));
+    }
+    if (searchLevels.includes('asset')) {
+      const items = await prisma.asset.findMany({
+        where: {
+          ...where,
+          OR: [{ name: nameSearch }, { tag_number: nameSearch }],
+        },
+        select: { id: true, name: true, tag_number: true },
+        take: 10,
+      });
+      results.push(...items.map((i) => ({ level: 'asset' as const, id: i.id, name: i.name, code: i.tag_number })));
+    }
+
+    return results;
+  }
+
+  /**
+   * Resolve human-readable names to IDs. Used by import engine.
+   */
+  static async resolveNamesToIds(
+    orgId: string,
+    names: { site?: string; plant?: string; area?: string; unit?: string; system?: string; asset?: string }
+  ): Promise<Record<string, string | null>> {
+    const result: Record<string, string | null> = {};
+
+    if (names.site) {
+      const site = await prisma.site.findFirst({
+        where: {
+          organization_id: orgId,
+          deleted_at: null,
+          OR: [{ name: names.site }, { code: names.site }],
+        },
+        select: { id: true },
+      });
+      result.site_id = site?.id ?? null;
+    }
+
+    if (names.plant && result.site_id) {
+      const plant = await prisma.plant.findFirst({
+        where: {
+          organization_id: orgId,
+          site_id: result.site_id,
+          deleted_at: null,
+          OR: [{ name: names.plant }, { code: names.plant }],
+        },
+        select: { id: true },
+      });
+      result.plant_id = plant?.id ?? null;
+    }
+
+    if (names.area && result.plant_id) {
+      const area = await prisma.area.findFirst({
+        where: {
+          organization_id: orgId,
+          plant_id: result.plant_id,
+          deleted_at: null,
+          OR: [{ name: names.area }, { code: names.area }],
+        },
+        select: { id: true },
+      });
+      result.area_id = area?.id ?? null;
+    }
+
+    if (names.unit && result.plant_id) {
+      const unitWhere: any = {
+        organization_id: orgId,
+        plant_id: result.plant_id,
+        deleted_at: null,
+        OR: [{ name: names.unit }, { code: names.unit }],
+      };
+      if (result.area_id) unitWhere.area_id = result.area_id;
+      const unit = await prisma.unit.findFirst({ where: unitWhere, select: { id: true } });
+      result.unit_id = unit?.id ?? null;
+    }
+
+    if (names.system && result.unit_id) {
+      const system = await prisma.system.findFirst({
+        where: {
+          organization_id: orgId,
+          unit_id: result.unit_id,
+          deleted_at: null,
+          OR: [{ name: names.system }, { code: names.system }],
+        },
+        select: { id: true },
+      });
+      result.system_id = system?.id ?? null;
+    }
+
+    if (names.asset && result.system_id) {
+      const asset = await prisma.asset.findFirst({
+        where: {
+          organization_id: orgId,
+          system_id: result.system_id,
+          deleted_at: null,
+          OR: [{ name: names.asset }, { tag_number: names.asset }],
+        },
+        select: { id: true },
+      });
+      result.asset_id = asset?.id ?? null;
+    }
+
+    return result;
+  }
+
+  /**
+   * Get tenant hierarchy settings (use_areas toggle).
+   */
+  static async getOrgSettings(orgId: string): Promise<{ use_areas: boolean }> {
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { feature_flags: true },
+    });
+    const flags = (org?.feature_flags as Record<string, unknown>) ?? {};
+    return { use_areas: flags.use_areas === true };
+  }
+
+  /**
+   * Update tenant hierarchy settings.
+   */
+  static async updateOrgSettings(
+    orgId: string,
+    userId: string,
+    settings: { use_areas?: boolean }
+  ): Promise<{ use_areas: boolean }> {
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { feature_flags: true },
+    });
+    const flags = (org?.feature_flags as Record<string, unknown>) ?? {};
+    const updated = { ...flags };
+    if (settings.use_areas !== undefined) updated.use_areas = settings.use_areas;
+
+    await prisma.organization.update({
+      where: { id: orgId },
+      data: { feature_flags: updated },
+    });
+    await audit(orgId, userId, 'updated', 'Organization', orgId, { feature_flags: flags }, { feature_flags: updated });
+    return { use_areas: updated.use_areas === true };
+  }
 }

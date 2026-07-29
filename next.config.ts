@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
     "@prisma/client",
     "@prisma/adapter-pg",
     "xlsx",
+    "ioredis",         // M7.5.1: prevent Redis bundling during build
+    "bullmq",          // M7.5.1: prevent BullMQ bundling during build
   ],
   logging: process.env.NODE_ENV === "development" ? false : undefined,
   experimental: {

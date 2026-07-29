@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { HierarchySelector, type HierarchySelection } from '@/components/hierarchy/HierarchySelector';
 
 export default function NewEventPage() {
   const [formData, setFormData] = useState({
@@ -19,21 +20,21 @@ export default function NewEventPage() {
     discipline_id: '',
     parent_event_id: '',
   });
-  const [sites, setSites] = useState<any[]>([]);
+  const [hierarchySelection, setHierarchySelection] = useState<Partial<HierarchySelection>>({ site_id: '' });
   const [calendars, setCalendars] = useState<any[]>([]);
   const [disciplines, setDisciplines] = useState<any[]>([]);
   const [parentEvents, setParentEvents] = useState<any[]>([]);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Sync hierarchy selection → formData.site_id
   useEffect(() => {
-    fetch('/api/admin/sites')
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => {
-        if (Array.isArray(data)) setSites(data);
-        else if (Array.isArray(data?.data)) setSites(data.data);
-      })
-      .catch(() => {});
+    if (hierarchySelection.site_id !== formData.site_id) {
+      setFormData((prev) => ({ ...prev, site_id: hierarchySelection.site_id || '' }));
+    }
+  }, [hierarchySelection.site_id]);
+
+  useEffect(() => {
 
     fetch('/api/settings/calendars')
       .then((res) => (res.ok ? res.json() : []))
@@ -148,32 +149,13 @@ export default function NewEventPage() {
                 <option value="closed">Closed</option>
               </select>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Site *</label>
-              {sites.length > 0 ? (
-                <select
-                  required
-                  value={formData.site_id}
-                  onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="">Select a Site...</option>
-                  {sites.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  required
-                  type="text"
-                  value={formData.site_id}
-                  onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  placeholder="Enter Site UUID"
-                />
-              )}
+              <HierarchySelector
+                value={hierarchySelection}
+                onChange={setHierarchySelection}
+                requiredLevel="site"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Calendar</label>

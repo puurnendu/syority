@@ -30,6 +30,14 @@ export type KnowledgeCaptureInput = {
   title: string;
   /** Raw tenant record — will be sanitized before persistence */
   payload: Record<string, unknown>;
+  /** Optional hierarchy context — enriches sanitized_payload for AI matching */
+  hierarchy?: {
+    industry?: string;
+    equipment_type?: string;
+    equipment_category?: string;
+    discipline?: string;
+    hierarchy_path?: string;
+  };
 };
 
 export type AiRecommendation = 'NEW' | 'MERGE' | 'DUPLICATE' | 'REJECT';

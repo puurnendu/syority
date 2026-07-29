@@ -25,6 +25,15 @@ export class KnowledgeCaptureService {
       if ((org?.tenant_type || '').toLowerCase() === 'platform') return;
 
       const sanitized = sanitizeObject(input.payload);
+      // Enrich with hierarchy metadata for better AI matching
+      if (input.hierarchy) {
+        const h = input.hierarchy;
+        if (h.equipment_type) (sanitized as any)._equipment_type = h.equipment_type;
+        if (h.equipment_category) (sanitized as any)._equipment_category = h.equipment_category;
+        if (h.discipline) (sanitized as any)._discipline = h.discipline;
+        if (h.industry) (sanitized as any)._industry = h.industry;
+        if (h.hierarchy_path) (sanitized as any)._hierarchy_path = h.hierarchy_path;
+      }
       const title = (input.title || 'Untitled').trim().slice(0, 240);
       const hash = contentHash(input.category, title, sanitized);
       const orgHash = hashOrgId(input.organizationId);

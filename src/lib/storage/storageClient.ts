@@ -4,15 +4,34 @@ import { writeFile, mkdir, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 
-const USE_S3 = process.env.STORAGE_PROVIDER === 's3';
+// ── Lazy S3 Client ──────────────────────────────────────────────────────────
+//
+// S3 client is created on first use, not at import time.
+// This prevents AWS SDK initialization during `next build`.
 
-const s3 = USE_S3 ? new S3Client({
-  region: process.env.AWS_REGION ?? 'ap-south-1',
-  credentials: {
-    accessKeyId:     process.env.AWS_ACCESS_KEY_ID ?? '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
-  },
-}) : null;
+let _s3: S3Client | null | undefined; // undefined = not yet checked; null = not using S3
+
+function getS3Client(): S3Client | null {
+  if (_s3 !== undefined) return _s3;
+
+  if (process.env.STORAGE_PROVIDER !== 's3') {
+    _s3 = null;
+    return null;
+  }
+
+  _s3 = new S3Client({
+    region: process.env.AWS_REGION ?? 'ap-south-1',
+    credentials: {
+      accessKeyId:     process.env.AWS_ACCESS_KEY_ID ?? '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+    },
+  });
+  return _s3;
+}
+
+function useS3(): boolean {
+  return process.env.STORAGE_PROVIDER === 's3';
+}
 
 export const BUCKET = process.env.AWS_S3_BUCKET ?? '';
 
@@ -33,7 +52,8 @@ export async function uploadFile(
   mimeType: string
 ): Promise<UploadResult> {
 
-  if (USE_S3 && s3) {
+  const s3 = getS3Client();
+  if (useS3() && s3) {
     const key = `${folder}/${filename}`;
     await s3.send(new PutObjectCommand({
       Bucket:       BUCKET,
@@ -73,7 +93,8 @@ export async function uploadFile(
  * Delete a file from S3 or local filesystem.
  */
 export async function deleteFile(key: string): Promise<void> {
-  if (USE_S3 && s3) {
+  const s3 = getS3Client();
+  if (useS3() && s3) {
     await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
     return;
   }
@@ -87,7 +108,8 @@ export async function deleteFile(key: string): Promise<void> {
  * For public objects, just use the direct URL.
  */
 export async function getSignedDownloadUrl(key: string, expiresInSeconds = 3600): Promise<string> {
-  if (!USE_S3 || !s3) return `/api/files?key=${encodeURIComponent(key)}`; // Local: return proxy URL
+  const s3 = getS3Client();
+  if (!useS3() || !s3) return `/api/files?key=${encodeURIComponent(key)}`; // Local: return proxy URL
 
   const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
   return getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
@@ -97,7 +119,8 @@ export async function getSignedDownloadUrl(key: string, expiresInSeconds = 3600)
  * Generate a signed URL for uploading objects to S3.
  */
 export async function getPresignedPutUrl(key: string, mimeType: string, expiresInSeconds = 3600): Promise<string> {
-  if (!USE_S3 || !s3) {
+  const s3 = getS3Client();
+  if (!useS3() || !s3) {
     // Local fallback: point to an API route that will handle the file write
     return `/api/files/upload?key=${encodeURIComponent(key)}&mimeType=${encodeURIComponent(mimeType)}`;
   }

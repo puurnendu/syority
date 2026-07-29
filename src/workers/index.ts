@@ -1,11 +1,22 @@
 /**
  * Worker process entry point.
+ *
+ * Workers are created via factory functions — nothing is instantiated
+ * at import time. This file is the ONLY place that calls the factories.
+ *
+ * Start with:  tsx src/workers/index.ts
+ * Or via npm:  npm run worker
  */
 
 import 'dotenv/config';
-import { scheduleRecalculateWorker } from './scheduleRecalculateWorker';
-import { reportDeliveryWorker } from './reportDeliveryWorker';
-import { knowledgeEngineWorker } from './knowledgeEngineWorker';
+import { createScheduleRecalculateWorker } from './scheduleRecalculateWorker';
+import { createReportDeliveryWorker } from './reportDeliveryWorker';
+import { createKnowledgeEngineWorker } from './knowledgeEngineWorker';
+
+// Create all workers — this is the only place where Redis/BullMQ connects
+const scheduleRecalculateWorker = createScheduleRecalculateWorker();
+const reportDeliveryWorker = createReportDeliveryWorker();
+const knowledgeEngineWorker = createKnowledgeEngineWorker();
 
 console.log('[Workers] Schedule recalculate worker started');
 console.log('[Workers] Report delivery worker started');

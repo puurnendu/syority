@@ -56,6 +56,15 @@ export class EventPlanningService {
     discipline_id?: string | null;
     parent_event_id?: string | null;
   }) {
+    // Enforce tenant-scoped uniqueness on event code
+    const existing = await prisma.event.findFirst({
+      where: { organization_id: organizationId, code: data.code, deleted_at: null },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new Error(`Event code "${data.code}" already exists in this organization`);
+    }
+
     return prisma.event.create({
       data: {
         id: randomUUID(),

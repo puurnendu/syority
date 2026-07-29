@@ -44,6 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const isContractorTenant = tenantType === 'contractor';
 
     const planningItems = [
+        { href: '/planner-workspace', label: '🎯 Planner Workspace' },
         { href: '/events', label: 'Events / TAs' },
         { href: '/planning/templates', label: 'Workpack Templates' },
         { href: '/planning/units', label: 'Units' },
@@ -53,6 +54,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         { href: '/schedule', label: 'Execution Schedule' },
         { href: '/imported-schedule', label: 'Baseline Schedule' },
         { href: '/asset-register', label: 'Asset Register' },
+        { href: '/digital-plant', label: '🏭 Digital Plant' },
+        { href: '/engineering-issues', label: '🔧 Scope Intelligence' },
+        { href: '/shutdown-scope', label: '📋 Shutdown Scope' },
+        { href: '/workpack-intelligence', label: '⚡ Workpack Intelligence' },
     ].filter((item) => {
         // Feature flags
         if (item.href === '/asset-register' && !isFeat('ASSET_REGISTER')) return false;
@@ -67,6 +72,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         }
         if (item.href === '/planning/units') return hasPermission(role, 'unit:view');
         if (item.href === '/planning/systems') return hasPermission(role, 'system:view');
+        if (item.href === '/digital-plant') return hasPermission(role, 'asset.view');
+        if (item.href === '/engineering-issues') return hasPermission(role, 'asset.view');
         if (item.href === '/schedule' || item.href === '/imported-schedule') return hasPermission(role, 'workpacks.view');
         return hasPermission(role, 'workpacks.view');
     });

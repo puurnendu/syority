@@ -8,6 +8,10 @@ export async function register() {
         return;
     }
 
+    // ── M7.5.1: Validate required configuration at startup ────────────────────
+    const { validateRequiredConfig } = await import('@/lib/configValidator');
+    validateRequiredConfig();
+
     // Dynamic imports keep Node-only deps out of the Edge instrumentation graph
     const { eventBus } = await import('@/lib/eventBus');
     const { registerEventSubscribers } = await import('@/lib/eventSubscribers');

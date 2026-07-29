@@ -1,0 +1,264 @@
+# M7.4 — Workpack Intelligence Engine
+
+Transform approved Shutdown Scope Items into executable Workpacks using Company Library governance.
+
+## Audit Findings
+
+### Already Implemented (DO NOT DUPLICATE)
+| Component | Location | Status |
+|-----------|----------|--------|
+| `Workpack` model | [schema.prisma:72](file:///c:/DEV/STO/prisma/schema.prisma#L72) | ✅ Full model with 25+ fields |
+| `Activity` model | [schema.prisma:9](file:///c:/DEV/STO/prisma/schema.prisma#L9) | ✅ Complete with scheduling fields |
+| `WorkpackService` | [WorkpackService.ts](file:///c:/DEV/STO/src/modules/Workpack/Services/WorkpackService.ts) | ✅ CRUD, numbering, list |
+| `TemplateLibraryService.instantiate()` | [TemplateLibraryService.ts:535](file:///c:/DEV/STO/src/core/planning/TemplateLibraryService.ts#L535) | ✅ Creates workpack + activities from template |
+| `workpack_templates` model | [schema.prisma:2740](file:///c:/DEV/STO/prisma/schema.prisma#L2740) | ✅ With JSON sections (resources, materials, safety, qaqc) |
+| `workpack_template_activities` | [schema.prisma:2709](file:///c:/DEV/STO/prisma/schema.prisma#L2709) | ✅ Template activity definitions |
+| `ActivityResource` | [schema.prisma:230](file:///c:/DEV/STO/prisma/schema.prisma#L230) | ✅ Activity-level resource assignments |
+| `WorkpackMaterial` | [schema.prisma:1590](file:///c:/DEV/STO/prisma/schema.prisma#L1590) | ✅ Material tracking per workpack |
+| `CertificateInstance` | [schema.prisma:1678](file:///c:/DEV/STO/prisma/schema.prisma#L1678) | ✅ Certificate instances per workpack |
+| `certificate_templates` | [schema.prisma:1709](file:///c:/DEV/STO/prisma/schema.prisma#L1709) | ✅ Certificate template library |
+| `DocumentInstance` | [schema.prisma:692](file:///c:/DEV/STO/prisma/schema.prisma#L692) | ✅ Document pages per workpack |
+| `FormInstance` / `FormTemplate` | [schema.prisma:772](file:///c:/DEV/STO/prisma/schema.prisma#L772) | ✅ Form system |
+| `WorkpackDocument` | [schema.prisma:1563](file:///c:/DEV/STO/prisma/schema.prisma#L1563) | ✅ Document attachments |
+| `Resource` / `ResourceType` | [schema.prisma:1167](file:///c:/DEV/STO/prisma/schema.prisma#L1167) | ✅ Company resource library |
+| `ShutdownScope` + `ScopeItem` | [schema.prisma:3574](file:///c:/DEV/STO/prisma/schema.prisma#L3574) | ✅ M7.3 complete |
+| `autoAttachCertificates` | [route.ts:9](file:///c:/DEV/STO/app/api/workpacks/route.ts#L9) | ✅ Existing cert auto-attach |
+| Workpack CRUD pages | [workpacks/](file:///c:/DEV/STO/app/(dashboard)/workpacks) | ✅ List, create, detail pages |
+
+### Missing (M7.4 Must Build)
+| Component | Priority |
+|-----------|----------|
+| **Maintenance Strategy Library** | CRITICAL — new model + CRUD |
+| **Scope-to-Workpack enforcement** | CRITICAL — workpacks must originate from scope |
+| **Template instantiation with full library materialization** | CRITICAL — materials, resources, certs from template JSON |
+| **Readiness Score** | HIGH — computed per workpack |
+| **Compliance Score** | HIGH — template vs instantiated delta |
+| **Document Intelligence** | HIGH — auto-attach from asset documents |
+| **Traceability chain** | HIGH — scope→strategy→template→workpack |
+| **AI Assistance** | MEDIUM — recommendation engine |
+| **Workpack Intelligence Dashboard** | MEDIUM — filtered scope-aware dashboard |
+| **Audit logging** | HIGH — instantiation, changes, compliance |
+
+---
+
+## Proposed Changes
+
+### Component 1 — Prisma Schema
+
+#### [MODIFY] [schema.prisma](file:///c:/DEV/STO/prisma/schema.prisma)
+
+**New Models:**
+
+1. **`MaintenanceStrategy`** — Reusable library of maintenance approaches
+   - `id`, `organization_id`, `name`, `code`, `description`
+   - `equipment_types` (String[]), `maintenance_category`, `industry_codes` (String[])
+   - `default_template_id` (FK → workpack_templates)
+   - `estimated_duration_hours`, `estimated_crew_size`
+   - `knowledge_source`, `revision`, `approval_status`
+   - `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`
+   - Index: `[organization_id, code]`, `[organization_id, equipment_types]`
+
+2. **`WorkpackInstantiation`** — Full traceability record per workpack
+   - `id`, `organization_id`, `workpack_id` (unique FK → Workpack)
+   - `scope_item_id` (FK → ScopeItem)
+   - `scope_id` (FK → ShutdownScope)
+   - `strategy_id` (FK → MaintenanceStrategy)
+   - `template_id`, `template_revision`, `template_family_id`
+   - `asset_id`, `event_id`
+   - `readiness_score`, `compliance_score`
+   - `readiness_detail` (Json), `compliance_detail` (Json)
+   - `ai_recommendations` (Json)
+   - `instantiated_by`, `instantiated_at`
+   - Index: `[scope_id]`, `[scope_item_id]`, `[workpack_id]`
+
+**Modified Models:**
+
+3. **`ScopeItem`** — Add `workpack_id` (nullable FK to track which workpack was created)
+4. **`Workpack`** — Add `scope_item_id` (nullable FK), `strategy_id` (nullable FK), `readiness_score` (Int, default 0), `compliance_score` (Int, default 0)
+
+> [!IMPORTANT]
+> We do NOT remove the existing direct workpack creation path. M7.4 adds the **scope-gated** creation path. Legacy workpacks (pre-scope) remain valid. The Intelligence Engine is the **recommended** path.
+
+---
+
+### Component 2 — Maintenance Strategy Library
+
+#### [NEW] [MaintenanceStrategyService.ts](file:///c:/DEV/STO/src/core/workpack-intelligence/MaintenanceStrategyService.ts)
+
+- `createStrategy()` — Company admin creates strategy
+- `listStrategies()` — Filter by equipment_type, category, approval_status
+- `getStrategy()` — With linked template details
+- `updateStrategy()` — Admin edits, revision tracking
+- `approveStrategy()` — Sets approval_status = 'approved'
+- `deprecateStrategy()` — Soft-disable
+- `matchForAsset()` — Given asset type → return matching strategies
+
+---
+
+### Component 3 — Workpack Intelligence Engine (Core)
+
+#### [NEW] [WorkpackIntelligenceService.ts](file:///c:/DEV/STO/src/core/workpack-intelligence/WorkpackIntelligenceService.ts)
+
+The central engine. Methods:
+
+- `instantiateFromScope()` — **The main entry point**
+  1. Validates scope item is from an approved/frozen scope
+  2. Validates strategy is approved
+  3. Validates template is PUBLISHED
+  4. Calls existing `TemplateLibraryService.instantiate()` to create workpack + activities
+  5. Materializes resources from `resources_json`
+  6. Materializes materials from `materials_json`
+  7. Materializes certificates from `qaqc_json` + `certificate_templates`
+  8. Materializes documents from `references_json`
+  9. Auto-attaches asset documents (P&ID, OEM, datasheets)
+  10. Creates `WorkpackInstantiation` traceability record
+  11. Computes initial readiness + compliance scores
+  12. Links `ScopeItem.workpack_id` back
+  13. Audit log
+
+- `bulkInstantiate()` — Multiple scope items at once (batch)
+
+---
+
+### Component 4 — Readiness Score Engine
+
+#### [NEW] [ReadinessScoreService.ts](file:///c:/DEV/STO/src/core/workpack-intelligence/ReadinessScoreService.ts)
+
+Computes readiness as % of 12 checklist items:
+
+| Criterion | Weight | Check |
+|-----------|--------|-------|
+| Template Selected | 8% | `workpack.template_id` not null |
+| Activities Generated | 10% | Activity count > 0 |
+| Documents Attached | 8% | WorkpackDocument count > 0 |
+| Resources Assigned | 10% | ActivityResource count > 0 |
+| Materials Available | 10% | WorkpackMaterial with status != 'pending' |
+| QA Package | 8% | qa_clearance or FormInstance exists |
+| Certificates | 8% | CertificateInstance count matches template |
+| Permits | 8% | Relevant form/cert for permits |
+| Isolation Plan | 8% | Blind records exist |
+| Execution Calendar | 8% | planned_start_date and planned_end_date set |
+| Crew Assigned | 7% | Resources with headcount > 0 |
+| Approval | 7% | approval_status = 'approved' |
+
+Methods:
+- `computeReadiness(workpackId)` → `{ score: number, detail: {...} }`
+- `batchComputeReadiness(scopeId)` → all workpacks for a scope
+
+---
+
+### Component 5 — Compliance Score Engine
+
+#### [NEW] [ComplianceScoreService.ts](file:///c:/DEV/STO/src/core/workpack-intelligence/ComplianceScoreService.ts)
+
+Compares instantiated workpack against originating template:
+
+| Tracked Deviation | Severity |
+|-------------------|----------|
+| Activities Added | Minor |
+| Activities Removed | Critical |
+| QA Removed | Critical |
+| Certificates Removed | Critical |
+| Materials Changed | Minor |
+| Safety Requirements Changed | Critical |
+| Resources Changed | Minor |
+
+Methods:
+- `computeCompliance(workpackId)` → `{ score: number, critical: [], minor: [] }`
+- `listDeviations(workpackId)` → detailed deviation list
+
+---
+
+### Component 6 — Document Intelligence
+
+#### [NEW] [DocumentIntelligenceService.ts](file:///c:/DEV/STO/src/core/workpack-intelligence/DocumentIntelligenceService.ts)
+
+Auto-attach documents from asset's linked documents:
+- P&ID, OEM Manual, Datasheet, Inspection Report
+- Previous Workpacks (from same asset)
+- Vendor Manual, Photographs
+- Lessons Learned, Maintenance History
+
+Methods:
+- `autoAttachDocuments(workpackId)` — scans `AssetDocumentLink`, `LessonLearned`, previous workpacks
+- `identifyMissing(workpackId)` — returns list of expected but missing document types
+
+---
+
+### Component 7 — AI Assistance
+
+#### [NEW] [WorkpackAiService.ts](file:///c:/DEV/STO/src/core/workpack-intelligence/WorkpackAiService.ts)
+
+AI may:
+- Recommend template (based on asset type + issue description)
+- Recommend maintenance strategy
+- Identify missing documents
+- Highlight previous lessons learned
+- Highlight similar past workpacks
+- Highlight previous delays
+
+AI SHALL NEVER: generate activities, modify templates, modify scope.
+
+---
+
+### Component 8 — API Routes (24 endpoints)
+
+All under `/api/workpack-intelligence/`:
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/strategies` | GET, POST | List/create maintenance strategies |
+| `/strategies/[id]` | GET, PUT | Get/update strategy |
+| `/strategies/[id]/approve` | POST | Approve strategy |
+| `/strategies/[id]/match` | POST | Match strategy for asset |
+| `/instantiate` | POST | Create workpack from scope item |
+| `/instantiate/bulk` | POST | Batch instantiate |
+| `/workpacks/[id]/readiness` | GET | Get readiness score |
+| `/workpacks/[id]/compliance` | GET | Get compliance score |
+| `/workpacks/[id]/documents/auto-attach` | POST | Auto-attach documents |
+| `/workpacks/[id]/documents/missing` | GET | Missing documents list |
+| `/workpacks/[id]/ai/recommend-template` | POST | AI template recommendation |
+| `/workpacks/[id]/ai/recommend-strategy` | POST | AI strategy recommendation |
+| `/workpacks/[id]/ai/missing` | POST | AI missing data analysis |
+| `/workpacks/[id]/ai/similar` | GET | Similar past workpacks |
+| `/scopes/[scopeId]/intelligence-dashboard` | GET | Intelligence dashboard |
+| `/scopes/[scopeId]/readiness-report` | GET | Readiness report |
+| `/scopes/[scopeId]/compliance-report` | GET | Compliance report |
+
+---
+
+### Component 9 — UI Pages (4 pages)
+
+| Page | Path | Description |
+|------|------|-------------|
+| **Intelligence Dashboard** | `/workpack-intelligence` | Overview of all workpacks by scope with readiness/compliance |
+| **Instantiate Wizard** | `/workpack-intelligence/instantiate/[scopeItemId]` | Step-by-step: Strategy → Template → Review → Instantiate |
+| **Readiness Detail** | `/workpack-intelligence/[workpackId]/readiness` | Checklist view of readiness criteria |
+| **Strategy Library** | `/workpack-intelligence/strategies` | CRUD for maintenance strategies |
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Q1: Legacy workpack creation** — Should the existing direct workpack creation (`POST /api/workpacks`) remain available, or should it be disabled/gated once M7.4 is active? My recommendation: keep it available but add a soft warning in the UI.
+
+> [!IMPORTANT]
+> **Q2: Planner-editable fields** — The spec says planners SHALL NOT edit Activity Structure, QA Structure, Certificate Definitions, etc. Should we enforce this with a `is_template_locked` flag on those records, or rely on UI-level restrictions?
+
+## Verification Plan
+
+### Automated Tests
+- Validate schema: `npx prisma validate`
+- Generate client: `npx prisma generate`
+
+### Manual Verification
+1. Create a Maintenance Strategy → Approve it
+2. From a frozen ScopeItem → select Strategy → select Template → Instantiate
+3. Verify activities, materials, resources, certificates are created from template
+4. Verify readiness score computes correctly
+5. Verify compliance score detects deviations
+6. Verify document auto-attach from asset links
+7. Verify traceability chain: ScopeItem → Strategy → Template → Workpack
+8. Verify AI recommendations (template + strategy)
+9. Verify planner can only edit planning parameters

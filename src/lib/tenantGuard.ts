@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
  * Use this in every API route that reads a resource by ID.
  */
 export async function assertTenantAccess(
-  resource: 'workpack' | 'project' | 'equipment' | 'activity' | 'permit' | 'punchItem' | 'constraint',
+  resource: 'workpack' | 'project' | 'equipment' | 'asset' | 'activity' | 'permit' | 'punchItem' | 'constraint',
   resourceId: string,
   organizationId: string
 ): Promise<void> {
@@ -26,8 +26,9 @@ export async function assertTenantAccess(
       }));
       break;
     case 'equipment':
-      found = !!(await prisma.equipment.findFirst({
-        where: { id: resourceId, project: { orgId: organizationId } },
+    case 'asset':
+      found = !!(await prisma.asset.findFirst({
+        where: { id: resourceId, organization_id: organizationId },
         select: { id: true },
       }));
       break;
