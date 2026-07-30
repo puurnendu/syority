@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendEmail } from '@/lib/email/emailService';
-import { passwordResetEmail } from '@/lib/email/templates';
+import { processEvent } from '@/core/notifications';
 import { appUrl } from '@/lib/appUrl';
 import crypto from 'crypto';
 
@@ -35,19 +34,22 @@ export async function POST(req: Request) {
             },
         });
 
-        // Send email
+        // Send via notification platform
         const resetUrl = appUrl(`/auth/reset-password?token=${token}`);
         
-        await sendEmail({
-            to: user.email,
-            subject: 'AURIANOA OS — Password Reset Request',
-            html: passwordResetEmail({
-                userName: user.name,
-                orgName: user.organization.name,
-                resetUrl: resetUrl,
-                expiresIn: '1 hour',
-            }),
-        }).catch(err => console.error('[Forgot Password] Email failed:', err));
+        await processEvent('password.reset', {
+            organizationId: user.organization_id ?? undefined,
+            triggeredBy: user.id,
+            entityType: 'User',
+            entityId: user.id,
+            variables: {
+                user_name: user.name,
+                company: user.organization?.name ?? 'AURIANOA OS',
+                reset_link: resetUrl,
+                expires_in: '1 hour',
+                app_url: appUrl('/'),
+            },
+        }).catch(err => console.error('[Forgot Password] Notification failed:', err));
 
         return NextResponse.json({ message: 'If an account exists with this email, a reset link has been sent.' });
     } catch (error) {

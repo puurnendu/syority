@@ -1000,6 +1000,9 @@ model Organization {
   issue_batches          IssueBatch[]
   engineering_issues     EngineeringIssue[]
   shutdown_scopes        ShutdownScope[]
+  recommendations        bre_recommendations[]
+  license                platform_licenses?
+  org_modules            organization_modules[]
 
   @@index([is_active])
 }
@@ -3032,11 +3035,18 @@ enum WorkflowAction {
 }
 
 model FeatureFlag {
-  key         String   @id
-  isEnabled   Boolean  @default(true)
-  description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  key                 String   @id
+  isEnabled           Boolean  @default(true)
+  description         String?
+  /// M7.6G — Enhanced Feature Flags
+  scope               String   @default("global")            /// global | organization | role | user | environment
+  rollout_percentage  Int?                                   /// 0-100 for percentage rollout
+  expires_at          DateTime?                              /// Auto-disable after this date
+  dependencies        Json?                                  /// ["other_flag_key", ...] — required flags
+  environment         String   @default("all")               /// all | production | beta | development
+  metadata            Json?                                  /// Arbitrary context
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
 
   TenantFeature TenantFeature[]
 
@@ -3933,4 +3943,1611 @@ model TemplateFamily {
   @@unique([organization_id, code], name: "template_family_org_code")
   @@index([organization_id, equipment_type])
   @@map("template_families")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M7.6 — Notification & Communication Platform
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Notification Provider — SMTP, SES, SendGrid, M365, etc.
+/// Platform-wide: no org scope. Only one may be the default.
+model notification_providers {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String                    /// "Corporate SMTP", "SendGrid Prod"
+  provider_type     String                    /// smtp | ses | sendgrid | m365 | mailgun | smtp_relay
+  is_default        Boolean   @default(false)
+  is_enabled        Boolean   @default(true)
+  /// SMTP fields
+  smtp_host         String?
+  smtp_port         Int?      @default(587)
+  smtp_secure       Boolean?  @default(false)
+  smtp_username     String?
+  smtp_password_enc String?                   /// Encrypted via @/lib/encryption
+  /// General sender
+  from_name         String?   @default("AURIANOA OS")
+  from_email        String?
+  reply_to          String?
+  /// Reliability
+  timeout_ms        Int?      @default(30000)
+  max_retries       Int?      @default(3)
+  /// Future: OAuth / API key fields
+  api_key_enc       String?                   /// Encrypted
+  oauth_config      Json?                     /// { tenant_id, client_id, ... }
+  /// Audit
+  created_by        String?   @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  delivery_logs     notification_delivery_logs[]
+  queue_items       notification_queue[]
+
+  @@index([is_default, is_enabled])
+}
+
+/// Notification Template — reusable email/SMS templates with variable substitution.
+model notification_templates {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug              String    @unique         /// "password-reset", "workpack-approved"
+  category          String                    /// authentication | planning | execution | reports | platform
+  name              String                    /// "Password Reset"
+  subject           String                    /// "Reset your password for {{company}}"
+  html_body         String                    /// Full HTML with {{variable}} placeholders
+  text_body         String?                   /// Plain text fallback
+  variables         Json      @default("[]")  /// ["user_name", "reset_link", "company"]
+  version           Int       @default(1)
+  is_active         Boolean   @default(true)
+  /// Audit
+  created_by        String?   @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  rules             notification_rules[]
+  queue_items       notification_queue[]
+  delivery_logs     notification_delivery_logs[]
+
+  @@index([category, is_active])
+  @@index([slug])
+}
+
+/// Notification Rule — maps events to templates + channels + recipients.
+/// Platform-wide rules have organization_id = null.
+model notification_rules {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String                    /// "Workpack Approved → Email Planner"
+  event_type        String                    /// workpack.approved | qa.assigned | password.reset
+  channel           String    @default("email") /// email | sms | whatsapp | teams | push | webhook
+  template_id       String    @db.Uuid
+  is_enabled        Boolean   @default(true)
+  organization_id   String?   @db.Uuid        /// null = platform-wide rule
+  /// Conditions (future: JSON conditions engine)
+  conditions        Json?                     /// { "workpack_type": "mechanical" }
+  /// Audit
+  created_by        String?   @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  template          notification_templates    @relation(fields: [template_id], references: [id])
+  recipients        notification_rule_recipients[]
+
+  @@index([event_type, is_enabled])
+  @@index([organization_id])
+}
+
+/// Recipients attached to a notification rule.
+model notification_rule_recipients {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_id           String    @db.Uuid
+  recipient_type    String                    /// user | role | group | email | actor
+  recipient_value   String                    /// userId | "planner" | groupId | "john@co.com" | "triggered_by"
+  /// Relations
+  rule              notification_rules        @relation(fields: [rule_id], references: [id], onDelete: Cascade)
+
+  @@index([rule_id])
+}
+
+/// Reusable recipient groups: "Planning Team", "Shutdown Management", etc.
+model notification_recipient_groups {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String                    /// "Planning Team", "Shutdown Management"
+  description       String?
+  organization_id   String?   @db.Uuid        /// null = platform-wide group
+  members           Json      @default("[]")  /// [{ type: "user"|"role"|"email", value: "..." }]
+  is_active         Boolean   @default(true)
+  /// Audit
+  created_by        String?   @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([organization_id, is_active])
+}
+
+/// Notification Queue — items waiting for delivery.
+model notification_queue {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id       String?   @db.Uuid
+  template_id       String?   @db.Uuid
+  channel           String    @default("email")
+  recipient_email   String?
+  recipient_name    String?
+  subject           String
+  html_body         String
+  text_body         String?
+  variables         Json?                     /// Resolved template variables
+  attachments       Json?                     /// [{ filename, content_base64, mime_type }]
+  status            String    @default("pending") /// pending | sending | sent | delivered | failed | retrying | cancelled
+  priority          Int       @default(5)     /// 1=highest, 10=lowest
+  attempts          Int       @default(0)
+  max_attempts      Int       @default(3)
+  last_error        String?
+  smtp_response     String?
+  scheduled_for     DateTime?                 /// For delayed / scheduled sends
+  sent_at           DateTime?
+  /// Context
+  organization_id   String?   @db.Uuid
+  triggered_by      String?   @db.Uuid
+  event_type        String?                   /// The event that triggered this
+  entity_type       String?                   /// "Workpack", "User", etc.
+  entity_id         String?   @db.Uuid
+  /// Audit
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  provider          notification_providers?   @relation(fields: [provider_id], references: [id])
+  template          notification_templates?   @relation(fields: [template_id], references: [id])
+
+  @@index([status, scheduled_for])
+  @@index([organization_id, status])
+  @@index([created_at])
+}
+
+/// Auditable delivery log — one row per recipient per send attempt.
+model notification_delivery_logs {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  queue_item_id     String?   @db.Uuid
+  provider_id       String?   @db.Uuid
+  template_id       String?   @db.Uuid
+  channel           String    @default("email")
+  recipient_email   String?
+  recipient_name    String?
+  subject           String
+  status            String                    /// sent | delivered | failed | bounced
+  attempts          Int       @default(1)
+  smtp_response     String?
+  message_id        String?                   /// SMTP Message-ID
+  failure_reason    String?
+  has_attachments   Boolean   @default(false)
+  /// Context
+  organization_id   String?   @db.Uuid
+  event_type        String?
+  entity_type       String?
+  entity_id         String?   @db.Uuid
+  /// Timing
+  sent_at           DateTime  @default(now())
+  delivered_at      DateTime?
+  /// Retention
+  expires_at        DateTime?                 /// Auto-cleanup after retention period
+  /// Relations
+  provider          notification_providers?   @relation(fields: [provider_id], references: [id])
+  template          notification_templates?   @relation(fields: [template_id], references: [id])
+
+  @@index([organization_id, sent_at])
+  @@index([status])
+  @@index([recipient_email])
+  @@index([event_type])
+  @@index([expires_at])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M7.6A — Enterprise Report Builder
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Report Category — top-level grouping (Planning, Shutdown, Execution, Management, Platform).
+model report_categories {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String    @unique         /// "Planning", "Shutdown", "Execution", etc.
+  slug              String    @unique         /// "planning", "shutdown", "execution"
+  description       String?
+  icon              String?                   /// Emoji or icon class
+  sort_order        Int       @default(0)
+  is_active         Boolean   @default(true)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  definitions       report_definitions[]
+}
+
+/// Report Definition — metadata-driven report definition.
+/// Each definition describes what data to fetch, what sections to show, and what parameters to accept.
+model report_definitions {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_id       String    @db.Uuid
+  slug              String    @unique         /// "lookahead-24h", "executive-dashboard"
+  name              String                    /// "24 Hour Look Ahead"
+  description       String?                   /// User-facing description
+  data_source_key   String                    /// Registry key: "planning.lookahead_24h"
+  /// Configuration
+  default_sections  Json      @default("[]")  /// ["executive_summary","kpis","progress"]
+  default_output    String    @default("pdf") /// pdf | html | excel | csv
+  supports_outputs  Json      @default("[\"html\",\"pdf\",\"excel\",\"csv\"]")
+  default_layout_id String?   @db.Uuid
+  /// Subject & filename templates with {{variable}} support
+  subject_template  String?                   /// "Daily Progress - {{event}}"
+  filename_template String?                   /// "{{event}}_{{unit}}_{{report}}_{{date}}.pdf"
+  /// AI
+  supports_ai_summary Boolean @default(false)
+  ai_prompt_template  String?                 /// Custom prompt for AI summary generation
+  /// Visibility
+  is_system         Boolean   @default(false) /// System reports cannot be deleted by tenants
+  is_active         Boolean   @default(true)
+  is_draft          Boolean   @default(false) /// Draft definitions not visible to planners
+  requires_permission String? @default("reporting:view")
+  /// Versioning
+  version           Int       @default(1)     /// Incremented on structural changes
+  /// Ownership
+  owner_id          String?   @db.Uuid        /// Definition owner (user ID)
+  /// Scope
+  organization_id   String?   @db.Uuid        /// null = platform-wide (available to all orgs)
+  /// Audit
+  created_by        String?   @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  category          report_categories          @relation(fields: [category_id], references: [id])
+  default_layout    report_layouts?            @relation(fields: [default_layout_id], references: [id])
+  parameters        report_definition_parameters[]
+  sections          report_sections[]
+  schedules         report_schedules[]
+  generations       report_generations[]
+  saved_views       report_saved_views[]
+
+  @@index([category_id, is_active])
+  @@index([organization_id])
+  @@index([data_source_key])
+}
+
+/// Report Parameter — reusable filter parameters.
+/// Examples: Company, Site, Unit, Area, System, Asset, Event, Contractor, Discipline, Date Range, Shift.
+model report_parameters {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key               String    @unique         /// "company", "site", "unit", "date_range", "shift"
+  name              String                    /// "Company", "Site", "Unit"
+  description       String?
+  param_type        String                    /// select | multi_select | date_range | date | text | number | boolean
+  /// Dynamic options
+  options_source    String?                   /// Prisma model to query: "Organization", "Site", "Unit", etc.
+  options_static    Json?                     /// Static options: [{"value":"day","label":"Day Shift"},...]
+  /// Defaults
+  default_value     String?                   /// Default value or JSON for multi-values
+  is_required       Boolean   @default(false)
+  /// Ordering
+  sort_order        Int       @default(0)
+  is_active         Boolean   @default(true)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  definitions       report_definition_parameters[]
+}
+
+/// Junction: which parameters apply to which report definition.
+model report_definition_parameters {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  definition_id     String    @db.Uuid
+  parameter_id      String    @db.Uuid
+  is_required       Boolean   @default(false)   /// Override parameter-level default
+  sort_order        Int       @default(0)
+  /// Relations
+  definition        report_definitions         @relation(fields: [definition_id], references: [id], onDelete: Cascade)
+  parameter         report_parameters          @relation(fields: [parameter_id], references: [id], onDelete: Cascade)
+
+  @@unique([definition_id, parameter_id])
+  @@index([definition_id])
+}
+
+/// Report Section — configurable sections per report definition.
+/// Planner chooses which sections to include when generating.
+model report_sections {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  definition_id     String    @db.Uuid
+  key               String                    /// "executive_summary", "kpis", "progress", "constraints"
+  name              String                    /// "Executive Summary", "KPIs"
+  description       String?
+  section_type      String    @default("data") /// data | chart | kpi_cards | summary | signature | photos
+  /// Chart config (if section_type = 'chart')
+  chart_type        String?                   /// bar | pie | line | scurve | histogram | trend | heatmap
+  chart_config      Json?                     /// { dataKey, xAxis, yAxis, colors, ... }
+  /// Data source override (if different from definition)
+  data_source_key   String?                   /// Override: "execution.punch_register"
+  /// Display
+  sort_order        Int       @default(0)
+  is_default        Boolean   @default(true)  /// Included by default
+  is_required       Boolean   @default(false) /// Cannot be deselected
+  /// Relations
+  definition        report_definitions         @relation(fields: [definition_id], references: [id], onDelete: Cascade)
+
+  @@index([definition_id, sort_order])
+}
+
+/// Report Layout — reusable layout template with branding.
+/// Includes company logo, header, footer, page settings, signature blocks.
+model report_layouts {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String                    /// "Corporate Standard", "Field Report"
+  slug              String    @unique
+  description       String?
+  /// Branding
+  logo_url          String?                   /// Override org logo
+  primary_color     String?   @default("#0D2137")
+  accent_color      String?   @default("#E8701A")
+  header_html       String?                   /// Custom header HTML
+  footer_html       String?                   /// Custom footer HTML with {{page}}, {{total_pages}}, {{date}}
+  /// Page settings
+  page_size         String    @default("A4")  /// A4 | Letter | A3
+  orientation       String    @default("portrait") /// portrait | landscape
+  margin_top        Int       @default(20)    /// mm
+  margin_bottom     Int       @default(20)
+  margin_left       Int       @default(15)
+  margin_right      Int       @default(15)
+  /// Typography
+  font_family       String?   @default("Inter, Arial, sans-serif")
+  font_size_base    Int       @default(12)    /// px
+  /// Signature block
+  show_signature    Boolean   @default(false)
+  signature_labels  Json?                     /// ["Prepared By", "Reviewed By", "Approved By"]
+  /// Visibility
+  is_system         Boolean   @default(false)
+  is_active         Boolean   @default(true)
+  organization_id   String?   @db.Uuid        /// null = platform-wide
+  /// Audit
+  created_by        String?   @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  definitions       report_definitions[]
+
+  @@index([organization_id, is_active])
+}
+
+/// Report Schedule — business-friendly scheduled report delivery.
+/// No cron syntax exposed to user. Frequency + time/day fields drive scheduling.
+model report_schedules {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  definition_id     String    @db.Uuid
+  name              String                    /// "Daily Progress — Unit A"
+  /// Schedule config (business-friendly — NO cron exposed)
+  frequency         String                    /// manual | hourly | daily | weekly | monthly | event_triggered
+  delivery_time     String?   @default("06:00")  /// HH:mm (24h) — when to deliver
+  day_of_week       Int?                      /// 0=Sun..6=Sat — for weekly
+  day_of_month      Int?                      /// 1-28 — for monthly
+  event_trigger     String?                   /// Event type for event_triggered: "workpack.completed"
+  timezone          String    @default("UTC")
+  /// Report configuration
+  output_format     String    @default("pdf") /// pdf | html | excel | csv
+  layout_id         String?   @db.Uuid
+  selected_sections Json      @default("[]")  /// ["executive_summary","kpis","progress"]
+  parameters        Json      @default("{}")  /// Resolved parameter values: { "unit": "U-100", "date_range": "today" }
+  include_ai_summary Boolean  @default(false)
+  /// Saved view — pull parameters from saved view at trigger time
+  saved_view_id     String?   @db.Uuid
+  /// Subject and filename
+  subject_template  String?                   /// Override definition default
+  filename_template String?                   /// Override definition default
+  /// State
+  is_active         Boolean   @default(true)
+  last_run_at       DateTime?
+  next_run_at       DateTime?
+  run_count         Int       @default(0)
+  last_error        String?
+  /// Audit
+  created_by        String    @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  definition        report_definitions         @relation(fields: [definition_id], references: [id])
+  saved_view        report_saved_views?        @relation(fields: [saved_view_id], references: [id])
+  recipients        report_schedule_recipients[]
+
+  @@index([organization_id, is_active])
+  @@index([frequency, is_active])
+  @@index([next_run_at])
+}
+
+/// Recipients for a scheduled report. Supports To/CC/BCC.
+model report_schedule_recipients {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schedule_id       String    @db.Uuid
+  recipient_type    String                    /// user | role | group | email
+  recipient_value   String                    /// userId | "planner" | groupId | "john@co.com"
+  delivery_type     String    @default("to") /// to | cc | bcc
+  /// Relations
+  schedule          report_schedules           @relation(fields: [schedule_id], references: [id], onDelete: Cascade)
+
+  @@index([schedule_id])
+}
+
+/// Report Generation — audit trail for every report generated.
+/// One row per generation event (manual or scheduled).
+model report_generations {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  definition_id     String    @db.Uuid
+  schedule_id       String?   @db.Uuid        /// null for manual/ad-hoc generations
+  /// Configuration snapshot
+  output_format     String                    /// pdf | html | excel | csv
+  layout_id         String?   @db.Uuid
+  selected_sections Json      @default("[]")
+  parameters        Json      @default("{}")  /// Resolved parameter values at generation time
+  included_ai       Boolean   @default(false)
+  /// Subject and filename (resolved)
+  resolved_subject  String?
+  resolved_filename String?
+  /// Output
+  status            String    @default("pending") /// pending | generating | completed | failed | cancelled
+  file_path         String?                   /// Path to generated file
+  file_size_bytes   Int?
+  html_content      String?                   /// Stored HTML for preview
+  error_message     String?
+  /// Enriched execution data (M7.6B)
+  record_count      Int?                      /// Number of data records in the report
+  retry_count       Int       @default(0)     /// Retry attempts
+  notification_id   String?   @db.Uuid        /// Notification queue item ID
+  smtp_message_id   String?                   /// SMTP message ID for delivery tracking
+  saved_view_id     String?   @db.Uuid        /// Saved view used (if any)
+  /// Timing
+  started_at        DateTime?
+  completed_at      DateTime?
+  duration_ms       Int?
+  /// Delivery tracking (links to notification_queue)
+  notification_queue_ids Json? @default("[]") /// UUIDs of notification_queue items created
+  /// Audit
+  generated_by      String    @db.Uuid
+  created_at        DateTime  @default(now())
+  /// Relations
+  definition        report_definitions         @relation(fields: [definition_id], references: [id])
+  artifacts         report_artifacts[]
+
+  @@index([organization_id, created_at])
+  @@index([definition_id])
+  @@index([status])
+  @@index([schedule_id])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M7.6B — Enterprise Report Engine Extensions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Branding Profile — company-level branding configuration.
+/// Separate from layouts; layouts define page structure, branding defines visual identity.
+/// Resolution chain: Layout → Branding Profile → Organization defaults → Platform defaults.
+model report_branding_profiles {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  name              String                    /// "Corporate Standard", "Field Operations"
+  slug              String    @unique
+  description       String?
+  /// Visual identity
+  logo_url          String?                   /// Company logo URL
+  logo_width_px     Int?      @default(180)
+  logo_height_px    Int?      @default(50)
+  /// Header / Footer
+  header_html       String?                   /// Custom header with {{orgName}}, {{reportTitle}}
+  footer_html       String?                   /// Custom footer with {{page}}, {{total_pages}}, {{date}}
+  /// Company info (printed on reports)
+  company_name      String?
+  company_address   String?
+  company_phone     String?
+  company_email     String?
+  company_website   String?
+  /// Theme
+  primary_color     String?   @default("#0D2137")
+  secondary_color   String?   @default("#1E3A5F")
+  accent_color      String?   @default("#E8701A")
+  background_color  String?   @default("#FFFFFF")
+  text_color        String?   @default("#1F2937")
+  /// Typography
+  font_family       String?   @default("Inter, Arial, sans-serif")
+  heading_font      String?   @default("Inter, Arial, sans-serif")
+  font_size_base    Int       @default(12)
+  /// Signatures
+  signature_block   Boolean   @default(false)
+  signature_labels  Json?                     /// ["Prepared By","Reviewed By","Approved By"]
+  /// Legal
+  disclaimer_text   String?                   /// Printed at bottom of every report
+  confidentiality   String?   @default("CONFIDENTIAL") /// "CONFIDENTIAL" | "INTERNAL" | "PUBLIC" | custom
+  /// State
+  is_default        Boolean   @default(false) /// One default per org
+  is_active         Boolean   @default(true)
+  /// Audit
+  created_by        String?   @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@unique([organization_id, slug])
+  @@index([organization_id, is_active])
+}
+
+/// Saved Report View — planner's saved parameter sets.
+/// Reusable by schedules; avoids re-entering filters each time.
+model report_saved_views {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  definition_id     String    @db.Uuid
+  user_id           String    @db.Uuid        /// Owner of this view
+  /// View config
+  name              String                    /// "Unit 11 Daily Progress"
+  description       String?
+  parameters        Json      @default("{}")  /// Saved parameter values
+  selected_sections Json      @default("[]")  /// Saved section selections
+  output_format     String    @default("pdf")
+  layout_id         String?   @db.Uuid
+  include_ai        Boolean   @default(false)
+  /// Visibility
+  is_shared         Boolean   @default(false) /// If true, visible to all users in the org
+  is_active         Boolean   @default(true)
+  /// Audit
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  definition        report_definitions         @relation(fields: [definition_id], references: [id])
+  schedules         report_schedules[]
+
+  @@index([organization_id, user_id])
+  @@index([definition_id])
+}
+
+/// Report Artifact — managed storage for generated report outputs.
+/// Every successful generation produces one or more artifacts.
+/// Supports download, re-send, retention policy, and expiration.
+model report_artifacts {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  generation_id     String    @db.Uuid
+  definition_id     String    @db.Uuid
+  /// File info
+  filename          String                    /// "lookahead_24h_2026-07-30.pdf"
+  content_type      String                    /// "application/pdf", "text/csv", "application/vnd.openxmlformats..."
+  file_size_bytes   Int?
+  /// Storage — small files in DB, large files on disk/cloud
+  file_data         Bytes?                    /// Binary file data (for files <10MB)
+  file_path         String?                   /// External storage path (for larger files)
+  html_snapshot     String?                   /// HTML snapshot for preview
+  /// Metadata
+  output_format     String                    /// pdf | html | excel | csv
+  record_count      Int?                      /// Number of data records
+  page_count        Int?                      /// Number of pages (for PDF)
+  /// Retention
+  expires_at        DateTime?                 /// Auto-cleanup after this date
+  is_archived       Boolean   @default(false)
+  /// Delivery tracking
+  download_count    Int       @default(0)
+  last_downloaded_at DateTime?
+  last_resent_at    DateTime?
+  /// Audit
+  created_by        String    @db.Uuid
+  created_at        DateTime  @default(now())
+  /// Relations
+  generation        report_generations         @relation(fields: [generation_id], references: [id])
+
+  @@index([organization_id, created_at])
+  @@index([generation_id])
+  @@index([definition_id])
+  @@index([expires_at])
+}
+
+/// Report Execution Metrics — pre-aggregated metrics for the execution dashboard.
+/// Updated after each generation completes.
+model report_execution_metrics {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String?   @db.Uuid        /// null = platform-wide metrics
+  /// Period
+  period_type       String                    /// daily | weekly | monthly
+  period_start      DateTime
+  period_end        DateTime
+  /// Counts
+  total_generated   Int       @default(0)
+  total_completed   Int       @default(0)
+  total_failed      Int       @default(0)
+  total_retried     Int       @default(0)
+  /// Timing
+  avg_duration_ms   Int?
+  max_duration_ms   Int?
+  min_duration_ms   Int?
+  /// Delivery
+  total_delivered   Int       @default(0)
+  avg_delivery_ms   Int?
+  /// Top reports (JSON array)
+  top_definitions   Json?                     /// [{id, name, count}]
+  top_schedules     Json?                     /// [{id, name, count}]
+  /// Audit
+  computed_at       DateTime  @default(now())
+
+  @@unique([organization_id, period_type, period_start])
+  @@index([period_type, period_start])
+}
+
+/// Report Data Provider — self-documenting registry of registered data providers.
+/// Each provider maps a key to a class that fetches structured data from business services.
+/// Future modules register new providers without modifying core logic.
+model report_data_providers {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key               String    @unique         /// "planning.lookahead_24h", "shutdown.scope_register"
+  name              String                    /// "24 Hour Look Ahead"
+  category          String                    /// "planning", "shutdown", "execution", "management", "platform"
+  description       String?
+  /// Provider metadata
+  provider_class    String?                   /// "PlanningLookahead24hProvider" — class name
+  module            String?                   /// "core" | "rbi" | "corrosion" — source module
+  /// Capabilities
+  supports_streaming Boolean  @default(false)
+  supports_pagination Boolean @default(false)
+  max_rows          Int?                      /// Recommended max rows
+  /// Schema
+  output_schema     Json?                     /// JSON Schema of output structure
+  required_params   Json?                     /// ["site", "event"] — required parameter keys
+  optional_params   Json?                     /// ["contractor", "discipline"]
+  /// State
+  is_active         Boolean   @default(true)
+  is_system         Boolean   @default(true)
+  /// Audit
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M7.6C — Operational Intelligence Studio (OIS)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Widget Definition — registry entry for a widget type.
+/// Each definition describes what visualization to render, which provider supplies data,
+/// what filters are supported, and what capabilities the widget exposes.
+/// System widgets are platform-provided; org widgets are tenant-created.
+model ois_widget_definitions {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                  String    @unique         /// "safety_trir_gauge", "planning_lookahead_table"
+  name                  String                    /// "TRIR Gauge", "24hr Look Ahead"
+  description           String?
+  category              String                    /// "safety", "planning", "execution", "management", "workforce"
+  icon                  String?                   /// Emoji or icon class: "🦺", "📊"
+  /// Data source
+  provider_key          String                    /// ProviderRegistry key: "safety.kpi_summary"
+  /// Visualization
+  visualization_type    String                    /// line | area | bar | stacked_bar | pie | donut | gauge | matrix | heatmap | timeline | kpi_card | progress_card | status_card | data_table | hierarchy_table | pivot_table | tree_grid | scurve | evm | gantt_summary
+  default_config        Json      @default("{}")  /// Default chart/table/card config
+  /// Capabilities
+  supported_filters     Json      @default("[]")  /// ["event", "unit", "contractor", "date_range"]
+  supports_ai           Boolean   @default(false)
+  supports_export       Boolean   @default(true)
+  supports_print        Boolean   @default(true)
+  supports_drilldown    Boolean   @default(false)
+  supports_threshold    Boolean   @default(false)
+  refresh_interval_sec  Int       @default(300)   /// Default refresh in seconds (5 min)
+  /// Metadata
+  version               Int       @default(1)
+  author                String?                   /// "SYORITY" for system widgets
+  permissions_required  String?   @default("ois:widget.view")
+  /// Scope
+  is_system             Boolean   @default(false) /// System widgets cannot be deleted by tenants
+  is_active             Boolean   @default(true)
+  organization_id       String?   @db.Uuid        /// null = platform-wide widget
+  /// Audit
+  created_by            String?   @db.Uuid
+  updated_by            String?   @db.Uuid
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  /// Relations
+  dashboard_widgets     ois_dashboard_widgets[]
+
+  @@index([category, is_active])
+  @@index([provider_key])
+  @@index([organization_id])
+}
+
+/// Dashboard Definition — metadata for a dashboard, cockpit, TV board, or meeting view.
+/// All surface types share this model; dashboard_type discriminates behavior.
+model ois_dashboard_definitions {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                  String    @unique         /// "director-cockpit", "safety-dashboard"
+  name                  String                    /// "Director Cockpit"
+  description           String?
+  dashboard_type        String    @default("dashboard") /// dashboard | cockpit | tv | meeting
+  category              String?                   /// "planning", "safety", "executive"
+  icon                  String?                   /// "🎛️"
+  /// Layout
+  layout_config         Json      @default("{}")  /// Global layout settings (grid cols, theme, responsive breakpoints)
+  page_count            Int       @default(1)
+  /// State
+  is_template           Boolean   @default(false) /// Template dashboards can be cloned by tenants
+  is_published          Boolean   @default(false) /// Draft → Published → Archived
+  is_archived           Boolean   @default(false)
+  is_system             Boolean   @default(false) /// System templates cannot be deleted
+  /// Versioning
+  version               Int       @default(1)
+  revision_notes        String?
+  /// Branding
+  branding_profile_id   String?   @db.Uuid
+  /// Theme
+  theme                 String    @default("light") /// light | dark
+  /// Scope
+  organization_id       String?   @db.Uuid        /// null = platform-wide template
+  owner_id              String?   @db.Uuid        /// Dashboard owner (user)
+  /// Audit
+  created_by            String?   @db.Uuid
+  updated_by            String?   @db.Uuid
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  /// Relations
+  pages                 ois_dashboard_pages[]
+  widgets               ois_dashboard_widgets[]
+  versions              ois_dashboard_versions[]
+  shares                ois_dashboard_shares[]
+  schedules             ois_dashboard_schedules[]
+  snapshots             ois_dashboard_snapshots[]
+  tv_sessions           ois_tv_sessions[]
+
+  @@index([organization_id, is_published])
+  @@index([dashboard_type, is_published])
+  @@index([is_template, is_published])
+}
+
+/// Dashboard Page — multi-page dashboard support.
+/// Each page has its own grid configuration and set of widgets.
+model ois_dashboard_pages {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dashboard_id          String    @db.Uuid
+  page_number           Int       @default(1)
+  title                 String?                   /// "Overview", "Safety KPIs", "Progress"
+  /// Grid config
+  grid_columns          Int       @default(12)
+  grid_row_height       Int       @default(80)    /// pixels per grid row
+  background_color      String?
+  /// State
+  is_active             Boolean   @default(true)
+  sort_order            Int       @default(0)
+  /// Relations
+  dashboard             ois_dashboard_definitions  @relation(fields: [dashboard_id], references: [id], onDelete: Cascade)
+  widgets               ois_dashboard_widgets[]
+
+  @@index([dashboard_id, sort_order])
+}
+
+/// Dashboard Widget — a widget instance placed on a dashboard page.
+/// Contains grid position, size, overrides, and provider parameters.
+model ois_dashboard_widgets {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dashboard_id          String    @db.Uuid
+  page_id               String?   @db.Uuid        /// null = first page
+  widget_definition_id  String    @db.Uuid
+  /// Grid position (react-grid-layout compatible)
+  grid_x                Int       @default(0)
+  grid_y                Int       @default(0)
+  grid_w                Int       @default(4)     /// Width in grid columns
+  grid_h                Int       @default(3)     /// Height in grid rows
+  min_w                 Int?      @default(2)
+  min_h                 Int?      @default(2)
+  /// Customization overrides
+  title_override        String?                   /// Override widget default title
+  subtitle              String?
+  icon_override         String?
+  color_override        String?                   /// Override primary color
+  /// Data configuration
+  provider_params       Json      @default("{}")  /// Resolved filter values: { "event": "uuid", "unit": "CDU" }
+  visualization_config  Json      @default("{}")  /// Chart-specific config: { "chartType": "bar", "xAxis": "date" }
+  /// Thresholds & conditional formatting
+  threshold_config      Json?                     /// { "warning": 80, "danger": 95, "direction": "above" }
+  conditional_colors    Json?                     /// [{ "field": "status", "value": "Open", "color": "#DC2626" }]
+  /// Formatting
+  number_format         String?                   /// "0,0.00" | "0%" | "$0,0"
+  date_format           String?                   /// "YYYY-MM-DD" | "DD/MM/YYYY"
+  /// Display
+  show_header           Boolean   @default(true)
+  show_footer           Boolean   @default(false)
+  footer_html           String?                   /// Custom footer HTML
+  /// Refresh
+  refresh_interval_override Int?                  /// Override widget default (seconds)
+  /// State
+  is_visible            Boolean   @default(true)
+  sort_order            Int       @default(0)
+  /// Relations
+  dashboard             ois_dashboard_definitions  @relation(fields: [dashboard_id], references: [id], onDelete: Cascade)
+  page                  ois_dashboard_pages?       @relation(fields: [page_id], references: [id], onDelete: SetNull)
+  widget_definition     ois_widget_definitions     @relation(fields: [widget_definition_id], references: [id])
+
+  @@index([dashboard_id])
+  @@index([page_id])
+  @@index([widget_definition_id])
+}
+
+/// Dashboard Version — snapshot of dashboard layout for version history.
+/// Enables undo, rollback, and version comparison.
+model ois_dashboard_versions {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dashboard_id          String    @db.Uuid
+  version               Int                       /// Sequential version number
+  snapshot              Json                      /// Full layout clone: pages + widgets + config
+  change_summary        String?                   /// "Added safety widget, moved progress chart"
+  /// Audit
+  created_by            String    @db.Uuid
+  created_at            DateTime  @default(now())
+  /// Relations
+  dashboard             ois_dashboard_definitions  @relation(fields: [dashboard_id], references: [id], onDelete: Cascade)
+
+  @@unique([dashboard_id, version])
+  @@index([dashboard_id])
+}
+
+/// Dashboard Share — access control for sharing dashboards with users/roles/orgs.
+model ois_dashboard_shares {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dashboard_id          String    @db.Uuid
+  shared_with_type      String                    /// user | role | organization
+  shared_with_value     String                    /// userId | roleName | orgId
+  permission            String    @default("view") /// view | edit
+  /// Audit
+  created_by            String    @db.Uuid
+  created_at            DateTime  @default(now())
+  /// Relations
+  dashboard             ois_dashboard_definitions  @relation(fields: [dashboard_id], references: [id], onDelete: Cascade)
+
+  @@unique([dashboard_id, shared_with_type, shared_with_value])
+  @@index([dashboard_id])
+}
+
+/// Dashboard Schedule — scheduled dashboard delivery via the Notification Platform.
+/// Reuses the same frequency/time model as report_schedules.
+model ois_dashboard_schedules {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dashboard_id          String    @db.Uuid
+  organization_id       String    @db.Uuid
+  name                  String                    /// "Morning Safety Snapshot"
+  /// Schedule config (business-friendly — NO cron exposed)
+  frequency             String                    /// manual | hourly | daily | weekly | monthly | event_triggered
+  delivery_time         String?   @default("06:00") /// HH:mm (24h)
+  day_of_week           Int?                      /// 0=Sun..6=Sat — for weekly
+  day_of_month          Int?                      /// 1-28 — for monthly
+  timezone              String    @default("UTC")
+  /// Output
+  output_format         String    @default("pdf") /// pdf | html | excel | png
+  /// State
+  is_active             Boolean   @default(true)
+  last_run_at           DateTime?
+  next_run_at           DateTime?
+  run_count             Int       @default(0)
+  last_error            String?
+  /// Audit
+  created_by            String    @db.Uuid
+  updated_by            String?   @db.Uuid
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  /// Relations
+  dashboard             ois_dashboard_definitions  @relation(fields: [dashboard_id], references: [id], onDelete: Cascade)
+  recipients            ois_dashboard_schedule_recipients[]
+
+  @@index([organization_id, is_active])
+  @@index([next_run_at])
+}
+
+/// Recipients for scheduled dashboard delivery. Supports To/CC/BCC.
+model ois_dashboard_schedule_recipients {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schedule_id           String    @db.Uuid
+  recipient_type        String                    /// user | role | group | email
+  recipient_value       String                    /// userId | "planner" | groupId | "john@co.com"
+  delivery_type         String    @default("to")  /// to | cc | bcc
+  /// Relations
+  schedule              ois_dashboard_schedules    @relation(fields: [schedule_id], references: [id], onDelete: Cascade)
+
+  @@index([schedule_id])
+}
+
+/// Dashboard Snapshot — generated output artifact for export/delivery.
+/// Reuses the same storage pattern as report_artifacts.
+model ois_dashboard_snapshots {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dashboard_id          String    @db.Uuid
+  organization_id       String    @db.Uuid
+  /// File info
+  output_format         String                    /// pdf | html | excel | png
+  filename              String                    /// "safety-dashboard_2026-07-30.pdf"
+  content_type          String                    /// "application/pdf"
+  file_size_bytes       Int?
+  /// Storage
+  file_data             Bytes?                    /// Binary file data (< 10MB)
+  file_path             String?                   /// External storage path
+  html_snapshot         String?                   /// HTML snapshot for preview
+  page_count            Int?
+  /// Audit
+  generated_by          String    @db.Uuid
+  expires_at            DateTime?                 /// Auto-cleanup
+  created_at            DateTime  @default(now())
+  /// Relations
+  dashboard             ois_dashboard_definitions  @relation(fields: [dashboard_id], references: [id], onDelete: Cascade)
+
+  @@index([dashboard_id])
+  @@index([organization_id, created_at])
+  @@index([expires_at])
+}
+
+/// TV Session — active TV/kiosk mode session with a shareable session code.
+model ois_tv_sessions {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dashboard_id          String    @db.Uuid
+  organization_id       String    @db.Uuid
+  session_code          String    @unique         /// 6-char alphanumeric code for QR/URL join
+  /// Config
+  rotation_interval_sec Int       @default(30)    /// Seconds between page rotations
+  auto_refresh_sec      Int       @default(60)    /// Seconds between data refresh
+  /// State
+  is_active             Boolean   @default(true)
+  started_by            String    @db.Uuid
+  started_at            DateTime  @default(now())
+  expires_at            DateTime                  /// Auto-expire after duration
+
+  /// Relations
+  dashboard             ois_dashboard_definitions  @relation(fields: [dashboard_id], references: [id], onDelete: Cascade)
+
+  @@index([session_code])
+  @@index([organization_id, is_active])
+  @@index([expires_at])
+}
+
+/// Widget Data Cache — shared cache for provider data.
+/// Multiple widgets requesting the same provider+params share one cache entry.
+model ois_widget_data_cache {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_key          String                    /// ProviderRegistry key
+  organization_id       String    @db.Uuid
+  params_hash           String                    /// SHA-256 of sorted JSON params
+  /// Data
+  cached_data           Json                      /// Full DataFetcherResult
+  /// Timing
+  fetched_at            DateTime  @default(now())
+  expires_at            DateTime                  /// TTL-based expiration
+  hit_count             Int       @default(0)     /// For cache optimization metrics
+
+  @@unique([provider_key, organization_id, params_hash])
+  @@index([expires_at])
+  @@index([provider_key, organization_id])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M7.6E — Business Rules, Formula & Alert Engine
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Formula Definition — metadata-driven calculation expression.
+/// Supports arithmetic, aggregations, conditionals, provider references.
+/// Expression syntax: SQL-like (SUM, AVG, IF, CASE, AND, OR, NOT).
+model bre_formulas {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  /// Identity
+  slug              String                    /// "spi_calculation", "safety_index"
+  name              String                    /// "Schedule Performance Index"
+  description       String?
+  category          String                    /// planning | safety | execution | workforce | quality | management | custom
+  /// Expression
+  expression        String                    /// "earned_value / planned_value"
+  variables         Json      @default("[]")  /// [{ name: "earned_value", provider_key: "planning.earned_value", field: "value" }]
+  return_type       String    @default("number") /// number | percentage | text | boolean
+  unit              String?                   /// "hrs", "%", "ratio", "index"
+  precision         Int       @default(2)     /// Decimal places
+  /// Validation
+  is_validated      Boolean   @default(false)
+  validation_errors Json?                     /// [{ message, position }]
+  dependency_graph  Json?                     /// [{ from: "formula_a", to: "formula_b" }]
+  /// Versioning
+  version           Int       @default(1)
+  /// State
+  status            String    @default("draft") /// draft | active | deprecated | archived
+  is_system         Boolean   @default(false) /// System formulas cannot be deleted
+  /// Audit
+  owner_id          String?   @db.Uuid
+  created_by        String    @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  versions          bre_formula_versions[]
+  kpi_definitions   bre_kpi_definitions[]
+
+  @@unique([organization_id, slug])
+  @@index([organization_id, category, status])
+  @@index([status])
+}
+
+/// Formula Version — immutable snapshot of a formula expression at a point in time.
+model bre_formula_versions {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  formula_id        String    @db.Uuid
+  version_number    Int
+  expression        String
+  variables         Json      @default("[]")
+  change_description String?
+  /// Audit
+  created_by        String    @db.Uuid
+  created_at        DateTime  @default(now())
+  /// Relations
+  formula           bre_formulas @relation(fields: [formula_id], references: [id], onDelete: Cascade)
+
+  @@unique([formula_id, version_number])
+  @@index([formula_id])
+}
+
+/// KPI Definition — derived KPI built on a formula.
+/// Auto-registers as a provider in ProviderRegistry.
+model bre_kpi_definitions {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  /// Identity
+  slug              String                    /// "spi", "cpi", "trir"
+  name              String                    /// "Schedule Performance Index"
+  description       String?
+  category          String                    /// planning | safety | execution | workforce | quality | management
+  icon              String?                   /// Emoji or icon class
+  /// Formula reference
+  formula_id        String    @db.Uuid
+  /// Thresholds (for coloring / alerting)
+  threshold_green   Float?                    /// >= green = good
+  threshold_amber   Float?                    /// >= amber = warning
+  threshold_red     Float?                    /// < red = critical
+  invert_thresholds Boolean   @default(false) /// true = lower is better (e.g., TRIR)
+  /// Display
+  target_value      Float?                    /// Target / benchmark
+  display_format    String    @default("number") /// number | percentage | currency | duration | ratio
+  trend_direction   String?                   /// up_good | down_good | neutral
+  /// Provider registration
+  provider_key      String                    /// "kpi.spi" — auto-registered in ProviderRegistry
+  /// State
+  status            String    @default("draft") /// draft | active | deprecated
+  is_system         Boolean   @default(false)
+  /// Audit
+  owner_id          String?   @db.Uuid
+  created_by        String    @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  formula           bre_formulas @relation(fields: [formula_id], references: [id])
+
+  @@unique([organization_id, slug])
+  @@unique([organization_id, provider_key])
+  @@index([organization_id, category, status])
+}
+
+/// Business Rule — metadata-driven rule with condition expression and actions.
+model bre_rules {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  /// Identity
+  slug              String                    /// "critical_path_slip"
+  name              String                    /// "Critical Path Slip Alert"
+  description       String?
+  category          String                    /// planning | execution | safety | qa_qc | inspection | management | notification | custom
+  /// Condition
+  condition_expression String                 /// "provider('planning.critical_activities').count > 0 AND SPI < 0.95"
+  condition_variables  Json   @default("[]")  /// Variable bindings for the expression
+  /// Evaluation
+  evaluation_mode   String    @default("scheduled") /// scheduled | event_driven | both
+  evaluation_cron   String?                   /// For scheduled: "*/15 * * * *"
+  event_types       Json      @default("[]")  /// For event_driven: ["activity.updated", "workpack.completed"]
+  /// Scope
+  scope_site_id     String?   @db.Uuid
+  scope_unit_id     String?   @db.Uuid
+  scope_area        String?
+  scope_equipment   String?
+  scope_workpack_id String?   @db.Uuid
+  scope_shift       String?
+  /// Priority & Severity
+  priority          Int       @default(5)     /// 1=highest, 10=lowest
+  severity          String    @default("warning") /// information | warning | critical | emergency
+  /// Effective dates
+  effective_from    DateTime?
+  effective_until   DateTime?
+  /// Approval
+  approval_status   String    @default("approved") /// draft | pending_approval | approved | rejected
+  approved_by       String?   @db.Uuid
+  approved_at       DateTime?
+  /// State
+  is_enabled        Boolean   @default(true)
+  is_system         Boolean   @default(false)
+  version           Int       @default(1)
+  /// Escalation
+  escalation_chain_id String? @db.Uuid
+  /// Audit
+  owner_id          String?   @db.Uuid
+  created_by        String    @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  actions           bre_rule_actions[]
+  alerts            bre_alerts[]
+  escalation_chain  bre_escalation_chains? @relation(fields: [escalation_chain_id], references: [id])
+
+  @@unique([organization_id, slug])
+  @@index([organization_id, category, is_enabled])
+  @@index([evaluation_mode, is_enabled])
+  @@index([severity, is_enabled])
+}
+
+/// Rule Action — what happens when a rule condition evaluates to true.
+model bre_rule_actions {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_id           String    @db.Uuid
+  /// Action type
+  action_type       String                    /// notify | escalate | create_alert | log | set_field | webhook
+  /// Configuration (type-specific)
+  config            Json      @default("{}")  /// { template_id, recipients, channel } for notify; { chain_id } for escalate
+  /// Ordering
+  sort_order        Int       @default(0)
+  is_enabled        Boolean   @default(true)
+  /// Relations
+  rule              bre_rules @relation(fields: [rule_id], references: [id], onDelete: Cascade)
+
+  @@index([rule_id])
+}
+
+/// Alert Instance — active alert triggered by a rule evaluation.
+model bre_alerts {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  rule_id           String    @db.Uuid
+  /// Alert identity
+  alert_type        String                    /// threshold | trend | deviation | missing_data | late_activity | critical_path | schedule_health | resource | safety | permit | quality | execution | contractor | inspection | attendance | custom
+  title             String                    /// "SPI dropped below 0.9"
+  message           String                    /// Detailed alert message
+  severity          String                    /// information | warning | critical | emergency
+  priority          Int       @default(5)
+  /// Context
+  entity_type       String?                   /// activity | workpack | event | equipment | permit | contractor
+  entity_id         String?   @db.Uuid
+  scope_site_id     String?   @db.Uuid
+  scope_unit_id     String?   @db.Uuid
+  scope_area        String?
+  /// Data snapshot
+  trigger_value     String?                   /// The value that triggered the alert
+  threshold_value   String?                   /// The threshold that was breached
+  evaluation_data   Json?                     /// Full context data at trigger time
+  /// Lifecycle
+  status            String    @default("open") /// open | acknowledged | in_progress | resolved | closed | suppressed
+  acknowledged_by   String?   @db.Uuid
+  acknowledged_at   DateTime?
+  resolved_by       String?   @db.Uuid
+  resolved_at       DateTime?
+  closed_by         String?   @db.Uuid
+  closed_at         DateTime?
+  assigned_to       String?   @db.Uuid
+  resolution_notes  String?
+  /// Escalation
+  escalation_level  Int       @default(0)
+  escalated_at      DateTime?
+  /// AI
+  ai_explanation    String?                   /// AI-generated root cause / recommendation
+  /// Suppression
+  suppress_until    DateTime?
+  /// Audit
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  rule              bre_rules @relation(fields: [rule_id], references: [id])
+  comments          bre_alert_comments[]
+
+  @@index([organization_id, status, severity])
+  @@index([organization_id, alert_type])
+  @@index([rule_id])
+  @@index([assigned_to, status])
+  @@index([created_at])
+  @@index([severity, status])
+}
+
+/// Alert Comment — notes and discussion on an alert.
+model bre_alert_comments {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alert_id          String    @db.Uuid
+  comment           String
+  comment_type      String    @default("note") /// note | status_change | escalation | assignment | resolution
+  /// Audit
+  created_by        String    @db.Uuid
+  created_at        DateTime  @default(now())
+  /// Relations
+  alert             bre_alerts @relation(fields: [alert_id], references: [id], onDelete: Cascade)
+
+  @@index([alert_id, created_at])
+}
+
+/// Escalation Chain — ordered list of escalation levels.
+model bre_escalation_chains {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  /// Identity
+  name              String                    /// "Planning Escalation Chain"
+  description       String?
+  category          String                    /// planning | safety | execution | management
+  /// Config
+  respect_business_hours Boolean @default(true)
+  business_hours_start   String  @default("07:00") /// HH:mm
+  business_hours_end     String  @default("18:00") /// HH:mm
+  timezone               String  @default("UTC")
+  holiday_calendar       Json?                 /// ["2026-12-25", "2026-01-01"]
+  /// State
+  is_active         Boolean   @default(true)
+  /// Audit
+  created_by        String    @db.Uuid
+  updated_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  /// Relations
+  levels            bre_escalation_levels[]
+  rules             bre_rules[]
+
+  @@unique([organization_id, name])
+  @@index([organization_id, is_active])
+}
+
+/// Escalation Level — one step in an escalation chain.
+model bre_escalation_levels {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  chain_id          String    @db.Uuid
+  /// Level
+  level_number      Int                       /// 1, 2, 3, ...
+  name              String                    /// "Planning Lead", "Shutdown Manager"
+  /// Timing
+  escalate_after_minutes Int  @default(60)    /// Minutes before escalating to next level
+  /// Recipients
+  recipient_type    String                    /// user | role | group | email
+  recipient_value   String                    /// userId | "planning_lead" | groupId | "mgr@co.com"
+  /// Notification
+  notification_channel String @default("email") /// email | sms | in_app | teams | slack
+  notification_template_id String? @db.Uuid
+  /// Relations
+  chain             bre_escalation_chains @relation(fields: [chain_id], references: [id], onDelete: Cascade)
+
+  @@unique([chain_id, level_number])
+  @@index([chain_id])
+}
+
+/// Evaluation Log — audit trail for rule and formula evaluations.
+model bre_evaluation_log {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  /// What was evaluated
+  evaluation_type   String                    /// formula | rule | kpi
+  target_id         String    @db.Uuid        /// formula_id | rule_id | kpi_id
+  target_slug       String                    /// For quick lookup
+  /// Result
+  result_value      String?                   /// Computed value (stringified)
+  result_passed     Boolean?                  /// For rules: did condition pass?
+  /// Performance
+  duration_ms       Int?
+  /// Context
+  input_params      Json?                     /// Parameters used for evaluation
+  error_message     String?
+  /// Alert linkage
+  alert_id          String?   @db.Uuid
+  /// Audit
+  evaluated_by      String?   @db.Uuid        /// null = system/scheduled
+  evaluated_at      DateTime  @default(now())
+
+  @@index([organization_id, evaluation_type, evaluated_at])
+  @@index([target_id])
+  @@index([evaluated_at])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M7.6F — Decision Recommendation Engine
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Decision Recommendations — AI/rule-generated suggestions for planners and managers.
+/// Recommendations NEVER execute automatically. Always require human acceptance.
+model bre_recommendations {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String    @db.Uuid
+  /// Identification
+  slug                String
+  title               String
+  description         String
+  category            String                    /// planning | safety | execution | qa_qc | inspection | contractor | resource | material | permit | critical_path | constraint
+  priority            String    @default("medium")  /// low | medium | high | critical
+  /// Confidence & Reasoning
+  confidence_score    Decimal   @db.Decimal(5, 4)   /// 0.0000 - 1.0000
+  reasoning           String                    /// Why this recommendation was generated
+  expected_impact     String?                   /// What happens if accepted
+  /// Source
+  source_type         String    @default("rule")    /// rule | formula | kpi | ai | manual
+  source_rule_id      String?   @db.Uuid            /// Rule that triggered this recommendation
+  source_formula_id   String?   @db.Uuid            /// Formula that computed the threshold
+  /// Supporting Data
+  supporting_kpis     Json?                     /// [{ name, value, threshold }]
+  supporting_rules    Json?                     /// [{ ruleId, name, result }]
+  related_alert_ids   Json?                     /// [alertId, ...]
+  alternatives        Json?                     /// [{ title, description, confidence }]
+  /// Lifecycle
+  status              String    @default("pending") /// pending | presented | accepted | rejected | deferred | expired | superseded
+  accepted_by         String?   @db.Uuid
+  accepted_at         DateTime?
+  rejected_by         String?   @db.Uuid
+  rejected_at         DateTime?
+  rejection_reason    String?
+  deferred_until      DateTime?
+  expires_at          DateTime?
+  /// Scope
+  target_entity_type  String?                   /// workpack | activity | event | permit | crew
+  target_entity_id    String?   @db.Uuid
+  event_id            String?   @db.Uuid
+  /// Visibility
+  show_in_dashboard   Boolean   @default(true)
+  show_in_tv_mode     Boolean   @default(false)
+  show_in_meeting     Boolean   @default(true)
+  show_in_reports     Boolean   @default(true)
+  /// Audit
+  created_by          String?   @db.Uuid
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  deleted_at          DateTime?
+
+  organization        Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  logs                bre_recommendation_log[]
+
+  @@index([organization_id, status, category])
+  @@index([organization_id, priority, status])
+  @@index([status, expires_at])
+  @@index([event_id])
+  @@index([target_entity_type, target_entity_id])
+}
+
+/// Recommendation Audit Log — records every state transition and user interaction.
+model bre_recommendation_log {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recommendation_id   String    @db.Uuid
+  /// Action
+  action              String                    /// created | presented | accepted | rejected | deferred | expired | superseded | comment
+  /// Actor
+  performed_by        String?   @db.Uuid
+  performed_at        DateTime  @default(now())
+  /// Details
+  comment             String?
+  previous_status     String?
+  new_status          String?
+  metadata            Json?
+
+  recommendation      bre_recommendations @relation(fields: [recommendation_id], references: [id], onDelete: Cascade)
+
+  @@index([recommendation_id, performed_at])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M7.6G — Beta Platform, Licensing & Operational Readiness
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Enterprise License — exactly one per organization.
+/// Controls feature access, user limits, and resource quotas.
+model platform_licenses {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id         String    @unique @db.Uuid
+  license_number          String    @unique                   /// SYO-XXXX-XXXX format
+  license_type            String    @default("trial")         /// trial | beta | starter | professional | enterprise | unlimited | custom
+  status                  String    @default("active")        /// active | suspended | expired | revoked | grace
+  /// Dates
+  issued_at               DateTime  @default(now())
+  expires_at              DateTime?
+  grace_period_days       Int       @default(14)
+  /// Resource Limits
+  max_users               Int       @default(15)
+  max_shutdowns           Int       @default(5)
+  max_projects            Int       @default(10)
+  max_storage_gb          Int       @default(10)
+  max_documents           Int       @default(500)
+  max_reports             Int       @default(100)
+  max_dashboards          Int       @default(20)
+  max_scheduled_reports   Int       @default(10)
+  max_ai_credits          Int       @default(1000)
+  max_api_calls_daily     Int       @default(10000)
+  max_bg_jobs_daily       Int       @default(500)
+  max_emails_monthly      Int       @default(1000)
+  /// Metadata
+  notes                   String?
+  created_by              String?   @db.Uuid
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  organization            Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@index([license_type, status])
+  @@index([expires_at])
+}
+
+/// Module Definitions — catalog of all platform modules.
+model platform_modules {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug              String    @unique                         /// digital_plant | asset_register | planner_workspace | etc.
+  name              String                                    /// Display name
+  description       String?
+  category          String    @default("core")                /// core | planning | intelligence | safety | execution | future
+  icon              String?                                   /// Emoji or icon key
+  sort_order        Int       @default(0)
+  is_core           Boolean   @default(false)                 /// Core modules cannot be disabled
+  default_status    String    @default("enabled")             /// Default for new orgs
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  organization_modules organization_modules[]
+}
+
+/// Per-Organization Module Status.
+model organization_modules {
+  organization_id   String    @db.Uuid
+  module_id         String    @db.Uuid
+  status            String    @default("enabled")             /// enabled | disabled | hidden | beta | coming_soon | experimental
+  enabled_at        DateTime  @default(now())
+  enabled_by        String?   @db.Uuid
+  updated_at        DateTime  @updatedAt
+
+  organization      Organization     @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  module            platform_modules @relation(fields: [module_id], references: [id], onDelete: Cascade)
+
+  @@id([organization_id, module_id])
+  @@index([organization_id])
+}
+
+/// Usage Tracking — consumption metrics per organization per period.
+model platform_usage {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  metric_key        String                                    /// ai_tokens | emails | reports | dashboards | storage_mb | documents | api_calls | bg_jobs | provider_calls
+  period            String    @default("daily")               /// daily | monthly
+  period_date       DateTime  @db.Date                        /// Date for this period
+  value             Int       @default(0)                     /// Consumed amount
+  limit_value       Int?                                      /// License limit at time of recording
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@unique([organization_id, metric_key, period, period_date])
+  @@index([organization_id, metric_key, period_date])
+  @@index([period_date])
+}
+
+/// Beta Feedback — user-submitted feedback with auto-captured environment.
+model platform_feedback {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  user_id           String    @db.Uuid
+  /// Content
+  type              String    @default("general")             /// bug | improvement | feature_request | question | general
+  title             String
+  description       String
+  severity          String    @default("medium")              /// low | medium | high | critical
+  /// Auto-captured Context
+  app_version       String?
+  git_commit        String?
+  route             String?
+  current_module    String?
+  browser           String?
+  os                String?
+  resolution        String?
+  /// Attachments
+  screenshot_url    String?
+  /// Lifecycle
+  status            String    @default("open")                /// open | acknowledged | in_progress | resolved | closed | wont_fix
+  assigned_to       String?   @db.Uuid
+  resolution_notes  String?
+  resolved_at       DateTime?
+  /// Audit
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([organization_id, status])
+  @@index([type, status])
+  @@index([severity, status])
+  @@index([created_at])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M7.6G.1 — Beta Readiness Pack
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Seed Pack definitions — reusable packages that provision organizations with demo data
+model seed_packs {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                   String    @unique
+  name                   String
+  description            String?
+  category               String    @default("demo")           /// demo | training | pilot | internal | custom
+  version                String    @default("1.0.0")
+  status                 String    @default("ready")          /// draft | ready | archived
+  /// Full configuration JSON: org, hierarchy, users, roles, events, issues, scope, workpacks, etc.
+  config                 Json      @default("{}")
+  /// Estimates
+  estimated_records      Int       @default(0)
+  estimated_time_seconds Int       @default(60)
+  /// Built-in packs are protected from deletion
+  is_builtin             Boolean   @default(false)
+  /// Audit
+  created_by             String?   @db.Uuid
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+
+  executions             seed_pack_executions[]
+
+  @@index([category, status])
+}
+
+/// Seed Pack execution log
+model seed_pack_executions {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seed_pack_id      String    @db.Uuid
+  organization_id   String?   @db.Uuid
+  /// Status
+  status            String    @default("pending")             /// pending | running | completed | failed | rolled_back
+  /// Stats
+  records_created   Int       @default(0)
+  error_message     String?
+  execution_log     Json      @default("[]")
+  /// Timestamps
+  started_at        DateTime  @default(now())
+  completed_at      DateTime?
+  /// Relations
+  seed_pack         seed_packs @relation(fields: [seed_pack_id], references: [id], onDelete: Cascade)
+
+  @@index([seed_pack_id])
+  @@index([organization_id])
+  @@index([status])
+}
+
+/// Platform backup records
+model platform_backups {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String
+  type              String    @default("full")                /// full | incremental | config_only | data_only | documents_only
+  status            String    @default("pending")             /// pending | running | completed | failed | expired
+  /// File info
+  file_path         String?
+  file_size_bytes   BigInt    @default(0)
+  checksum          String?                                   /// SHA-256
+  /// What's included
+  scope             Json      @default("{}")
+  /// Options
+  compression       String    @default("gzip")                /// none | gzip
+  encrypted         Boolean   @default(false)
+  /// Timestamps
+  started_at        DateTime  @default(now())
+  completed_at      DateTime?
+  expires_at        DateTime?
+  /// Audit
+  created_by        String?   @db.Uuid
+  notes             String?
+
+  restores          platform_restores[]
+
+  @@index([status])
+  @@index([type])
+  @@index([started_at])
+}
+
+/// Platform restore history
+model platform_restores {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  backup_id         String    @db.Uuid
+  type              String    @default("full")                /// full | partial | preview
+  status            String    @default("pending")             /// pending | running | completed | failed
+  /// What was restored
+  scope             Json      @default("{}")
+  records_restored  Int       @default(0)
+  error_message     String?
+  /// Timestamps
+  started_at        DateTime  @default(now())
+  completed_at      DateTime?
+  /// Audit
+  created_by        String?   @db.Uuid
+
+  backup            platform_backups @relation(fields: [backup_id], references: [id], onDelete: Cascade)
+
+  @@index([backup_id])
+  @@index([status])
 }

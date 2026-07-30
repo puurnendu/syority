@@ -127,8 +127,17 @@ async function main() {
     console.log('   ⚠️  Password change required on first login.');
 }
 
+import { seedNotificationPlatform } from './seeds/notification-seed';
+import { seedReportBuilder } from './seeds/report-builder-seed';
+
 main()
-    .then(() => prisma.$disconnect())
+    .then(async () => {
+        // M7.6: Always seed notification templates & rules (idempotent)
+        await seedNotificationPlatform();
+        // M7.6A: Always seed report builder definitions (idempotent)
+        await seedReportBuilder();
+        await prisma.$disconnect();
+    })
     .catch(async (e) => {
         console.error(e);
         await prisma.$disconnect();

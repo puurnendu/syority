@@ -116,6 +116,9 @@ export class NotificationService {
 
     /**
      * Send an email notification using a typed template.
+     *
+     * M7.6: Routes through the notification platform queue for
+     * audit logging, retry handling, and provider management.
      */
     static async sendEmail<T extends EmailTemplateType>(
         organizationId: string,
@@ -142,16 +145,13 @@ export class NotificationService {
                 return;
             }
 
-            // 2. TODO: Check user notification preferences here if implemented in schema
-            // e.g. if (!user.settings.email_notifications) return;
-
-            // 3. Resolve Template
+            // 2. Resolve Template
             const TemplateComponent = TEMPLATE_MAP[templateType] as any;
             if (!TemplateComponent) {
                 throw new Error(`Unknown email template: ${templateType}`);
             }
 
-            // 4. Inject Branding
+            // 3. Inject Branding
             const finalProps = {
                 ...props,
                 recipientName: user.name,
@@ -160,22 +160,41 @@ export class NotificationService {
                 primaryColor: org?.primary_color ?? '#4F46E5',
             };
 
-            // 5. Render HTML and Text
+            // 4. Render HTML and Text
             const html = await render(React.createElement(TemplateComponent, finalProps));
             const text = await render(React.createElement(TemplateComponent, finalProps), {
                 plainText: true,
             });
 
-            // 6. Deliver
-            await deliveryService({
-                to: user.email,
-                subject: options.subject ?? `Notification: ${templateType}`,
-                html,
-                text,
+            // 5. Deliver via notification queue (M7.6)
+            //    Get default provider for queue entry
+            const defaultProvider = await prisma.notification_providers.findFirst({
+                where: { is_default: true, is_enabled: true },
+                select: { id: true },
+            });
+
+            const subject = options.subject ?? `Notification: ${templateType}`;
+
+            await prisma.notification_queue.create({
+                data: {
+                    provider_id: defaultProvider?.id ?? null,
+                    channel: 'email',
+                    recipient_email: user.email,
+                    recipient_name: user.name,
+                    subject,
+                    html_body: html,
+                    text_body: text,
+                    status: 'pending',
+                    priority: 5,
+                    max_attempts: 3,
+                    organization_id: organizationId,
+                    triggered_by: userId,
+                    event_type: templateType,
+                },
             });
 
         } catch (error) {
-            console.error('[NotificationService] Failed to send email:', error);
+            console.error('[NotificationService] Failed to enqueue email:', error);
         }
     }
 

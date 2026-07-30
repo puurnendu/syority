@@ -1,5 +1,6 @@
 import { eventBus } from './eventBus';
 import { NotificationService } from './notifications';
+import { processEvent } from '@/core/notifications';
 import { prisma } from './prisma';
 import { appUrl } from './appUrl';
 
@@ -13,23 +14,26 @@ export function registerEventSubscribers(bus: typeof eventBus): void {
         try {
             const workpack = await prisma.workpack.findUnique({
                 where: { id: data.workpack_id },
-                select: { created_by: true, title: true, organization_id: true, workpack_number: true }
+                select: { created_by: true, title: true, organization_id: true, workpack_number: true },
             });
             if (!workpack) return;
 
             const actionUrl = `/workpacks/${data.workpack_id}`;
             const wpIdentifier = workpack.workpack_number || workpack.title || data.workpack_id;
 
+            // Look up the org name for template variables
+            const org = await prisma.organization.findUnique({
+                where: { id: workpack.organization_id },
+                select: { name: true },
+            });
+
             if (data.action === 'submit') {
-                // TODO: Get real approver list when implemented. Defaulting to notifying the organization admins for now, or just logging if no specific approvers.
-                // For acceptance criteria: we'll simulate sending to an approver chain if we had one.
-                // Since we don't have role-based lookup implemented yet, we might skip the actual user_id for approver or send to a dummy if needed.
-                // We will query users with admin/approver role if possible, but let's notify the originator as well for now so there's an actual notification sent.
                 const approvers = await prisma.user.findMany({
                     where: { organization_id: workpack.organization_id, is_tenant_admin: true },
-                    select: { id: true }
+                    select: { id: true },
                 });
 
+                // In-app notifications (preserved)
                 for (const approver of approvers) {
                     await NotificationService.create({
                         organizationId: workpack.organization_id,
@@ -42,23 +46,27 @@ export function registerEventSubscribers(bus: typeof eventBus): void {
                         actionUrl,
                         triggeredBy: data.performed_by,
                     });
-
-                    // Trigger Email
-                    await NotificationService.sendEmail(
-                        workpack.organization_id,
-                        approver.id,
-                        'workpack.submitted',
-                        {
-                            plannerName: data.performed_by,
-                            workpackNumber: wpIdentifier,
-                            workpackTitle: workpack.title,
-                            reviewUrl: appUrl(actionUrl),
-                        },
-                        { subject: `Review Required: Workpack ${wpIdentifier}` }
-                    );
                 }
+
+                // Email via notification platform rule engine
+                await processEvent('workpack.submitted', {
+                    organizationId: workpack.organization_id,
+                    triggeredBy: data.performed_by,
+                    entityType: 'Workpack',
+                    entityId: data.workpack_id,
+                    variables: {
+                        user_name: data.performed_by,
+                        company: org?.name ?? 'AURIANOA OS',
+                        workpack_number: wpIdentifier,
+                        workpack_title: workpack.title ?? '',
+                        approval_link: appUrl(actionUrl),
+                        app_url: appUrl('/'),
+                    },
+                }).catch(err => console.error('[EventSubscriber] Notification platform error:', err));
+
             } else if (data.action === 'approve') {
                 if (workpack.created_by) {
+                    // In-app notification (preserved)
                     await NotificationService.create({
                         organizationId: workpack.organization_id,
                         userId: workpack.created_by,
@@ -71,23 +79,26 @@ export function registerEventSubscribers(bus: typeof eventBus): void {
                         triggeredBy: data.performed_by,
                     });
 
-                    // Trigger Email
-                    await NotificationService.sendEmail(
-                        workpack.organization_id,
-                        workpack.created_by,
-                        'workpack.approved',
-                        {
-                            workpackNumber: wpIdentifier,
-                            workpackTitle: workpack.title,
-                            changedBy: data.performed_by,
-                            workpackUrl: appUrl(actionUrl),
-                            notes: (data as any).notes,
+                    // Email via notification platform rule engine
+                    await processEvent('workpack.approved', {
+                        organizationId: workpack.organization_id,
+                        triggeredBy: data.performed_by,
+                        entityType: 'Workpack',
+                        entityId: data.workpack_id,
+                        variables: {
+                            user_name: data.performed_by,
+                            company: org?.name ?? 'AURIANOA OS',
+                            workpack_number: wpIdentifier,
+                            workpack_title: workpack.title ?? '',
+                            changed_by: data.performed_by,
+                            notes: (data as any).notes ?? '',
+                            app_url: appUrl(actionUrl),
                         },
-                        { subject: `Workpack Approved: ${wpIdentifier}` }
-                    );
+                    }).catch(err => console.error('[EventSubscriber] Notification platform error:', err));
                 }
             } else if (data.action === 'reject') {
                 if (workpack.created_by) {
+                    // In-app notification (preserved)
                     await NotificationService.create({
                         organizationId: workpack.organization_id,
                         userId: workpack.created_by,
@@ -100,20 +111,22 @@ export function registerEventSubscribers(bus: typeof eventBus): void {
                         triggeredBy: data.performed_by,
                     });
 
-                    // Trigger Email
-                    await NotificationService.sendEmail(
-                        workpack.organization_id,
-                        workpack.created_by,
-                        'workpack.rejected',
-                        {
-                            workpackNumber: wpIdentifier,
-                            workpackTitle: workpack.title,
-                            changedBy: data.performed_by,
-                            workpackUrl: appUrl(actionUrl),
-                            notes: (data as any).notes,
+                    // Email via notification platform rule engine
+                    await processEvent('workpack.rejected', {
+                        organizationId: workpack.organization_id,
+                        triggeredBy: data.performed_by,
+                        entityType: 'Workpack',
+                        entityId: data.workpack_id,
+                        variables: {
+                            user_name: data.performed_by,
+                            company: org?.name ?? 'AURIANOA OS',
+                            workpack_number: wpIdentifier,
+                            workpack_title: workpack.title ?? '',
+                            changed_by: data.performed_by,
+                            notes: (data as any).notes ?? '',
+                            app_url: appUrl(actionUrl),
                         },
-                        { subject: `Workpack Rejected: ${wpIdentifier}` }
-                    );
+                    }).catch(err => console.error('[EventSubscriber] Notification platform error:', err));
                 }
             } else {
                 // fallback for 'issue', 'close' etc.

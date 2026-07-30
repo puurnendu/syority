@@ -109,6 +109,7 @@ export type Permission =
   | 'reports.generate'
   | 'safety.view'
   | 'safety.log'
+  | 'safety.edit'
   | 'documents.view'
   | 'documents.upload'
   | 'masterdata.units.view'
@@ -119,7 +120,44 @@ export type Permission =
   /** Knowledge Engine (Platform only) */
   | 'knowledge.view'
   | 'knowledge.review'
-  | 'knowledge.admin';
+  | 'knowledge.admin'
+  /** OIS — Operational Intelligence Studio */
+  | 'ois:dashboard.view'
+  | 'ois:dashboard.build'
+  | 'ois:dashboard.admin'
+  | 'ois:cockpit.view'
+  | 'ois:cockpit.build'
+  | 'ois:widget.view'
+  | 'ois:widget.build'
+  | 'ois:export.pdf'
+  | 'ois:export.excel'
+  | 'ois:tv_mode'
+  | 'ois:meeting_mode'
+  /** BRE — Business Rules Engine */
+  | 'bre:rules.view'
+  | 'bre:rules.edit'
+  | 'bre:rules.admin'
+  | 'bre:formulas.view'
+  | 'bre:formulas.edit'
+  | 'bre:alerts.view'
+  | 'bre:alerts.manage'
+  | 'bre:kpis.view'
+  | 'bre:kpis.edit'
+  | 'bre:escalations.view'
+  | 'bre:escalations.edit'
+  | 'bre:recommendations.view'
+  | 'bre:recommendations.manage'
+  /** M7.6G — Platform Beta & Licensing */
+  | 'platform:licenses.view'
+  | 'platform:licenses.edit'
+  | 'platform:modules.view'
+  | 'platform:modules.edit'
+  | 'platform:diagnostics.view'
+  | 'platform:feedback.view'
+  | 'platform:feedback.manage'
+  | 'platform:analytics.view'
+  | 'platform:release.view'
+  | 'platform:beta.manage';
 
 /** Canonical slug after alias resolution */
 export function resolveRoleSlug(slug: string): string {
@@ -225,10 +263,36 @@ const TENANT_ADMIN_PERMS: Permission[] = [
   'reporting:view',
   'reporting:build',
   'reporting:admin',
+  'ois:dashboard.view',
+  'ois:dashboard.build',
+  'ois:dashboard.admin',
+  'ois:cockpit.view',
+  'ois:cockpit.build',
+  'ois:widget.view',
+  'ois:widget.build',
+  'ois:export.pdf',
+  'ois:export.excel',
+  'ois:tv_mode',
+  'ois:meeting_mode',
+  'safety.edit',
   'events.view',
   'events.create',
   'events.edit',
   'events.delete',
+  // BRE — Business Rules Engine
+  'bre:rules.view',
+  'bre:rules.edit',
+  'bre:rules.admin',
+  'bre:formulas.view',
+  'bre:formulas.edit',
+  'bre:alerts.view',
+  'bre:alerts.manage',
+  'bre:kpis.view',
+  'bre:kpis.edit',
+  'bre:escalations.view',
+  'bre:escalations.edit',
+  'bre:recommendations.view',
+  'bre:recommendations.manage',
 ];
 
 /** Platform-only permissions — never attach to tenant roles */
@@ -240,6 +304,17 @@ const PLATFORM_ONLY: Permission[] = [
   'knowledge.view',
   'knowledge.review',
   'knowledge.admin',
+  // M7.6G — Platform Beta & Licensing
+  'platform:licenses.view',
+  'platform:licenses.edit',
+  'platform:modules.view',
+  'platform:modules.edit',
+  'platform:diagnostics.view',
+  'platform:feedback.view',
+  'platform:feedback.manage',
+  'platform:analytics.view',
+  'platform:release.view',
+  'platform:beta.manage',
 ];
 
 const PLATFORM_SUPER: Permission[] = [...TENANT_ADMIN_PERMS, ...PLATFORM_ONLY];
@@ -253,6 +328,17 @@ const PLATFORM_PRODUCT_MANAGER: Permission[] = [
   'knowledge.review',
   'knowledge.admin',
   'settings.ai.view',
+  // M7.6G — Platform Beta & Licensing
+  'platform:licenses.view',
+  'platform:licenses.edit',
+  'platform:modules.view',
+  'platform:modules.edit',
+  'platform:diagnostics.view',
+  'platform:feedback.view',
+  'platform:feedback.manage',
+  'platform:analytics.view',
+  'platform:release.view',
+  'platform:beta.manage',
 ];
 
 const PLATFORM_MASTER_SCHEDULER: Permission[] = [
