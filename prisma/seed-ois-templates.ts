@@ -8,9 +8,7 @@
  * Templates cover the 18 required dashboard configurations.
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma, disconnect } from './seed-client';
 
 // ─── Widget Definitions ─────────────────────────────────────────────────────
 
@@ -186,4 +184,4 @@ async function seedOIS() {
 
 seedOIS()
   .catch((e) => { console.error(e); process.exit(1); })
-  .finally(() => prisma.$disconnect());
+  .finally(() => disconnect());

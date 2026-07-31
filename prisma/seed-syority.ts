@@ -1,17 +1,5 @@
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
+import { prisma, disconnect } from './seed-client';
 import bcrypt from 'bcryptjs';
-
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString || typeof connectionString !== 'string') {
-    console.error('❌ DATABASE_URL is not set or invalid.');
-    process.exit(1);
-}
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
 
 async function main() {
     console.log('🌱 Setting up SYORITY Corporation...');
@@ -196,5 +184,5 @@ main()
         process.exit(1);
     })
     .finally(async () => {
-        await prisma.$disconnect();
+        await disconnect();
     });

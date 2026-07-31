@@ -37,8 +37,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
 
-# Stage 3: Migrator (Prisma CLI + schema only — not the Next.js runtime)
+# Stage 3: Migrator (Prisma CLI + schema + seeds — not the Next.js runtime)
 # Used as a one-shot Compose service before `app` starts.
+# Supports: migrate, seed, bootstrap (see docker-migrate.sh)
 FROM node:20-bookworm-slim AS migrator
 
 RUN apt-get update && apt-get install -y openssl ca-certificates \
@@ -56,6 +57,10 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 COPY scripts/docker-migrate.sh ./scripts/docker-migrate.sh
 COPY scripts/docker-migrate.mjs ./scripts/docker-migrate.mjs
+COPY scripts/bootstrap.ts ./scripts/bootstrap.ts
+# seed-role-catalog and seed-enterprise-demo import from src/
+COPY src/security ./src/security
+COPY src/lib/permissions.ts ./src/lib/permissions.ts
 
 RUN chmod +x ./scripts/docker-migrate.sh \
     && npx prisma generate

@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { prisma, disconnect } from '../prisma/seed-client';
 
 async function main() {
     console.log('Targeting info@syority.com (Platform Admin Role Assignment)');
@@ -54,10 +53,10 @@ async function main() {
 
 main()
   .then(async () => {
-    await prisma.$disconnect()
+    await disconnect()
   })
   .catch(async (e) => {
     console.error(e)
-    await prisma.$disconnect()
+    await disconnect()
     process.exit(1)
   });

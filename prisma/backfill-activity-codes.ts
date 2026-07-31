@@ -3,9 +3,7 @@
  * Format: {TAG}_{3-digit} e.g. E435_001, E435_002
  * Run: npx tsx prisma/backfill-activity-codes.ts
  */
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma, disconnect } from './seed-client';
 
 function deriveTag(unitCode: string | null, title: string | null): string {
     const raw = (unitCode || title || 'ACT').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -48,4 +46,4 @@ main()
         console.error(e);
         process.exit(1);
     })
-    .finally(() => prisma.$disconnect());
+    .finally(() => disconnect());

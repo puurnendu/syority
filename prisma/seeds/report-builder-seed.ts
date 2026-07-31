@@ -8,9 +8,7 @@
  * Or import into main seed file.
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma, disconnect } from '../seed-client';
 
 // ─── Categories ─────────────────────────────────────────────────────────────
 
@@ -417,6 +415,6 @@ export async function seedReportBuilder() {
 // Allow standalone execution
 if (require.main === module) {
   seedReportBuilder()
-    .then(() => prisma.$disconnect())
-    .catch((e) => { console.error(e); prisma.$disconnect(); process.exit(1); });
+    .then(() => disconnect())
+    .catch((e) => { console.error(e); disconnect(); process.exit(1); });
 }

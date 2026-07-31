@@ -6,9 +6,7 @@
  * Or import into your main seed file.
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma, disconnect } from '../seed-client';
 
 // ─── Default Templates ────────────────────────────────────────────────────────
 
@@ -417,10 +415,10 @@ export async function seedNotificationPlatform() {
 // Allow direct execution
 if (require.main === module) {
   seedNotificationPlatform()
-    .then(() => prisma.$disconnect())
+    .then(() => disconnect())
     .catch((err) => {
       console.error('Seed failed:', err);
-      prisma.$disconnect();
+      disconnect();
       process.exit(1);
     });
 }

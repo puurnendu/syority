@@ -6,20 +6,7 @@
  * only. Do not run — it will fail against the current schema.
  */
 // @ts-nocheck
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
-
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString || typeof connectionString !== 'string') {
-  console.error('DATABASE_URL is not set. Add it to .env');
-  process.exit(1);
-}
-
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+import { prisma, disconnect } from './seed-client';
 
 function mapCategory(category: string | null): string {
   if (!category) return 'consumable';
@@ -158,4 +145,4 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => pool.end());
+  .finally(() => disconnect());

@@ -22,7 +22,8 @@
     "migrate:consumable-to-catalog": "tsx prisma/migrate-consumable-to-item-catalog.ts",
     "backfill:workpack-ids": "tsx prisma/backfill-workpack-ids.ts",
     "backfill:activity-codes": "tsx prisma/backfill-activity-codes.ts",
-    "worker": "tsx src/workers/index.ts"
+    "worker": "tsx src/workers/index.ts",
+    "bootstrap": "tsx scripts/bootstrap.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1009.0",

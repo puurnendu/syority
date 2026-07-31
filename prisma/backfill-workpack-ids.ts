@@ -3,7 +3,7 @@
  * Run: npm run backfill:workpack-ids
  * Uses its own PrismaClient to avoid pulling in server-only modules.
  */
-import { PrismaClient } from '@prisma/client';
+import { prisma, disconnect } from './seed-client';
 
 const DISC_MAP: Record<string, string> = {
     'MECH': 'MEC', 'MECHANICAL': 'MEC', 'MEC': 'MEC',
@@ -32,7 +32,7 @@ function normaliseDisc(discipline: string): string {
     return upper.replace(/[^A-Z0-9]/g, '').slice(0, 3).padEnd(3, 'X');
 }
 
-const prisma = new PrismaClient();
+
 
 async function generateCode(orgId: string, unitCode: string, disciplineCode: string): Promise<string> {
     const unit = normaliseUnit(unitCode);
@@ -104,4 +104,4 @@ main()
         console.error(e);
         process.exit(1);
     })
-    .finally(() => prisma.$disconnect());
+    .finally(() => disconnect());

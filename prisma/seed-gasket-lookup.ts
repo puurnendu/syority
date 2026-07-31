@@ -1,16 +1,4 @@
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
-
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  console.error('DATABASE_URL is not set');
-  process.exit(1);
-}
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+import { prisma, disconnect } from './seed-client';
 
 const LOOKUP_TABLE = [
   ['1/2"', '150#', 'RF', 'SWG Gasket 1/2" 150# RF', 'B7 Stud M12×70', 4, 70, '2H Nut M12'],
@@ -132,4 +120,4 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => disconnect());

@@ -12,24 +12,12 @@
  *
  *   npx tsx prisma/seed-platform-admin.ts
  */
-import 'dotenv/config';
+import { prisma, disconnect } from './seed-client';
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
-
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-    console.error('❌ DATABASE_URL is required');
-    process.exit(1);
-}
 
 const email = (process.env.PLATFORM_ADMIN_EMAIL || 'info@syority.com').trim().toLowerCase();
 const password = process.env.PLATFORM_ADMIN_PASSWORD || 'Admin@123';
-
-const pool = new Pool({ connectionString });
-const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 async function main() {
     console.log('🔐 Bootstrapping Platform Administrator…');
@@ -163,6 +151,5 @@ main()
         process.exit(1);
     })
     .finally(async () => {
-        await prisma.$disconnect();
-        await pool.end();
+        await disconnect();
     });

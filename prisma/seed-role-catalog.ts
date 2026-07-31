@@ -14,25 +14,15 @@
  */
 import 'dotenv/config';
 import { randomUUID } from 'crypto';
+import { prisma, disconnect } from './seed-client';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
 import {
   PLATFORM_ROLE_CATALOG,
   TENANT_ROLE_CATALOG,
 } from '../src/security/roleCatalog';
 import { permissionsForRoles } from '../src/lib/permissions';
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  console.error('❌ DATABASE_URL is required');
-  process.exit(1);
-}
-
 const TEST_PASSWORD = process.env.ROLE_CATALOG_TEST_PASSWORD || 'Admin@123';
-const pool = new Pool({ connectionString });
-const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 type UserSeed = { email: string; name: string; slug: string; position: string };
 
@@ -389,9 +379,9 @@ async function main() {
 }
 
 main()
-  .then(() => prisma.$disconnect())
+  .then(() => disconnect())
   .catch(async (e) => {
     console.error(e);
-    await prisma.$disconnect();
+    await disconnect();
     process.exit(1);
   });

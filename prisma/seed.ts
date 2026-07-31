@@ -1,14 +1,5 @@
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
+import { prisma, verifyDatabase, disconnect } from './seed-client';
 import bcrypt from 'bcryptjs';
-
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString || typeof connectionString !== 'string') {
-    console.error('❌ DATABASE_URL is not set or invalid.');
-    process.exit(1);
-}
 
 const PLATFORM_ADMIN_EMAIL = process.env.PLATFORM_ADMIN_EMAIL;
 const PLATFORM_ADMIN_PASSWORD = process.env.PLATFORM_ADMIN_PASSWORD;
@@ -20,11 +11,8 @@ if (!PLATFORM_ADMIN_PASSWORD) {
     throw new Error('PLATFORM_ADMIN_PASSWORD environment variable is required');
 }
 
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
-
 async function main() {
+    await verifyDatabase();
     console.log('🌱 Seeding Syority Platform...');
 
     // --- Guard: skip if platform admin already exists ---
@@ -136,10 +124,10 @@ main()
         await seedNotificationPlatform();
         // M7.6A: Always seed report builder definitions (idempotent)
         await seedReportBuilder();
-        await prisma.$disconnect();
+        await disconnect();
     })
     .catch(async (e) => {
         console.error(e);
-        await prisma.$disconnect();
+        await disconnect();
         process.exit(1);
     });

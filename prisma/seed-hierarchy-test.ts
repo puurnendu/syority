@@ -1,12 +1,4 @@
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
-
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+import { prisma, disconnect } from './seed-client';
 
 async function main() {
     console.log('🌱 Seeding Verification Hierarchy (Robust Version)...');
@@ -173,6 +165,5 @@ main()
         process.exit(1);
     })
     .finally(async () => {
-        await prisma.$disconnect();
-        await pool.end();
+        await disconnect();
     });

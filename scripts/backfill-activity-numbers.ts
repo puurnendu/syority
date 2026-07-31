@@ -1,16 +1,4 @@
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
-
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  console.error('DATABASE_URL is not set. Set it in .env or the environment.');
-  process.exit(1);
-}
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+import { prisma, disconnect } from '../prisma/seed-client';
 
 async function main() {
   console.log('Starting activity_number backfill...\n');
@@ -68,11 +56,11 @@ async function main() {
   }
 
   console.log(`\n✅ Done. Updated ${totalUpdated} activities.`);
-  await prisma.$disconnect();
+  await disconnect();
 }
 
 main().catch(async (e) => {
   console.error(e);
-  await prisma.$disconnect();
+  await disconnect();
   process.exit(1);
 });

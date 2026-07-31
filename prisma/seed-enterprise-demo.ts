@@ -9,9 +9,7 @@
 import 'dotenv/config';
 import { createHash, randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { prisma, disconnect } from './seed-client';
 import { PLATFORM_ROLE_CATALOG } from '../src/security/roleCatalog';
 import { permissionsForRoles } from '../src/lib/permissions';
 import {
@@ -26,15 +24,7 @@ import { RESOURCE_TYPES, buildUdfDefinitions } from './demo/resourcesAndUdfs';
 import { buildAllTemplates } from './demo/workpackTemplates';
 import { CERTIFICATE_TEMPLATES, PRINT_TEMPLATE_PRESETS } from './demo/certificates';
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  console.error('❌ DATABASE_URL is required');
-  process.exit(1);
-}
-
 const PASSWORD = process.env.DEMO_PASSWORD || 'Admin@123';
-const pool = new Pool({ connectionString });
-const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 const stats = {
   tenants: 0,
@@ -872,9 +862,9 @@ async function main() {
 }
 
 main()
-  .then(() => prisma.$disconnect())
+  .then(() => disconnect())
   .catch(async (e) => {
     console.error(e);
-    await prisma.$disconnect();
+    await disconnect();
     process.exit(1);
   });
