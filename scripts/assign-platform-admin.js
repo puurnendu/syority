@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma, disconnect } = require('../prisma/seed-client');
+const { randomUUID } = require('crypto');
 
 async function main() {
     console.log('Targeting info@syority.com (Platform Admin Role Assignment)');
@@ -27,11 +27,13 @@ async function main() {
     if (!platformRole) {
          platformRole = await prisma.role.create({
             data: {
+                id: randomUUID(),
                 organization_id: user.organization_id,
                 name: 'Platform Super Admin',
                 slug: 'platform_super_admin',
                 permissions: ['nav.admin', 'settings.view'],
-                is_system: true
+                is_system: true,
+                updated_at: new Date(),
             }
         });
         console.log('Created PLATFORM_SUPER_ADMIN role.');
@@ -55,10 +57,10 @@ async function main() {
 
 main()
   .then(async () => {
-    await prisma.$disconnect()
+    await disconnect()
   })
   .catch(async (e) => {
     console.error(e)
-    await prisma.$disconnect()
+    await disconnect()
     process.exit(1)
   });

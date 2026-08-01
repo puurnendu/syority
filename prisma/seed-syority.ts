@@ -1,4 +1,5 @@
 import { prisma, disconnect } from './seed-client';
+import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 
 async function main() {
@@ -16,6 +17,7 @@ async function main() {
             notes: 'Platform owner organisation. Super admins only.',
         },
         create: {
+            id: randomUUID(),
             name: 'SYORITY Corporation',
             slug: 'syority',
             industry: 'Software / Platform',
@@ -26,6 +28,7 @@ async function main() {
             plan_tier: 'platform',
             status: 'active',
             notes: 'Platform owner organisation. Super admins only.',
+            updated_at: new Date(),
         },
     });
     console.log(`✅ Organisation: SYORITY Corporation (${syorityOrg.id})`);
@@ -60,11 +63,13 @@ async function main() {
         },
         update: { permissions: ['*'] },
         create: {
+            id: randomUUID(),
             organization_id: syorityOrg.id,
             name: 'Platform Super Admin',
             slug: 'platform-super-admin',
             permissions: ['*'],
             is_system: true,
+            updated_at: new Date(),
         },
     });
     console.log('✅ Role: Platform Super Admin');

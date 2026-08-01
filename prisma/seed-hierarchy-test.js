@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
+const { randomUUID } = require('crypto');
 require('dotenv').config();
 
 const connectionString = process.env.DATABASE_URL;
@@ -31,6 +32,7 @@ async function main() {
         if (!event) {
             event = await prisma.event.create({
                 data: {
+                    id: randomUUID(),
                     organization_id: org.id,
                     site_id: site.id,
                     code: 'STO-2026',
@@ -38,6 +40,7 @@ async function main() {
                     status: 'planning',
                     planned_start: new Date('2026-05-01'),
                     planned_end: new Date('2026-06-01'),
+                    updated_at: new Date(),
                 }
             });
             console.log('✅ Created Event:', event.code);
@@ -116,10 +119,12 @@ async function main() {
         if (!nozzle) {
             nozzle = await prisma.nozzle.create({
                 data: {
+                    id: randomUUID(),
                     organization_id: org.id,
                     asset_id: asset.id,
                     designation: nozzleName,
                     service: 'Inlet',
+                    updated_at: new Date(),
                 }
             });
             console.log('✅ Created Nozzle:', nozzle.designation);
@@ -132,6 +137,7 @@ async function main() {
         if (!jointMaster) {
             jointMaster = await prisma.jointMaster.create({
                 data: {
+                    id: randomUUID(),
                     organization_id: org.id,
                     site_id: site.id,
                     asset_id: asset.id,
@@ -139,6 +145,7 @@ async function main() {
                     joint_number: jointNozzleNum,
                     flange_size: '8"',
                     pressure_rating: '300#',
+                    updated_at: new Date(),
                 }
             });
             console.log('✅ Created Joint Master (Nozzle):', jointMaster.joint_number);
@@ -151,10 +158,13 @@ async function main() {
         if (!line) {
             line = await prisma.lineList.create({
                 data: {
+                    id: randomUUID(),
                     organization_id: org.id,
                     site_id: site.id,
+                    unit_id: unit.id,
                     asset_id: asset.id,
                     line_number: lineNum,
+                    updated_at: new Date(),
                 }
             });
             console.log('✅ Created Line List:', line.line_number);
@@ -167,6 +177,7 @@ async function main() {
         if (!lineJoint) {
             lineJoint = await prisma.jointMaster.create({
                 data: {
+                    id: randomUUID(),
                     organization_id: org.id,
                     site_id: site.id,
                     asset_id: asset.id,
@@ -174,6 +185,7 @@ async function main() {
                     joint_number: jointLineNum,
                     flange_size: '8"',
                     pressure_rating: '300#',
+                    updated_at: new Date(),
                 }
             });
             console.log('✅ Created Joint Master (Line):', lineJoint.joint_number);

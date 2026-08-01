@@ -1,4 +1,5 @@
 import { prisma, verifyDatabase, disconnect } from './seed-client';
+import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 
 const PLATFORM_ADMIN_EMAIL = process.env.PLATFORM_ADMIN_EMAIL;
@@ -30,9 +31,11 @@ async function main() {
         where: { slug: 'syority-platform' },
         update: {},
         create: {
+            id: randomUUID(),
             name: 'Syority Technologies',
             slug: 'syority-platform',
             is_active: true,
+            updated_at: new Date(),
         },
     });
     console.log('✅ Organization:', org.name);
@@ -56,12 +59,14 @@ async function main() {
         where: { organization_id_slug: { organization_id: org.id, slug: 'platform_super_admin' } },
         update: { permissions: ['*'] },
         create: {
+            id: randomUUID(),
             organization_id: org.id,
             name: 'Platform Super Admin',
             slug: 'platform_super_admin',
             permissions: ['*'],
             is_system: true,
             created_by: null as any,
+            updated_at: new Date(),
         },
     });
     console.log('✅ Role:', platformRole.name);

@@ -1,4 +1,5 @@
 import { prisma, disconnect } from './seed-client';
+import { randomUUID } from 'crypto';
 
 const LOOKUP_TABLE = [
   ['1/2"', '150#', 'RF', 'SWG Gasket 1/2" 150# RF', 'B7 Stud M12×70', 4, 70, '2H Nut M12'],
@@ -96,6 +97,7 @@ async function main() {
         nut_description: nutDesc,
       },
       create: {
+        id: randomUUID(),
         organization_id: demoOrg.id,
         pipe_size: size,
         pressure_class: cls,
@@ -105,6 +107,7 @@ async function main() {
         bolt_count: boltCount,
         bolt_length_mm: boltMm,
         nut_description: nutDesc,
+        updated_at: new Date(),
       },
     });
     count++;
