@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { analyticsService } from '@/core/platform/AnalyticsService';
+import { analyticsService } from '@/core/Platform/AnalyticsService';
 import { hasPermission } from '@/lib/permissions';
 
 export async function GET(req: NextRequest) {

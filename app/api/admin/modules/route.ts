@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { moduleService, type ModuleStatus } from '@/core/platform/ModuleService';
+import { moduleService, type ModuleStatus } from '@/core/Platform/ModuleService';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 

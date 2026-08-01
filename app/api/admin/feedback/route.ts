@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { feedbackService, type FeedbackType, type FeedbackStatus, type FeedbackSeverity } from '@/core/platform/FeedbackService';
+import { feedbackService, type FeedbackType, type FeedbackStatus, type FeedbackSeverity } from '@/core/Platform/FeedbackService';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 

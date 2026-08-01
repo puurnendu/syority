@@ -13,8 +13,8 @@ import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { permissionsForRoles } from '@/lib/permissions';
-import { licenseService } from '@/core/platform/LicenseService';
-import { moduleService } from '@/core/platform/ModuleService';
+import { licenseService } from '@/core/Platform/LicenseService';
+import { moduleService } from '@/core/Platform/ModuleService';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types

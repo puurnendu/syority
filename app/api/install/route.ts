@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { installationService } from '@/core/platform/InstallationService';
+import { installationService } from '@/core/Platform/InstallationService';
 import { z } from 'zod';
 
 const installSchema = z.object({

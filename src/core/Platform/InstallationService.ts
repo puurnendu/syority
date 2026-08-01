@@ -8,9 +8,9 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { getSystemReadiness } from '@/lib/system/readiness';
-import { licenseService } from '@/core/platform/LicenseService';
-import { moduleService } from '@/core/platform/ModuleService';
-import { seedPackService } from '@/core/platform/SeedPackService';
+import { licenseService } from '@/core/Platform/LicenseService';
+import { moduleService } from '@/core/Platform/ModuleService';
+import { seedPackService } from '@/core/Platform/SeedPackService';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { permissionsForRoles } from '@/lib/permissions';

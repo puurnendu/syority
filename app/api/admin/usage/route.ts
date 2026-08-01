@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { usageLimitService } from '@/core/platform/UsageLimitService';
+import { usageLimitService } from '@/core/Platform/UsageLimitService';
 import { hasPermission } from '@/lib/permissions';
 
 export async function GET(req: NextRequest) {

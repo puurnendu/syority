@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { resetService } from '@/core/platform/ResetService';
+import { resetService } from '@/core/Platform/ResetService';
 import { hasPermission } from '@/lib/permissions';
 
 export async function POST(req: NextRequest) {

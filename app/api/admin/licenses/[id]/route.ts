@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { licenseService } from '@/core/platform/LicenseService';
+import { licenseService } from '@/core/Platform/LicenseService';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 

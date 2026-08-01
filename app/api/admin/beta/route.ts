@@ -9,8 +9,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions';
-import { resetService } from '@/core/platform/ResetService';
-import { licenseService } from '@/core/platform/LicenseService';
+import { resetService } from '@/core/Platform/ResetService';
+import { licenseService } from '@/core/Platform/LicenseService';
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 

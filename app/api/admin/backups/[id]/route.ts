@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { backupService } from '@/core/platform/BackupService';
+import { backupService } from '@/core/Platform/BackupService';
 import { hasPermission } from '@/lib/permissions';
 
 async function requireAdmin() {

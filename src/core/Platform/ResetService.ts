@@ -7,7 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { backupService } from '@/core/platform/BackupService';
+import { backupService } from '@/core/Platform/BackupService';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types

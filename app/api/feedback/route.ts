@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { feedbackService } from '@/core/platform/FeedbackService';
+import { feedbackService } from '@/core/Platform/FeedbackService';
 import { z } from 'zod';
 
 const submitSchema = z.object({

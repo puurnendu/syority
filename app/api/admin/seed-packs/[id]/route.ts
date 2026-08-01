@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { seedPackService } from '@/core/platform/SeedPackService';
+import { seedPackService } from '@/core/Platform/SeedPackService';
 import { hasPermission } from '@/lib/permissions';
 
 async function requireAdmin() {
