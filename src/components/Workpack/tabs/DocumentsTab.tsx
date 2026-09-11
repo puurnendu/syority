@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import Link from 'next/link';
 
 type WorkpackDoc = {
     id: string;
@@ -10,10 +11,21 @@ type WorkpackDoc = {
     mime_type: string;
     file_size_bytes: number | null;
     source: string;
+    source_document_id?: string | null;
     include_in_pdf: boolean;
     description?: string | null;
     created_at: string;
 };
+
+function sourceLabel(doc: WorkpackDoc): { text: string; className: string } {
+    if (doc.source === 'library') {
+        return { text: '📚 Library', className: 'bg-indigo-100 text-indigo-700' };
+    }
+    if (doc.source === 'ai') {
+        return { text: '🤖 AI', className: 'bg-violet-100 text-violet-700' };
+    }
+    return { text: '⬆ Uploaded', className: 'bg-gray-100 text-gray-600' };
+}
 
 const DOC_TYPE_OPTIONS = [
     { value: 'drawing',       label: '📐 Drawing' },
@@ -62,6 +74,12 @@ export function DocumentsTab({ workpackId, canEdit = true }: DocumentsTabProps) 
     const [uploadTitle, setUploadTitle] = useState('');
     const [uploadType, setUploadType] = useState('attachment');
     const [showUploadForm, setShowUploadForm] = useState(false);
+    const [showLibrary, setShowLibrary] = useState(false);
+    const [libraryDocs, setLibraryDocs] = useState<any[]>([]);
+    const [libraryQuery, setLibraryQuery] = useState('');
+    const [libraryLoading, setLibraryLoading] = useState(false);
+    const [librarySelected, setLibrarySelected] = useState<Set<string>>(new Set());
+    const [attaching, setAttaching] = useState(false);
 
     const load = async () => {
         try {
@@ -118,11 +136,25 @@ export function DocumentsTab({ workpackId, canEdit = true }: DocumentsTabProps) 
         }
     };
 
-    const handleDelete = async (docId: string, filename: string) => {
-        if (!confirm(`Delete "${filename}"? This cannot be undone.`)) return;
-        setDeletingId(docId);
+    const attachedLibraryIds = useMemo(
+        () =>
+            new Set(
+                docs
+                    .filter((d) => d.source === 'library' && d.source_document_id)
+                    .map((d) => d.source_document_id as string)
+            ),
+        [docs]
+    );
+
+    const handleRemove = async (doc: WorkpackDoc) => {
+        const fromLibrary = doc.source === 'library';
+        const message = fromLibrary
+            ? `Detach "${doc.title}" from this workpack? The document stays in the org library.`
+            : `Delete "${doc.title}" from this workpack? The uploaded file will be removed from this workpack.`;
+        if (!confirm(message)) return;
+        setDeletingId(doc.id);
         try {
-            await fetch(`/api/workpacks/${workpackId}/documents/${docId}`, { method: 'DELETE' });
+            await fetch(`/api/workpacks/${workpackId}/documents/${doc.id}`, { method: 'DELETE' });
             await load();
         } finally {
             setDeletingId(null);
@@ -144,6 +176,59 @@ export function DocumentsTab({ workpackId, canEdit = true }: DocumentsTabProps) 
         });
         setEditingId(null);
         await load();
+    };
+
+    const searchLibrary = async (q?: string) => {
+        setLibraryLoading(true);
+        try {
+            const params = new URLSearchParams();
+            if (q?.trim()) params.set('q', q.trim());
+            const res = await fetch(`/api/documents?${params}`);
+            const data = await res.json();
+            setLibraryDocs(Array.isArray(data) ? data : []);
+        } finally {
+            setLibraryLoading(false);
+        }
+    };
+
+    const openLibrary = () => {
+        setShowLibrary(true);
+        setLibrarySelected(new Set());
+        setLibraryQuery('');
+        searchLibrary();
+    };
+
+    const toggleLibraryDoc = (id: string) => {
+        setLibrarySelected((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const attachFromLibrary = async () => {
+        if (librarySelected.size === 0) return;
+        setAttaching(true);
+        setUploadError('');
+        try {
+            const res = await fetch(`/api/workpacks/${workpackId}/documents/attach`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ doc_library_ids: [...librarySelected] }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Attach failed');
+            const skippedNote = data.skipped > 0 ? ` (${data.skipped} already attached)` : '';
+            setUploadSuccess(`✓ ${data.attached} document(s) attached from library${skippedNote}.`);
+            setShowLibrary(false);
+            setLibrarySelected(new Set());
+            await load();
+        } catch (err) {
+            setUploadError(err instanceof Error ? err.message : 'Attach failed');
+        } finally {
+            setAttaching(false);
+        }
     };
 
     const toggleIncludeInPdf = async (doc: WorkpackDoc) => {
@@ -183,13 +268,22 @@ export function DocumentsTab({ workpackId, canEdit = true }: DocumentsTabProps) 
                     </p>
                 </div>
                 {canEdit && (
-                    <button
-                        type="button"
-                        onClick={() => { setShowUploadForm((v) => !v); setUploadError(''); setUploadSuccess(''); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        ⬆ Upload Document
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={openLibrary}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                            📚 Attach from Library
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setShowUploadForm((v) => !v); setUploadError(''); setUploadSuccess(''); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            ⬆ Upload Document
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -198,6 +292,81 @@ export function DocumentsTab({ workpackId, canEdit = true }: DocumentsTabProps) 
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
                     {uploadSuccess}
                     <button onClick={() => setUploadSuccess('')} className="ml-auto text-green-400 hover:text-green-600">✕</button>
+                </div>
+            )}
+
+            {showLibrary && canEdit && (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-900">Attach from document library</p>
+                        <button type="button" onClick={() => setShowLibrary(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+                    </div>
+                    <div className="flex gap-2">
+                        <input
+                            type="search"
+                            value={libraryQuery}
+                            onChange={(e) => setLibraryQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), searchLibrary(libraryQuery))}
+                            placeholder="Search by title, number, tags…"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => searchLibrary(libraryQuery)}
+                            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                        >
+                            Search
+                        </button>
+                    </div>
+                    {libraryLoading ? (
+                        <p className="text-sm text-gray-400">Loading library…</p>
+                    ) : libraryDocs.length === 0 ? (
+                        <p className="text-sm text-gray-400">No documents found. Upload documents in the Documents section first.</p>
+                    ) : (
+                        <ul className="max-h-64 overflow-y-auto divide-y divide-gray-100 border border-gray-200 rounded-lg bg-white">
+                            {libraryDocs.map((doc) => {
+                                const alreadyAttached = attachedLibraryIds.has(doc.id);
+                                return (
+                                    <li
+                                        key={doc.id}
+                                        className={`flex items-center gap-3 px-3 py-2 ${alreadyAttached ? 'bg-gray-50 opacity-60' : 'hover:bg-blue-50/40'}`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={librarySelected.has(doc.id)}
+                                            disabled={alreadyAttached}
+                                            onChange={() => toggleLibraryDoc(doc.id)}
+                                        />
+                                    <div className="min-w-0 flex-1">
+                                        <Link
+                                            href={`/documents?docId=${doc.id}`}
+                                            className="text-sm font-medium text-gray-900 truncate hover:text-indigo-700 hover:underline block"
+                                        >
+                                            {doc.title}
+                                        </Link>
+                                        <p className="text-xs text-gray-400">{doc.category} · {doc.original_name}</p>
+                                    </div>
+                                        {alreadyAttached && (
+                                            <span className="text-[10px] font-medium text-amber-700 whitespace-nowrap">
+                                                Already attached
+                                            </span>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                    <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setShowLibrary(false)} className="px-3 py-1.5 text-sm text-gray-600">Cancel</button>
+                        <button
+                            type="button"
+                            disabled={attaching || librarySelected.size === 0}
+                            onClick={attachFromLibrary}
+                            className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50"
+                        >
+                            {attaching ? 'Attaching…' : `Attach selected (${librarySelected.size})`}
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -359,13 +528,25 @@ export function DocumentsTab({ workpackId, canEdit = true }: DocumentsTabProps) 
                                         {formatBytes(doc.file_size_bytes)}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                            doc.source === 'ai'
-                                                ? 'bg-violet-100 text-violet-700'
-                                                : 'bg-gray-100 text-gray-500'
-                                        }`}>
-                                            {doc.source === 'ai' ? '🤖 AI' : '👤 Manual'}
-                                        </span>
+                                        {(() => {
+                                            const src = sourceLabel(doc);
+                                            if (doc.source === 'library' && doc.source_document_id) {
+                                                return (
+                                                    <Link
+                                                        href={`/documents?docId=${doc.source_document_id}`}
+                                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium hover:opacity-80 ${src.className}`}
+                                                        title="Open in document library"
+                                                    >
+                                                        {src.text}
+                                                    </Link>
+                                                );
+                                            }
+                                            return (
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${src.className}`}>
+                                                    {src.text}
+                                                </span>
+                                            );
+                                        })()}
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <button
@@ -421,12 +602,12 @@ export function DocumentsTab({ workpackId, canEdit = true }: DocumentsTabProps) 
                                                         </button>
                                                         <button
                                                             type="button"
-                                                            onClick={() => handleDelete(doc.id, doc.original_filename)}
+                                                            onClick={() => handleRemove(doc)}
                                                             disabled={deletingId === doc.id}
                                                             className="text-xs px-2.5 py-1 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
-                                                            title="Delete document"
+                                                            title={doc.source === 'library' ? 'Detach from workpack' : 'Remove from workpack'}
                                                         >
-                                                            {deletingId === doc.id ? '…' : '🗑'}
+                                                            {deletingId === doc.id ? '…' : doc.source === 'library' ? '⊖' : '🗑'}
                                                         </button>
                                                     </>
                                                 )}

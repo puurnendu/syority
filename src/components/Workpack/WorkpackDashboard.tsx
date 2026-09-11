@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { WorkpackSummaryBar } from './WorkpackSummaryBar';
-import { WorkpackListTable } from './WorkpackListTable';
+import { WorkpackListWithBulkExport } from './WorkpackListWithBulkExport';
 
 /** Site subset returned by getWorkpacks include */
 interface WorkpackListItemSiteDTO {
@@ -105,20 +105,7 @@ export function WorkpackDashboard({
                     <p className="text-xs mt-1">Click "New Workpack" to create the first one.</p>
                 </div>
             ) : (
-                <WorkpackListTable
-                    workpacks={workpacks}
-                    userRole={userRole}
-                >
-                    <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discipline</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Activities</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-12" />
-                    </tr>
-                </WorkpackListTable>
+                <WorkpackListWithBulkExport workpacks={workpacks} userRole={userRole} />
             )}
         </div>
     );

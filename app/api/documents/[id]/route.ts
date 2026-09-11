@@ -3,6 +3,19 @@ import { prisma } from '@/lib/prisma';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { unlink } from 'fs/promises';
 
+export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+  const { session, error } = await guardApi('documents.view');
+  if (error) return error;
+  const { orgId } = orgScope(session);
+  const params = await context.params;
+
+  const doc = await prisma.docLibrary.findFirst({
+    where: { id: params.id, org_id: orgId },
+  });
+  if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json(doc);
+}
+
 export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
   const { session, error } = await guardApi('documents.upload');
   if (error) return error;

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
 
-function inferAssetType(tag: string): string | null {
+function inferEquipmentAssetType(tag: string): string | null {
   const t = tag.toUpperCase();
   if (/^E-|^EA-|^HE-/.test(t)) return 'heat_exchanger';
   if (/^P-/.test(t)) return 'pump';
@@ -13,6 +14,15 @@ function inferAssetType(tag: string): string | null {
   if (/^FN-/.test(t)) return 'fan';
   return null;
 }
+
+function resolveAssetType(tag: string, itemType?: string): string | null {
+  if (itemType === 'valve') return 'valve';
+  if (itemType === 'instrument') return 'instrument';
+  if (itemType === 'equipment') return inferEquipmentAssetType(tag);
+  return inferEquipmentAssetType(tag);
+}
+
+const REGISTER_ASSET_TYPES = new Set(['equipment', 'valve', 'instrument']);
 
 export async function POST(
   req: Request,
@@ -53,16 +63,21 @@ export async function POST(
   let assets_created = 0;
   let lines_created = 0;
   let skipped = 0;
+  const skipped_tags: string[] = [];
+  const skipped_lines: string[] = [];
 
-  const equipmentByTag = new Map<string, (typeof items)[0]>();
+  const assetByTag = new Map<string, (typeof items)[0]>();
   const lineByNumber = new Map<string, (typeof items)[0]>();
   for (const it of items) {
-    if (it.item_type === 'equipment') equipmentByTag.set(it.tag_number, it);
+    if (REGISTER_ASSET_TYPES.has(it.item_type)) {
+      assetByTag.set(it.tag_number, it);
+      assetByTag.set(it.tag_number.toUpperCase(), it);
+    }
     if (it.item_type === 'line') lineByNumber.set(it.tag_number, it);
   }
 
   for (const tag of accepted_tags) {
-    const it = equipmentByTag.get(tag);
+    const it = assetByTag.get(tag) ?? assetByTag.get(tag.trim().toUpperCase());
     const tagNorm = tag.trim().toUpperCase();
     const existing = await prisma.asset.findUnique({
       where: { organization_id_tag_number: { organization_id: orgId, tag_number: tagNorm } },
@@ -70,15 +85,19 @@ export async function POST(
     });
     if (existing) {
       skipped++;
+      skipped_tags.push(tagNorm);
       continue;
     }
     await prisma.asset.create({
       data: {
+        id: randomUUID(),
         organization_id: orgId,
         site_id: unit.site_id,
+        unit_id: unit.id,
         tag_number: tagNorm,
         name: it?.description ?? tagNorm,
-        asset_type: inferAssetType(tagNorm),
+        asset_type: resolveAssetType(tagNorm, it?.item_type),
+        data_source: 'p_and_id',
         extraction_confidence: it?.confidence === 'high' ? 1 : it?.confidence === 'medium' ? 0.7 : 0.5,
         created_by: userId,
       },
@@ -89,29 +108,44 @@ export async function POST(
   for (const lineNum of accepted_lines) {
     const it = lineByNumber.get(lineNum);
     const lineNorm = lineNum.trim();
-    const existing = await prisma.lineList.findUnique({
+    const existing = await prisma.line_lists.findUnique({
       where: { organization_id_line_number: { organization_id: orgId, line_number: lineNorm } },
       select: { id: true },
     });
     if (existing) {
       skipped++;
+      skipped_lines.push(lineNorm);
       continue;
     }
-    await prisma.lineList.create({
+    await prisma.line_lists.create({
       data: {
+        id: randomUUID(),
         organization_id: orgId,
         site_id: unit.site_id,
         unit_id: unit.id,
         line_number: lineNorm,
         created_by: userId,
+        updated_at: new Date(),
       },
     });
     lines_created++;
   }
 
+  await prisma.aiExtractionResult.update({
+    where: { ai_extraction_job_id: jobId },
+    data: {
+      review_status: 'approved',
+      reviewed_by: userId,
+      reviewed_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
   return NextResponse.json({
     assets_created,
     lines_created,
     skipped,
+    skipped_tags,
+    skipped_lines,
   });
 }

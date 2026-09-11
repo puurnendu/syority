@@ -61,6 +61,12 @@ export default async function AssetRegisterPage() {
           <h1 className="text-2xl font-bold text-gray-900">Asset Register</h1>
           <div className="flex gap-2">
             <Link
+              href="/asset-register/extract-pid"
+              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200"
+            >
+              Extract from P&ID
+            </Link>
+            <Link
               href="/asset-register/import"
               className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200"
             >

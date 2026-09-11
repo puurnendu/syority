@@ -98,6 +98,11 @@ const STATUS_STYLES: Record<
     { bg: string; text: string; label: string }
 > = {
     draft: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Draft' },
+    under_review: {
+        bg: 'bg-amber-100',
+        text: 'text-amber-700',
+        label: 'Under Review',
+    },
     ready_for_review: {
         bg: 'bg-blue-100',
         text: 'text-blue-700',
@@ -123,6 +128,11 @@ const STATUS_STYLES: Record<
         text: 'text-purple-700',
         label: 'Issued',
     },
+    in_execution: {
+        bg: 'bg-orange-100',
+        text: 'text-orange-800',
+        label: 'In Execution',
+    },
     in_progress: {
         bg: 'bg-blue-200',
         text: 'text-blue-800',
@@ -133,10 +143,20 @@ const STATUS_STYLES: Record<
         text: 'text-amber-800',
         label: 'On Hold',
     },
+    completed: {
+        bg: 'bg-teal-100',
+        text: 'text-teal-800',
+        label: 'Completed',
+    },
     complete: {
         bg: 'bg-green-200',
         text: 'text-green-800',
         label: 'Complete',
+    },
+    closed: {
+        bg: 'bg-green-200',
+        text: 'text-green-800',
+        label: 'Closed',
     },
     cancelled: {
         bg: 'bg-red-100',
@@ -256,6 +276,7 @@ export function WorkpackLayout({
             msproject: `/api/workpacks/${workpack.id}/export/ms-project`,
             primavera: `/api/workpacks/${workpack.id}/export/primavera`,
             csv: `/api/workpacks/${workpack.id}/export/activities-csv`,
+            excel: `/api/workpacks/${workpack.id}/export/activities-excel`,
             sap_csv: `/api/workpacks/${workpack.id}/materials/export?format=sap_csv`,
         };
         const url = urls[format];
@@ -346,6 +367,11 @@ export function WorkpackLayout({
                                             format: 'csv',
                                             icon: '📋',
                                             label: 'Activities CSV',
+                                        },
+                                        {
+                                            format: 'excel',
+                                            icon: '📊',
+                                            label: 'Activities Excel',
                                         },
                                         {
                                             format: 'sap_csv',

@@ -4,6 +4,9 @@
  * Output drives Asset + LineList creation after review.
  */
 
+import { randomUUID } from 'crypto';
+import { readFile } from 'fs/promises';
+import { extname } from 'path';
 import { callVisionAi, parseVisionJson } from '@/services/ai/VisionAiService';
 import { renderPagesAsImages } from '@/services/ai/PdfProcessor';
 import { prisma } from '@/lib/prisma';
@@ -61,32 +64,70 @@ Return ONLY valid JSON:
 }
 `;
 
+function isImagePath(storagePath: string, mimeType?: string): boolean {
+  if (mimeType?.startsWith('image/')) return true;
+  const ext = extname(storagePath).toLowerCase();
+  return ['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(ext);
+}
+
+async function loadVisionImages(
+  storagePathOrPaths: string | string[],
+  pageNumbers: number[],
+  mimeType?: string
+): Promise<Array<{ base64: string; mimeType: 'image/png' | 'image/jpeg' | 'image/webp' }>> {
+  const paths = Array.isArray(storagePathOrPaths) ? storagePathOrPaths : [storagePathOrPaths];
+
+  if (paths.length > 1 || isImagePath(paths[0], mimeType)) {
+    const images: Array<{ base64: string; mimeType: 'image/png' | 'image/jpeg' | 'image/webp' }> = [];
+    for (const storagePath of paths) {
+      const buf = await readFile(storagePath);
+      const mt =
+        mimeType === 'image/jpeg' || mimeType === 'image/webp'
+          ? mimeType
+          : storagePath.toLowerCase().endsWith('.jpg') || storagePath.toLowerCase().endsWith('.jpeg')
+            ? 'image/jpeg'
+            : 'image/png';
+      images.push({ base64: buf.toString('base64'), mimeType: mt });
+    }
+    return images;
+  }
+
+  const rendered = await renderPagesAsImages(paths[0], pageNumbers, 1.5);
+  return rendered.map((p) => ({
+    base64: p.image_base64,
+    mimeType: 'image/png' as const,
+  }));
+}
+
 export async function extractFromPAndId(
   organizationId: string,
   siteId: string,
   unitId: string,
   sourceDocumentId: string,
-  storagePath: string,
+  storagePathOrPaths: string | string[],
   pageNumbers: number[],
-  requestedBy: string
+  requestedBy: string,
+  mimeType?: string
 ): Promise<PidExtractionResult> {
+  const now = new Date();
   const job = await prisma.aiExtractionJob.create({
     data: {
+      id: randomUUID(),
       organization_id: organizationId,
       site_id: siteId,
       requested_by: requestedBy,
       status: 'processing' as const,
       work_type_hint: 'pid_extraction',
-      started_at: new Date(),
+      started_at: now,
+      updated_at: now,
     },
   });
 
   try {
-    const rendered = await renderPagesAsImages(storagePath, pageNumbers, 1.5);
-    const images = rendered.map((p) => ({
-      base64: p.image_base64,
-      mimeType: 'image/png' as const,
-    }));
+    const images = await loadVisionImages(storagePathOrPaths, pageNumbers, mimeType);
+    if (images.length === 0) {
+      throw new Error('No pages could be rendered from the uploaded file');
+    }
 
     const result = await callVisionAi({
       organization_id: organizationId,
@@ -112,30 +153,57 @@ export async function extractFromPAndId(
 
     const parsed = parseVisionJson<RawResult>(result.content);
 
-    const allTags = (parsed.items ?? [])
-      .filter((i) => i.item_type === 'equipment')
-      .map((i) => i.tag_number);
+    const assetItemTypes = new Set(['equipment', 'valve', 'instrument']);
+    const assetTags = (parsed.items ?? [])
+      .filter((i) => assetItemTypes.has(i.item_type))
+      .map((i) => i.tag_number.trim().toUpperCase());
+    const lineNumbers = (parsed.items ?? [])
+      .filter((i) => i.item_type === 'line')
+      .map((i) => i.tag_number.trim());
 
-    const existing = await prisma.asset.findMany({
-      where: {
-        organization_id: organizationId,
-        tag_number: { in: allTags },
-      },
-      select: { tag_number: true },
+    const [existingAssets, existingLines] = await Promise.all([
+      assetTags.length
+        ? prisma.asset.findMany({
+            where: {
+              organization_id: organizationId,
+              tag_number: { in: assetTags },
+            },
+            select: { tag_number: true },
+          })
+        : Promise.resolve([]),
+      lineNumbers.length
+        ? prisma.line_lists.findMany({
+            where: {
+              organization_id: organizationId,
+              line_number: { in: lineNumbers },
+            },
+            select: { line_number: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const existingAssetSet = new Set(existingAssets.map((e) => e.tag_number.toUpperCase()));
+    const existingLineSet = new Set(existingLines.map((e) => e.line_number));
+
+    const items: PidExtractedItem[] = (parsed.items ?? []).map((i) => {
+      const tagNorm = i.tag_number.trim();
+      const alreadyExists = assetItemTypes.has(i.item_type)
+        ? existingAssetSet.has(tagNorm.toUpperCase())
+        : i.item_type === 'line'
+          ? existingLineSet.has(tagNorm)
+          : false;
+      return {
+        item_type: i.item_type as PidExtractedItem['item_type'],
+        tag_number: tagNorm,
+        description: i.description,
+        confidence: (i.confidence as PidExtractedItem['confidence']) ?? 'low',
+        source_page: i.source_page ?? 1,
+        already_exists: alreadyExists,
+      };
     });
-    const existingSet = new Set(existing.map((e) => e.tag_number));
-
-    const items: PidExtractedItem[] = (parsed.items ?? []).map((i) => ({
-      item_type: i.item_type as PidExtractedItem['item_type'],
-      tag_number: i.tag_number,
-      description: i.description,
-      confidence: (i.confidence as PidExtractedItem['confidence']) ?? 'low',
-      source_page: i.source_page ?? 1,
-      already_exists: existingSet.has(i.tag_number),
-    }));
 
     await prisma.aiExtractionResult.create({
       data: {
+        id: randomUUID(),
         organization_id: organizationId,
         ai_extraction_job_id: job.id,
         raw_ai_response: result.content,
@@ -146,12 +214,14 @@ export async function extractFromPAndId(
           unit_area: parsed.unit_area,
           items,
           source_document_id: sourceDocumentId,
+          unit_id: unitId || null,
         } as object,
         review_status: 'pending_review',
         overall_confidence:
           items.length > 0
             ? items.filter((i) => i.confidence === 'high').length / items.length
             : 0,
+        updated_at: now,
       },
     });
 

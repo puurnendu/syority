@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 
 const CATEGORIES = ['All', 'Drawings', 'Datasheets', 'Procedures', 'Vendor Documents', 'Reports', 'Client Documents', 'General'];
 
@@ -24,6 +25,8 @@ function fileSize(bytes: number) {
 }
 
 export default function DocumentLibraryPage() {
+  const searchParams = useSearchParams();
+  const highlightDocId = searchParams.get('docId');
   const { data: session }  = useSession();
   const user               = session?.user as any;
   const role               = (user?.role ?? '').toUpperCase();
@@ -68,6 +71,20 @@ export default function DocumentLibraryPage() {
     loadDocs();
     fetch('/api/events').then(r => r.json()).then(d => setEvents(Array.isArray(d) ? d : []));
   }, []);
+
+  useEffect(() => {
+    if (!highlightDocId) return;
+    fetch(`/api/documents/${highlightDocId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((doc) => {
+        if (!doc?.id) return;
+        setDocs((prev) => (prev.some((d) => d.id === doc.id) ? prev : [doc, ...prev]));
+        requestAnimationFrame(() => {
+          document.getElementById(`doc-card-${doc.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      })
+      .catch(() => {});
+  }, [highlightDocId]);
 
   const handleCategoryChange = (cat: string) => {
     setCategory(cat);
@@ -180,7 +197,10 @@ export default function DocumentLibraryPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {docs.map(doc => (
               <div key={doc.id}
-                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow group">
+                id={`doc-card-${doc.id}`}
+                className={`bg-white border rounded-xl p-4 hover:shadow-md transition-shadow group ${
+                  highlightDocId === doc.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'
+                }`}>
                 <div className="flex items-start gap-3">
                   <div className="text-3xl flex-shrink-0">{fileIcon(doc.mime_type)}</div>
                   <div className="flex-1 min-w-0">
