@@ -9,8 +9,10 @@ import AssignBaselinesModal from './AssignBaselinesModal';
 import WbsView from './WbsView';
 import DateTimePicker from './DateTimePicker';
 import { ResourceHistogram } from './ResourceHistogram';
-import { SCurveChart } from './SCurveChart';
+import { SCurveChart as ProjectSCurveChart } from '@/components/Dashboard/SCurveChart';
 import { LayoutGrid, FolderTree, ChevronDown, Settings, Clock, Calendar, Check } from 'lucide-react';
+import { mapGridFieldToExecution } from '@/core/execution/executionFieldGuard';
+import { PlannedDateOverrideDialog } from './PlannedDateOverrideDialog';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -356,6 +358,13 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [editField, setEditField]   = useState<string>('');
   const [editValue, setEditValueSt] = useState<string>('');
+  const [overrideTarget, setOverrideTarget] = useState<{
+    activityId: string;
+    field: 'planned_start' | 'planned_end';
+    label: string;
+    currentValue: string | null;
+    derivedValue: string | null;
+  } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [clipboard, setClipboard]   = useState<{ type: 'copy' | 'cut', data: any } | null>(null);
   
@@ -764,6 +773,24 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
       return;
     }
 
+    if (field === 'planned_start' || field === 'planned_end') {
+      const act = allActivities.find((a: any) => a.id === id);
+      setOverrideTarget({
+        activityId: id,
+        field,
+        label: field === 'planned_start' ? 'Plan Start' : 'Plan End',
+        currentValue: current ? String(current) : null,
+        derivedValue: act?.planned_derived_start && field === 'planned_start'
+          ? String(act.planned_derived_start)
+          : act?.planned_derived_end && field === 'planned_end'
+            ? String(act.planned_derived_end)
+            : act?.early_start && field === 'planned_start'
+              ? String(act.early_start)
+              : act?.early_finish ? String(act.early_finish) : null,
+      });
+      return;
+    }
+
     setEditingId(id);
     setEditField(field);
 
@@ -825,38 +852,48 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
     if (act) {
       const durH = editField === 'duration_hours' ? finalValue : (act.duration_hours ?? 0);
 
-      if (editField === 'planned_start' && finalValue && !isNaN(new Date(finalValue).getTime())) {
-        // Move planned_end to preserve duration
-        if (durH > 0) {
-          payload.planned_end = new Date(new Date(finalValue).getTime() + durH * 3600000).toISOString();
-        }
-      } else if (editField === 'planned_end' && finalValue && !isNaN(new Date(finalValue).getTime()) && act.planned_start) {
-        // Recalculate duration_hours from new span
-        const start = new Date(act.planned_start);
-        if (!isNaN(start.getTime())) {
-          payload.duration_hours = Math.max(0, Math.round((new Date(finalValue).getTime() - start.getTime()) / 3600000));
-        }
-      } else if (editField === 'duration_hours' && finalValue > 0 && act.planned_start) {
-        // Recalculate planned_end = start + new duration
-        const start = new Date(act.planned_start);
-        if (!isNaN(start.getTime())) {
-          payload.planned_end = new Date(start.getTime() + finalValue * 3600000).toISOString();
-        }
+      if (editField === 'duration_hours') {
+        // Duration is a CPM input. Planned dates are re-derived by M11 — do not write them here.
       }
 
-      // Auto-populate Actuals based on Progress
-      if (editField === 'progress_percent') {
-        const prog = parseFloat(String(finalValue)) || 0;
-        if (prog > 0 && !act.actual_start) {
-          // If starting, use planned_start as fallback for Actual Start, or now
-          const fallback = act.planned_start || new Date().toISOString();
-          payload.actual_start = fallback;
-        }
-        if (prog === 100 && !act.actual_end) {
-          // If 100%, set Actual Finish to now
-          payload.actual_end = new Date().toISOString();
-        }
+      // Auto-populate Actuals based on Progress is an execution side-effect of EWS START/COMPLETE.
+      // Do not write actuals through the planning PUT.
+    }
+
+    const EXECUTION_EDIT_FIELDS = ['status', 'progress_percent', 'actual_start', 'actual_end'];
+    if (EXECUTION_EDIT_FIELDS.includes(editField)) {
+      const mapped = mapGridFieldToExecution(editField, finalValue, act?.status);
+      if ('error' in mapped) {
+        alert(mapped.error);
+        setEditingId(null);
+        setPickerAnchorRect(null);
+        return;
       }
+      try {
+        const res = await fetch('/api/execution/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            activityId: actId,
+            action: mapped.action,
+            progress: mapped.progress,
+            execution_date: mapped.execution_date,
+            notes: mapped.notes,
+            hold_reason: mapped.action === 'HOLD' ? 'Hold from schedule grid' : undefined,
+          }),
+        });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          alert(json.error || 'Execution update blocked');
+        } else {
+          mutate();
+        }
+      } catch {
+        alert('Execution update failed');
+      }
+      setEditingId(null);
+      setPickerAnchorRect(null);
+      return;
     }
 
     try {
@@ -1521,6 +1558,19 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
               Baseline
             </button>
 
+            {/* OD9.2 §6/§17: the "Level Resources" control was removed from this
+                Project-context toolbar. It rendered only when `projectId` was set and
+                passed that Project id straight into `eventId`, so it POSTed to
+                /api/events/{projectId}/schedule/level-resources[/apply] — a fabricated
+                Event mapping, and a write into STO schedule state driven by a Project
+                identity. §31 forbids fabricated Event mappings and §17 forbids wiring
+                Project scheduling to Event CPM.
+
+                STO resource levelling is NOT removed: it remains reachable from the
+                planner workspace, where ResourcePlanningDashboard renders the same
+                LevelingPreviewModal with a genuine `selectedEventId`
+                (src/components/planner-workspace/resources/ResourcePlanningDashboard.tsx:330-336). */}
+
             {/* Export Excel Button */}
             <button
               onClick={() => window.open(projectId ? `/api/projects/${projectId}/schedule/export` : `/api/schedule/export`, '_blank')}
@@ -1547,29 +1597,7 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
               </button>
             )}
 
-            {/* Undo Import Button */}
-            {projectId && (
-              <button
-                onClick={async () => {
-                   if (!confirm("Are you sure you want to rollback the last import batch?")) return;
-                   try {
-                     const res = await fetch(`/api/projects/${projectId}/import/latest`, { method: 'DELETE' });
-                     if (!res.ok) {
-                        const t = await res.json();
-                        throw new Error(t.error || 'Failed to rollback');
-                     }
-                     mutate();
-                   } catch (e: any) { alert(e.message); }
-                }}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-red-600 bg-white border border-gray-200 rounded hover:bg-red-50 transition"
-                title="Undo Last Import"
-              >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                </svg>
-                Undo Import
-              </button>
-            )}
+            {/* M11-V1: "Undo Import" button removed — P6/MPP import is permanently retired under M11-R0 */}
           </div>
 
           {/* Row 2: Search Bar and Quick Stats */}
@@ -1619,6 +1647,7 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
               <span className="w-px h-3 bg-gray-200" />
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                {/* M8.13 GOVERNANCE: PRESENTATION-ONLY — simple count average for inline schedule tooltip */}
                 <strong className="text-gray-600">{Math.round(statActivities.reduce((s: number, a: any) => s + (a.progress_percent || 0), 0) / (statActivities.length || 1))}%</strong> avg.
               </span>
             </div>
@@ -1733,12 +1762,9 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
                     let editableFields = [
                       'activity_number', 'description', 'responsible', 'discipline', 'notes', 
                       'crew_size', 'duration_hours', 'actual_duration', 'remaining_duration',
-                      'status', 'progress_percent', 'physical_percent_complete', 'duration_percent_complete', 'unit_percent_complete',
-                      'actual_start', 'actual_end', 'planned_start', 'planned_end',
-                      'total_float', 'free_float', 'early_start', 'early_finish', 'late_start', 'late_finish'
                     ];
                     if (isIntegratedContractor) {
-                       editableFields = ['status', 'progress_percent', 'physical_percent_complete'];
+                       editableFields = [];
                     }
                     const isEditable = editableFields.includes(col.key);
 
@@ -1761,6 +1787,10 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
                       className={`relative flex items-center px-3 ${cellBorderClass} ${isEditable && !isSummary ? 'cursor-default' : ''} ${stickyClass}`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (!isSummary && (col.key === 'planned_start' || col.key === 'planned_end')) {
+                          startEdit(act.id, col.key, act[col.key]);
+                          return;
+                        }
                         if (selectedId === act.id && isEditable && !isSummary) {
                           startEdit(act.id, col.key, act[col.key]);
                           if (isDateField) setEditCellRect((e.currentTarget as HTMLElement).getBoundingClientRect());
@@ -1773,6 +1803,10 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
                         }
                       }}
                       onDoubleClick={(e) => {
+                        if (!isSummary && (col.key === 'planned_start' || col.key === 'planned_end')) {
+                          startEdit(act.id, col.key, act[col.key]);
+                          return;
+                        }
                         if (!isEditable || isSummary) return;
                         startEdit(act.id, col.key, act[col.key]);
                         if (isDateField) {
@@ -1902,12 +1936,24 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
 
       {/* Sprint 11 — S-Curve panel */}
       {showSCurve && projectId && (
-        <SCurveChart projectId={projectId} />
+        <ProjectSCurveChart projectId={projectId} />
       )}
 
       {/* P6-style Date/Time Picker portal */}
       {/* P6-style Date/Time Picker portal */}
-      {editingId && pickerAnchorRect && ['planned_start', 'planned_end', 'actual_start', 'actual_end'].includes(editField) && (
+      {overrideTarget && (
+        <PlannedDateOverrideDialog
+          activityId={overrideTarget.activityId}
+          field={overrideTarget.field}
+          label={overrideTarget.label}
+          currentValue={overrideTarget.currentValue}
+          derivedValue={overrideTarget.derivedValue}
+          onClose={() => setOverrideTarget(null)}
+          onApplied={() => mutate()}
+        />
+      )}
+
+      {editingId && pickerAnchorRect && ['actual_start', 'actual_end'].includes(editField) && (
         <DateTimePicker
           value={editValue || new Date().toISOString()}
           onChange={(iso) => setEditValueSt(iso)}
@@ -1936,6 +1982,9 @@ export default function ScheduleContainer({ projectId }: { projectId?: string })
           onClose={() => setAssignBaselinesOpen(false)}
         />
       )}
+
+      {/* OD9.2 §6: LevelingPreviewModal is intentionally not rendered here. See the
+          note on the removed "Level" toolbar button above. */}
     </div>
   );
 }
