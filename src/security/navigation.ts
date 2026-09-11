@@ -42,6 +42,8 @@ export const PLATFORM_NAV: NavGroupMeta[] = [
             { href: '/platform/storage', label: 'Storage', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '🗄️' },
             { href: '/platform/backups', label: 'Backups', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '💾' },
             { href: '/platform/seed-packs', label: 'Seed Packs', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '🌱' },
+            { href: '/platform/provisioning-templates', label: 'Provisioning Templates', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '🏗️' },
+            { href: '/platform/provisioning-jobs', label: 'Provisioning Jobs', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '⚙️' },
             { href: '/platform/reset', label: 'Data Reset', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '🗑️' },
             { href: '/platform/operations', label: 'Operations', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '🖥️' },
             { href: '/platform/logs', label: 'Logs', scope: Scope.PLATFORM, permission: 'nav.admin', icon: '📜' },
@@ -134,16 +136,31 @@ export const TENANT_SETTINGS_NAV: NavGroupMeta[] = [
     },
 ];
 
-/** Top-level tenant shell groups (href lists filled by layout with feature flags) */
+/**
+ * Top-level tenant shell groups — the four FROZEN business domains (OD9.2 §21).
+ *
+ * **The authoritative definition, including every item, permission gate and feature flag, is
+ * `src/config/business-navigation.ts`.** This list exists only so the security metadata does
+ * not contradict the shell; do not add items here.
+ *
+ * It previously declared the pre-OD9.2 activity-type shell — Dashboard / Planning / Execution
+ * / Intelligence / Import-Export, with a standalone Safety entry and a generic "Reports"
+ * group at `/report-builder`. Every part of that is now wrong:
+ *
+ *   - OD9.2 §21 replaced activity-type grouping with the four business domains below.
+ *   - §21 forbids a domain-neutral global Reports menu that obscures ownership; reporting is
+ *     owned by its domain (STO reporting sits under STO → STO Reports).
+ *   - §22 places Safety under STO → Safety & Permits only, never as a standalone top-level
+ *     entry.
+ *
+ * A prior forensic audit recorded the divergence as defect D-006 ("two navigation
+ * architectures", zero consumers) and proposed making the shell read this object. OD9.2
+ * resolved it the other way: there is now a single authoritative navigation module, and this
+ * metadata follows it.
+ */
 export const TENANT_SHELL_SECTIONS = [
-    { id: 'dashboard', label: 'Dashboard', href: '/dashboard', scope: Scope.TENANT },
-    { id: 'planning', label: 'Planning', scope: Scope.TENANT },
-    { id: 'execution', label: 'Execution', scope: Scope.TENANT },
-    { id: 'intelligence', label: 'Intelligence', scope: Scope.TENANT },
-    { id: 'documents', label: 'Documents', href: '/documents', scope: Scope.TENANT, permission: 'documents.view' as Permission },
-    { id: 'safety', label: 'Safety', href: '/safety', scope: Scope.TENANT, permission: 'safety.view' as Permission },
-    { id: 'report-builder', label: 'Reports', href: '/report-builder', scope: Scope.TENANT, permission: 'reporting:view' as Permission },
-    { id: 'import-export', label: 'Import/Export', scope: Scope.TENANT },
-    { id: 'organization', label: 'Organization', scope: Scope.TENANT, permission: 'settings.view' as Permission },
-    { id: 'settings', label: 'Settings', href: '/settings', scope: Scope.TENANT, permission: 'settings.view' as Permission },
+    { id: 'digital-plant', label: 'Digital Plant', scope: Scope.TENANT },
+    { id: 'sto', label: 'STO', scope: Scope.TENANT },
+    { id: 'project', label: 'Project', scope: Scope.TENANT },
+    { id: 'organization', label: 'Organization & Administration', scope: Scope.TENANT, permission: 'settings.view' as Permission },
 ] as const;

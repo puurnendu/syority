@@ -6,6 +6,7 @@ import NavBar from '@/components/NavBar';
 import GlobalBreadcrumb from '@/components/GlobalBreadcrumb';
 import { prisma } from '@/lib/prisma';
 import { getEnabledFeatures } from '@/lib/features';
+import { buildTenantShellNavigation } from '@/config/business-navigation';
 import { cookies } from 'next/headers';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -43,83 +44,33 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const tenantType = (organization as any)?.tenant_type ?? 'refinery';
     const isContractorTenant = tenantType === 'contractor';
 
-    const planningItems = [
-        { href: '/planner-workspace', label: '🎯 Planner Workspace' },
-        { href: '/events', label: 'Events / TAs' },
-        { href: '/planning/templates', label: 'Workpack Templates' },
-        { href: '/planning/units', label: 'Units' },
-        { href: '/workpacks', label: 'Workpacks' },
-        { href: '/projects', label: 'Projects' },
-        { href: '/planning/systems', label: 'Systems' },
-        { href: '/schedule', label: 'Execution Schedule' },
-        { href: '/imported-schedule', label: 'Baseline Schedule' },
-        { href: '/asset-register', label: 'Asset Register' },
-        { href: '/digital-plant', label: '🏭 Digital Plant' },
-        { href: '/engineering-issues', label: '🔧 Scope Intelligence' },
-        { href: '/shutdown-scope', label: '📋 Shutdown Scope' },
-        { href: '/workpack-intelligence', label: '⚡ Workpack Intelligence' },
-    ].filter((item) => {
-        // Feature flags
-        if (item.href === '/asset-register' && !isFeat('ASSET_REGISTER')) return false;
-
-        // Feature gating based on tenant type
-        if (isContractorTenant) {
-            if (['/planning/units', '/planning/systems', '/asset-register', '/workpacks'].includes(item.href)) return false;
-        }
-
-        if (item.href === '/planning/templates') {
-            return hasPermission(role, 'settings.templates.view') || hasPermission(role, 'workpacks.create');
-        }
-        if (item.href === '/planning/units') return hasPermission(role, 'unit:view');
-        if (item.href === '/planning/systems') return hasPermission(role, 'system:view');
-        if (item.href === '/digital-plant') return hasPermission(role, 'asset.view');
-        if (item.href === '/engineering-issues') return hasPermission(role, 'asset.view');
-        if (item.href === '/schedule' || item.href === '/imported-schedule') return hasPermission(role, 'workpacks.view');
-        return hasPermission(role, 'workpacks.view');
-    });
-
-    const executionItems = [
-        { href: '/constraints', label: 'Constraints' },
-        { href: '/punch', label: 'Punch List' },
-        { href: '/permits', label: 'Permits / PTW' },
-    ].filter(() => hasPermission(role, 'workpacks.view'));
-
-    const intelligenceItems = [
-        { href: '/reporting', label: 'Intelligence Dashboard' },
-        { href: '/shift-reports', label: 'Shift Reports' },
-        { href: '/whatsapp-reviews', label: 'WhatsApp Reviews' },
-        { href: '/lessons', label: 'Lessons Learned' },
-    ].filter((item) => {
-        // Feature flags
-        if (item.href === '/whatsapp-reviews' && !isFeat('WHATSAPP_REVIEWS')) return false;
-
-        if (item.href === '/reporting') return hasPermission(role, 'reporting:view');
-        if (item.href === '/shift-reports') return hasPermission(role, 'reporting:view');
-        if (item.href === '/whatsapp-reviews') return hasPermission(role, 'reporting:view');
-        return hasPermission(role, 'workpacks.view');
-    });
-
-    const importExportItems = [
-        { href: '/integrations/export', label: 'Schedule Export' },
-        { href: '/integrations/import', label: 'Schedule Import' },
-        { href: '/integrations/export/history', label: 'Export History' },
-    ].filter(() => hasPermission(role, 'workpacks.view'));
-
-    const safetyItem = (hasPermission(role, 'workpacks.view') && isFeat('SAFETY_MODULE')) ? { href: '/safety', label: 'Safety' } : null;
-    const documentItem = (hasPermission(role, 'workpacks.view') && isFeat('DOCUMENT_MANAGEMENT')) ? { href: '/documents', label: 'Documents' } : null;
-
-    // Organization / Settings — tenant only (never platform-data / platform AI)
+    // ── OD9.2 §21 — NAVIGATION BY BUSINESS DOMAIN ───────────────────────────────
+    // The tenant top level is FROZEN to exactly four business domains:
+    //   1. DIGITAL PLANT · 2. STO · 3. PROJECT · 4. ORGANIZATION & ADMINISTRATION
+    // AI/M16 is a cross-domain interaction layer, never a top-level business domain.
+    //
+    // The structure and every permission / feature-flag gate live in
+    // src/config/business-navigation.ts so that the frozen domain boundaries can be
+    // verified behaviourally instead of by grepping this layout (§25). Safety and Permit
+    // Management appear only under STO (§22), and STO reporting is owned by STO rather
+    // than a domain-neutral global Reports menu (§9).
     const showAdmin = hasPermission(role, 'settings.view') || isProxy;
-    const adminItems: { href: string; label: string }[] = [];
 
-    if (showAdmin) {
-        adminItems.push({ href: '/settings/organization', label: 'Organisation' });
-        adminItems.push({ href: '/settings/users', label: 'Users' });
-        adminItems.push({ href: '/settings', label: 'Settings' });
-        if (hasPermission(role, 'settings.org.view') || isProxy) {
-            adminItems.push({ href: '/settings/subscription', label: 'License & Subscription' });
-        }
-    }
+    const navContext = {
+        role,
+        isFeat,
+        isContractorTenant,
+        showAdmin,
+        canViewOrgSettings: hasPermission(role, 'settings.org.view') || isProxy,
+    };
+
+    // Domain order and labels come from TENANT_SHELL_SECTIONS via buildTenantShellNavigation.
+    const tenantShellSections = buildTenantShellNavigation(navContext);
+    const itemsFor = (id: string) => tenantShellSections.find((s) => s.id === id)?.items ?? [];
+    const digitalPlantItems = itemsFor('digital-plant');
+    const stoItems = itemsFor('sto');
+    const projectItems = itemsFor('project');
+    const adminItems = itemsFor('organization');
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -129,12 +80,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
             >
                 <div className="h-14 flex items-center">
                     <NavBar
-                        planningItems={planningItems}
-                        executionItems={executionItems}
-                        intelligenceItems={intelligenceItems}
-                        importExportItems={importExportItems}
-                        safetyItem={safetyItem}
-                        documentItem={documentItem}
+                        tenantShellSections={tenantShellSections}
+                        digitalPlantItems={digitalPlantItems}
+                        stoItems={stoItems}
+                        projectItems={projectItems}
                         adminItems={adminItems}
                         platformItems={[]}
                         tenantsItems={[]}

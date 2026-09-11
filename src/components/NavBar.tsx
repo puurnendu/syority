@@ -7,9 +7,26 @@ import { signOutToLogin } from '@/lib/authClient';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 import { UserMenu } from './UserMenu';
 
-type NavItem = { href: string; label: string };
+/**
+ * OD9.2 §21 — navigation is organised by BUSINESS DOMAIN, not by activity type.
+ * `section` is the sub-group heading rendered inside a domain dropdown (e.g. the STO
+ * domain's "Safety & Permits"). Items without a section render ungrouped.
+ */
+type NavItem = { href: string; label: string; section?: string };
 
-// ── Context Mode Pill ────────────────────────────────────────────────────
+/** Preserve declaration order while grouping consecutive items under their section. */
+function groupBySection(items: NavItem[]): { section: string | null; items: NavItem[] }[] {
+  const groups: { section: string | null; items: NavItem[] }[] = [];
+  for (const item of items) {
+    const section = item.section ?? null;
+    const last = groups[groups.length - 1];
+    if (last && last.section === section) last.items.push(item);
+    else groups.push({ section, items: [item] });
+  }
+  return groups;
+}
+
+import { ActiveShutdownSelector } from '@/components/layout/ActiveShutdownSelector';
 
 function ContextPill({
   showPlatform,
@@ -30,8 +47,8 @@ function ContextPill({
 
   if (isProxy) {
     return (
-      <span className="hidden sm:flex items-center gap-2 ml-2 flex-shrink-0">
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 border border-amber-300 rounded-full text-xs font-semibold text-amber-800">
+      <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+        <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 border border-amber-300 rounded-full text-xs font-semibold text-amber-800">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
           Proxying: {orgName}
         </span>
@@ -42,7 +59,8 @@ function ContextPill({
         >
           Exit Proxy
         </button>
-      </span>
+        <ActiveShutdownSelector siteName={orgName} />
+      </div>
     );
   }
 
@@ -63,9 +81,9 @@ function ContextPill({
   }
 
   return (
-    <span className="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 bg-gray-100 border border-gray-200 rounded-full text-xs font-medium text-gray-600 flex-shrink-0">
-      🏢 {orgName}
-    </span>
+    <div className="flex items-center ml-2 flex-shrink-0">
+      <ActiveShutdownSelector siteName={orgName} />
+    </div>
   );
 }
 
@@ -124,20 +142,33 @@ function NavDropdown({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[100]">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={`block px-4 py-2 text-sm transition-colors ${
-                pathname === item.href || pathname.startsWith(item.href + '/')
-                  ? 'text-[#0D2137] font-medium bg-blue-50'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {item.label}
-            </Link>
+        <div className="absolute top-full left-0 mt-1 w-64 max-h-[70vh] overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[100]">
+          {groupBySection(items).map((group, groupIndex) => (
+            <div key={group.section ?? `ungrouped-${groupIndex}`}>
+              {group.section && (
+                <p
+                  className={`px-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 ${
+                    groupIndex === 0 ? 'pt-2' : 'pt-3 mt-1 border-t border-gray-100'
+                  }`}
+                >
+                  {group.section}
+                </p>
+              )}
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={`block px-4 py-2 text-sm transition-colors ${
+                    pathname === item.href || pathname.startsWith(item.href + '/')
+                      ? 'text-[#0D2137] font-medium bg-blue-50'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -263,13 +294,51 @@ function MobileDrawer({
 
 // ── Main NavBar export ──────────────────────────────────────────────────
 
+/** Active-route prefixes per frozen business domain (OD9.2 §21). */
+const TENANT_DOMAIN_ACTIVE_PREFIXES: Record<string, string[]> = {
+  'digital-plant': ['/digital-plant', '/asset-register', '/engineering-issues'],
+  sto: [
+    '/events',
+    '/shutdown-scope',
+    '/shutdowns',
+    '/workpacks',
+    '/workpack-factory',
+    '/workpack-intelligence',
+    '/planner-workspace',
+    '/planning',
+    '/schedule',
+    '/safety',
+    '/permits',
+    '/execution',
+    '/constraints',
+    '/punch',
+    '/control-tower',
+    '/management-intelligence',
+    '/reporting',
+    '/reports',
+    '/report-builder',
+    '/shift-reports',
+    '/lessons',
+    '/whatsapp-reviews',
+  ],
+  project: ['/projects', '/integrations'],
+  organization: ['/settings', '/documents', '/admin'],
+};
+
 export type NavBarProps = {
-  planningItems: NavItem[];
-  executionItems: NavItem[];
-  intelligenceItems: NavItem[];
-  importExportItems: NavItem[];
-  safetyItem?: NavItem | null;
-  documentItem?: NavItem | null;
+  /**
+   * When provided, domain dropdown labels and order follow `TENANT_SHELL_SECTIONS`
+   * (via `buildTenantShellNavigation` in the dashboard layout).
+   */
+  tenantShellSections?: { id: string; label: string; items: NavItem[] }[];
+  /**
+   * OD9.2 §21 — the four frozen top-level business domains. Optional so the Platform
+   * and Master Data consoles, which have no tenant business domains, can omit them.
+   * ORGANIZATION & ADMINISTRATION is `adminItems`.
+   */
+  digitalPlantItems?: NavItem[];
+  stoItems?: NavItem[];
+  projectItems?: NavItem[];
   adminItems: NavItem[];
   platformItems: NavItem[];
   tenantsItems: NavItem[];
@@ -288,12 +357,10 @@ export type NavBarProps = {
 };
 
 export default function NavBar({
-  planningItems,
-  executionItems,
-  intelligenceItems,
-  importExportItems,
-  safetyItem,
-  documentItem,
+  tenantShellSections,
+  digitalPlantItems = [],
+  stoItems = [],
+  projectItems = [],
   adminItems,
   platformItems,
   tenantsItems,
@@ -333,34 +400,11 @@ export default function NavBar({
       .catch(() => {}); // silently fail — fallback to default
   }, []);
 
-  // ── Project-Aware Navigation ───────────────────────────────────────────
-  const projectId = pathname.startsWith('/projects/') ? pathname.split('/')[2] : null;
-
-  const rewriteItems = useCallback((items: NavItem[]) => {
-    if (!projectId) return items;
-    return items.map((item) => {
-      if (item.href === '/workpacks') return { ...item, href: `/projects/${projectId}/workpacks` };
-      if (item.href === '/schedule') return { ...item, label: 'Execution Schedule', href: `/projects/${projectId}/schedule` };
-      if (item.href === '/imported-schedule') return { ...item, label: 'Baseline Schedule', href: `/projects/${projectId}/imported-schedule` };
-      if (item.href === '/asset-register') return { ...item, href: `/projects/${projectId}/equipment` };
-      if (item.href === '/constraints') return { ...item, href: `/projects/${projectId}/constraints` };
-      if (item.href === '/punch') return { ...item, href: `/projects/${projectId}/punch` };
-      if (item.href === '/permits') return { ...item, href: `/projects/${projectId}/permits` };
-      if (item.href === '/safety') return { ...item, href: `/projects/${projectId}/safety` };
-      if (item.href === '/reporting') return { ...item, href: `/projects/${projectId}/reports` };
-      return item;
-    });
-  }, [projectId]);
-
   const handleExitProxy = useCallback(async () => {
     await fetch('/api/proxy/exit', { method: 'POST' });
     router.push('/platform/dashboard');
     router.refresh();
   }, [router]);
-
-  const finalPlanningItems = rewriteItems(planningItems);
-  const finalExecutionItems = rewriteItems(executionItems);
-  const finalIntelligenceItems = rewriteItems(intelligenceItems);
 
   // Platform console home — never use tenant /dashboard (middleware bounces that to tenants).
   const isPlatformConsole = showPlatform && !isProxy;
@@ -370,15 +414,22 @@ export default function NavBar({
     ? platformItems.filter((i) => i.href !== '/platform/dashboard')
     : platformItems;
 
-  // Groups used for mobile drawer
+  const businessDomainSections =
+    tenantShellSections ??
+    [
+      { id: 'digital-plant', label: 'Digital Plant', items: digitalPlantItems },
+      { id: 'sto', label: 'STO', items: stoItems },
+      { id: 'project', label: 'Project', items: projectItems },
+      ...(adminItems.length > 0
+        ? [{ id: 'organization', label: 'Organization & Administration', items: adminItems }]
+        : []),
+    ];
+
+  // Groups used for mobile drawer — frozen business domains (OD9.2 §21)
   const mobileGroups = [
-    { label: 'Planning', items: finalPlanningItems },
-    { label: 'Execution', items: finalExecutionItems },
-    { label: 'Intelligence', items: finalIntelligenceItems },
-    { label: 'Import / Export', items: importExportItems },
-    ...(safetyItem ? [{ label: 'Safety', items: [safetyItem] }] : []),
-    ...(documentItem ? [{ label: 'Documents', items: [documentItem] }] : []),
-    ...(showAdmin && adminItems.length > 0 ? [{ label: 'Org Settings', items: adminItems }] : []),
+    ...businessDomainSections
+      .filter((s) => s.items.length > 0)
+      .map((s) => ({ label: s.label, items: s.items })),
     ...(showPlatformData && platformDataItems.length > 0 ? [{ label: 'Master Data', items: platformDataItems }] : []),
     ...(showPlatform && tenantsItems.length > 0 ? [{ label: 'Tenants', items: tenantsItems }] : []),
     ...(showPlatform && platformMenuItems.length > 0 ? [{ label: 'Platform', items: platformMenuItems }] : []),
@@ -442,42 +493,26 @@ export default function NavBar({
           {/* Desktop nav — hidden below lg */}
           <nav className="hidden lg:flex items-center gap-0.5 flex-1 min-w-0">
             <NavLink href={dashboardHref} label="Dashboard" />
-            <NavDropdown
-              label="Planning"
-              isActive={['/events', '/workpacks', '/schedule', '/asset-register'].some((p) =>
-                pathname.startsWith(p)
-              )}
-              items={finalPlanningItems}
-            />
-            <NavDropdown
-              label="Execution"
-              isActive={['/constraints', '/operations', '/punch', '/permits'].some(
-                (p) => pathname.startsWith(p)
-              )}
-              items={finalExecutionItems}
-            />
-            <NavDropdown
-              label="Intelligence"
-              isActive={['/portfolio', '/lessons', '/reporting', '/shift-reports', '/whatsapp-reviews'].some((p) => pathname.startsWith(p))}
-              items={finalIntelligenceItems}
-            />
-            <NavDropdown
-              label="Import / Export"
-              isActive={pathname.startsWith('/integrations')}
-              items={importExportItems}
-            />
-            {safetyItem && <NavLink href={safetyItem.href} label={safetyItem.label} />}
-            {documentItem && <NavLink href={documentItem.href} label={documentItem.label} />}
-            {/* Visual divider between execution and admin/config nav groups */}
-            {(showAdmin || showPlatformData || showPlatform) && (
+            {/* OD9.2 §21 — domains from TENANT_SHELL_SECTIONS when tenantShellSections is set. */}
+            {businessDomainSections
+              .filter((section) => section.items.length > 0)
+              .map((section) => {
+                const prefixes = TENANT_DOMAIN_ACTIVE_PREFIXES[section.id] ?? [];
+                const isActive = prefixes.some((p) => pathname.startsWith(p));
+                const dropdownLabel =
+                  section.id === 'organization' ? 'Organization' : section.label;
+                return (
+                  <NavDropdown
+                    key={section.id}
+                    label={dropdownLabel}
+                    isActive={isActive}
+                    items={section.items}
+                  />
+                );
+              })}
+            {/* Visual divider between the business domains and admin/config nav groups */}
+            {(businessDomainSections.some((s) => s.items.length > 0) || showPlatformData || showPlatform) && (
               <span className="w-px h-4 bg-gray-200 mx-1 flex-shrink-0" aria-hidden="true" />
-            )}
-            {showAdmin && adminItems.length > 0 && (
-              <NavDropdown
-                label="Org Settings"
-                isActive={pathname.startsWith('/settings') || (pathname.startsWith('/admin') && !showPlatform)}
-                items={adminItems}
-              />
             )}
             {showPlatformData && platformDataItems.length > 0 && (
               <NavDropdown

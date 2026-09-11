@@ -1,91 +1,131 @@
 import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/lib/audit';
 import { eventBus } from '@/lib/eventBus';
-import { scheduleRecalculateQueue } from '@/lib/queues';
-import type { ActivityStatus } from '@prisma/client';
+import { enqueueEventScheduleRecalculate } from '@/core/schedule/enqueueEventScheduleRecalculate';
+import { ExecutionWriteService } from '@/core/execution/ExecutionWriteService';
+import { listedExecutionFields, EXECUTION_FIELD_REJECT_MESSAGE } from '@/core/execution/executionFieldGuard';
+import { createActivity } from '@/core/activity/ActivityCreationCommand';
+import type { ActivityCreationSource } from '@/core/activity/ActivityCreationCommand';
+import { assertNoSilentPlannedDateWrite } from '@/core/schedule/plannedDateGuard';
 
 /**
- * Enqueues a CPM recalculation for the project that owns `workpackId`.
- * Uses jobId deduplication so rapid saves (create/update/delete burst) collapse
- * into a single queue entry — preventing redundant DB-heavy passes.
+ * Event-authoritative CPM enqueue. Does not infer Event from Project.
+ * Event-less rows are deferred — they do not guess an Event.
  */
-async function enqueueRecalculate(workpackId: string | null | undefined, orgId: string) {
-  if (!workpackId) return;
-
-  const workpack = await prisma.workpack.findUnique({
-    where: { id: workpackId },
-    select: { project_id: true },
+async function enqueueRecalculate(
+  orgId: string,
+  eventId?: string | null,
+  workpackId?: string | null
+) {
+  const result = await enqueueEventScheduleRecalculate({
+    organizationId: orgId,
+    eventId,
+    workpackId,
   });
-
-  if (!workpack?.project_id) return; // activity not tied to a project — skip
-
-  await scheduleRecalculateQueue.add(
-    'recalculate',
-    { projectId: workpack.project_id, orgId },
-    {
-      // Deduplication: only one recalc job per project in the queue at a time
-      jobId: `recalc-${workpack.project_id}`,
-      removeOnComplete: 100,
-    }
-  );
+  if (!result.enqueued) {
+    console.warn('[ActivityService] CPM enqueue deferred:', result.code);
+  }
 }
 
-export class ActivityService {
-    static async createActivity(data: {
+export type ActivityServiceCreateInput = {
         organization_id: string;
-        site_id: string;
-        workpack_id: string;
-        description: string;
         created_by: string;
+        description: string;
+        workpack_id?: string;
+        site_id?: string;
+        event_id?: string;
         duration_hours?: number;
         discipline_id?: string;
+        discipline?: string;
         work_category?: string;
         notes?: string;
         activity_number?: string;
-    }) {
-        const lastSeq = await prisma.activity.aggregate({
-            where: { workpack_id: data.workpack_id, deleted_at: null },
-            _max: { sequence_number: true },
-        });
-        const seq = (lastSeq._max.sequence_number ?? 0) + 1;
-        const created = await prisma.activity.create({ data: { ...data, sequence_number: seq, status: 'not_started' } });
+        activity_id?: string;
+        activity_library_id?: string;
+        activity_code?: string;
+        standard_activity_type_id?: string;
+        standard_activity_type?: string;
+        hold_point_type?: string;
+        hold_point_description?: string;
+        wbs_code?: string;
+        window?: string;
+        responsible?: string;
+        planned_start?: Date | string | null;
+        planned_end?: Date | string | null;
+        asset_id?: string;
+        equipment_type_id?: string;
+        equipment_type?: string;
+        contractor_id?: string;
+        scope_item_id?: string;
+        project_id?: string;
+        allow_loose?: boolean;
+        source_channel?: ActivityCreationSource;
+        sequence_number?: number;
+        is_optional?: boolean;
+    };
 
-        // V5: Auto-load default resources from library
-        if ((data as any).activity_library_id) {
-            const defaults = await prisma.activityCodeDefaultResource.findMany({
-                where: { library_id: (data as any).activity_library_id }
-            });
-            if (defaults.length > 0) {
-                await prisma.activityResource.createMany({
-                    data: defaults.map(d => ({
-                        organization_id: data.organization_id,
-                        workpack_id: data.workpack_id,
-                        activity_id: created.id,
-                        resource_id: d.resource_id,
-                        quantity: d.quantity,
-                        is_active: true
-                    }))
-                });
+export class ActivityService {
+    /**
+     * Compatibility adapter. All identity validation lives in
+     * ActivityCreationCommand — this method must not write Activity rows itself.
+     */
+    static async createActivity(data: ActivityServiceCreateInput) {
+        const created = await createActivity(
+            {
+                organizationId: data.organization_id,
+                userId: data.created_by,
+                sourceChannel: data.source_channel ?? 'api',
+                eventId: data.event_id,
+            },
+            {
+                workpackId: data.workpack_id,
+                allowLoose: data.allow_loose === true || (!data.workpack_id && (!!data.event_id || !!data.project_id)),
+                description: data.description,
+                siteId: data.site_id,
+                activityNumber: data.activity_number,
+                activityId: data.activity_id,
+                durationHours: data.duration_hours,
+                disciplineId: data.discipline_id,
+                discipline: data.discipline,
+                workCategory: data.work_category,
+                notes: data.notes,
+                activityLibraryId: data.activity_library_id,
+                activityCode: data.activity_code,
+                standardActivityTypeId: data.standard_activity_type_id,
+                standardActivityType: data.standard_activity_type,
+                holdPointType: data.hold_point_type,
+                holdPointDescription: data.hold_point_description,
+                wbsCode: data.wbs_code,
+                window: data.window,
+                responsible: data.responsible,
+                plannedStart: data.planned_start ? new Date(data.planned_start) : null,
+                plannedEnd: data.planned_end ? new Date(data.planned_end) : null,
+                assetId: data.asset_id,
+                equipmentTypeId: data.equipment_type_id,
+                equipmentType: data.equipment_type,
+                contractorId: data.contractor_id,
+                scopeItemId: data.scope_item_id,
+                legacyProjectId: data.project_id,
+                sequenceNumber: data.sequence_number,
+                isOptional: data.is_optional,
             }
+        );
+
+        try {
+            await enqueueRecalculate(data.organization_id, created.event_id, created.workpack_id);
+        } catch (err) {
+            console.error('[ActivityService] schedule recalc enqueue failed:', err);
         }
-
-        await AuditService.log({
-            organization_id: data.organization_id,
-            user_id: data.created_by ?? '',
-            action: 'created',
-            model_name: 'Activity',
-            model_id: created.id,
-            new_values: created as Record<string, unknown>,
-            site_id: data.site_id,
-        });
-
-        // Enqueue CPM recalc — fire-and-forget, non-blocking
-        await enqueueRecalculate(created.workpack_id, data.organization_id);
 
         return created;
     }
 
     static async updateActivity(id: string, organizationId: string, data: Record<string, any>, updatedBy: string) {
+        const executionFields = listedExecutionFields(data);
+        if (executionFields.length > 0) {
+            throw new Error(`${EXECUTION_FIELD_REJECT_MESSAGE} Rejected fields: ${executionFields.join(', ')}`);
+        }
+        assertNoSilentPlannedDateWrite(data);
         const oldValues = await prisma.activity.findFirst({ where: { id, organization_id: organizationId } });
         if (!oldValues) throw new Error('Activity not found');
         const updated = await prisma.activity.update({
@@ -104,7 +144,7 @@ export class ActivityService {
         });
 
         // Enqueue CPM recalc (schedule-relevant fields like duration/dates may have changed)
-        await enqueueRecalculate(updated.workpack_id, organizationId);
+        await enqueueRecalculate(organizationId, updated.event_id, updated.workpack_id);
 
         return updated;
     }
@@ -125,7 +165,7 @@ export class ActivityService {
         });
 
         // Enqueue CPM recalc — deletion changes the critical path
-        await enqueueRecalculate(oldValues.workpack_id, organizationId);
+        await enqueueRecalculate(organizationId, oldValues.event_id, oldValues.workpack_id);
 
         return updated;
     }
@@ -140,52 +180,13 @@ export class ActivityService {
     }
 
     static async updateProgress(id: string, organizationId: string, percent: number, updatedBy: string) {
-        const oldValues = await prisma.activity.findFirst({ where: { id, organization_id: organizationId } });
-        if (!oldValues) throw new Error('Activity not found');
-        const status: ActivityStatus =
-            percent === 0 ? 'not_started' :
-                percent === 100 ? 'completed' : 'in_progress';
-        if (percent === 100) {
-            const activity = await prisma.activity.findUnique({
-                where: { id, organization_id: organizationId },
-                include: { qa_clearances: true }
-            });
-            if (activity?.hold_point_type === 'H' && (!activity.qa_clearances || activity.qa_clearances.length === 0)) {
-                throw new Error('Cannot complete activity: QA Hold Point clearance required');
-            }
-        }
-
-        const updated = await prisma.activity.update({
-            where: { id, organization_id: organizationId },
-            data: {
-                progress_percent: percent,
-                status,
-                actual_start: (percent > 0 && !oldValues.actual_start) ? new Date() : undefined,
-                actual_end: percent === 100 ? new Date() : undefined,
-                updated_by: updatedBy,
-            },
-        });
-        await AuditService.log({
-            organization_id: updated.organization_id,
-            user_id: updatedBy,
-            action: 'updated',
-            model_name: 'Activity',
-            model_id: id,
-            old_values: oldValues,
-            new_values: updated,
-            site_id: updated.site_id ?? undefined,
-        });
-        // Emit progress update event
-        (eventBus as { emit: (e: string, d: unknown) => boolean }).emit('activity.progress_updated', {
-            activityId: id,
-            workpackId: updated.workpack_id!,
-            progressPercent: percent,
-        });
-
-        // Progress changes affect EVM / S-curve, not CPM topology — skip full recalc
-        // (If EVM recalculation is added to the worker later, enqueue here too)
-
-        return updated;
+        const result = await ExecutionWriteService.applyAction(
+            organizationId,
+            updatedBy,
+            { activityId: id, action: 'UPDATE_PROGRESS', progress: percent },
+            { source_channel: 'api' }
+        );
+        return result.activity;
     }
 
     static async approveForScheduling(id: string, organizationId: string, approvedBy: string) {
@@ -211,7 +212,7 @@ export class ActivityService {
         });
 
         // Approval may open this activity to the schedule — trigger recalc
-        await enqueueRecalculate(updated.workpack_id, organizationId);
+        await enqueueRecalculate(organizationId, updated.event_id, updated.workpack_id);
 
         return updated;
     }

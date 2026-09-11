@@ -28,6 +28,10 @@ export default function InstantiateTemplatePage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!eventId) {
+      setError('Shutdown event is required — activities need event context for CPM and execution.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -74,13 +78,14 @@ export default function InstantiateTemplatePage() {
           />
         </label>
         <label className="block text-sm">
-          <span className="text-slate-600">Shutdown event (optional)</span>
+          <span className="text-slate-600">Shutdown event <span className="text-red-500">*</span></span>
           <select
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}
+            required
             className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
           >
-            <option value="">— None —</option>
+            <option value="">— Select event —</option>
             {events.map((ev: any) => (
               <option key={ev.id} value={ev.id}>
                 {ev.code} — {ev.name}

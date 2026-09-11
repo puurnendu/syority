@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import type { TemplateLibraryScope, TemplateLifecycleStatus } from '@prisma/client';
 import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
 import { AuditService } from '@/lib/audit';
+import { createActivity } from '@/core/activity/ActivityCreationCommand';
 
 export type TemplateSectionPayload = {
   planning_json?: unknown;
@@ -553,6 +554,9 @@ export class TemplateLibraryService {
       throw new Error('Only PUBLISHED templates can be instantiated');
     }
 
+    if (!opts.event_id) {
+      throw new Error('[EVENT_REQUIRED] STO Workpack create requires Event context');
+    }
     const { WorkpackService } = await import('@/modules/Workpack/Services/WorkpackService');
     const workpack = await WorkpackService.createWorkpack({
       organization_id: opts.organizationId,
@@ -567,57 +571,122 @@ export class TemplateLibraryService {
       contractor_id: opts.contractor_id,
       planned_start_date: opts.planned_start_date,
       planned_end_date: opts.planned_end_date,
+      event_id: opts.event_id || null,
       status: 'draft',
     });
 
-    await prisma.workpack.update({
-      where: { id: workpack.id },
-      data: {
-        template_id: tpl.id,
-        job_type: tpl.job_type,
-        event_id: opts.event_id || null,
-        scope_of_work: tpl.description,
-      },
-    });
-
-    // Copy activities (planning only — no execution progress)
-    let seq = 1;
-    for (const a of tpl.activities) {
-      await prisma.activity.create({
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.workpack.update({
+        where: { id: workpack.id },
         data: {
-          id: randomUUID(),
-          organization_id: opts.organizationId,
-          workpack_id: workpack.id,
-          site_id: opts.siteId,
-          sequence_number: a.sequence_number || seq++,
-          description: a.description,
-          activity_number: a.activity_code,
-          duration_hours: a.duration_hours,
-          hold_point_type: a.hold_point_type,
-          hold_point_description: a.hold_point_description,
-          status: 'not_started',
-          created_by: opts.userId,
+          template_id: tpl.id,
+          job_type: tpl.job_type,
+          event_id: opts.event_id || null,
+          scope_of_work: tpl.description,
         },
       });
-    }
 
-    // Stamp section snapshots onto workpack equipment_technical_data / attachment for planner use
-    await prisma.workpack.update({
-      where: { id: workpack.id },
-      data: {
-        equipment_technical_data: {
-          template_revision: tpl.revision,
-          template_family_id: tpl.template_family_id,
-          planning: tpl.planning_json,
-          resources: tpl.resources_json,
-          materials: tpl.materials_json,
-          safety: tpl.safety_json,
-          qaqc: tpl.qaqc_json,
-          references: tpl.references_json,
-          ai_metadata: tpl.ai_metadata_json,
-          logic_links: tpl.logic_links,
-        } as any,
-      },
+      // Copy activities (planning only — no execution progress)
+      // M8.5 D1/D2: Track seqNum → activityId for relationship and resource creation
+      const seqToActivityId = new Map<number, string>();
+      let seq = 1;
+      for (const a of tpl.activities) {
+        const seqNum = a.sequence_number || seq++;
+
+        // Resolve activity_library_id from activity_code (M8.5: link to Knowledge Bank)
+        let libraryId: string | null = null;
+        if (a.activity_code) {
+          const lib = await tx.activityLibrary.findFirst({
+            where: {
+              activity_code: a.activity_code,
+              OR: [
+                { library_scope: 'PLATFORM', organization_id: null },
+                { organization_id: opts.organizationId },
+              ],
+            },
+            orderBy: { library_scope: 'desc' }, // TENANT takes priority over PLATFORM
+          });
+          if (lib) libraryId = lib.id;
+        }
+
+        const created = await createActivity(
+          {
+            organizationId: opts.organizationId,
+            userId: opts.userId,
+            sourceChannel: 'template',
+            eventId: opts.event_id,
+          },
+          {
+            workpackId: workpack.id,
+            description: a.description,
+            sequenceNumber: seqNum,
+            activityNumber: `${workpack.workpack_number}-${seqNum.toString().padStart(4, '0')}`,
+            activityLibraryId: libraryId,
+            activityCode: a.activity_code,
+            durationHours: a.duration_hours != null ? Number(a.duration_hours) : undefined,
+            holdPointType: a.hold_point_type,
+            holdPointDescription: a.hold_point_description,
+            isOptional: a.is_optional,
+            disciplineId: opts.discipline_id || tpl.discipline_id || undefined,
+            assetId: opts.asset_id,
+            equipmentType: tpl.equipment_type,
+            contractorId: opts.contractor_id,
+            templateId: tpl.id,
+            loadDefaultResources: true,
+          },
+          tx
+        );
+        seqToActivityId.set(seqNum, created.id);
+      }
+
+      // ── D1 Fix: Create ActivityRelationship records from template logic links ──
+      let relationshipsCreated = 0;
+      for (const link of tpl.logic_links) {
+        const predId = seqToActivityId.get(link.predecessor_seq);
+        const succId = seqToActivityId.get(link.successor_seq);
+        if (predId && succId) {
+          await tx.activityRelationship.create({
+            data: {
+              id: randomUUID(),
+              organization_id: opts.organizationId,
+              predecessor_id: predId,
+              successor_id: succId,
+              relationship_type: (link.link_type as any) || 'FS',
+              // Sprint 1a — canonical lag in working minutes (was lag_hours/24
+              // into whole days, destroying sub-day lag).
+              lag_minutes: Math.round((link.lag_hours || 0) * 60),
+              created_by: opts.userId,
+              updated_at: new Date(),
+            },
+          });
+          relationshipsCreated++;
+        }
+      }
+
+      // Default resources are loaded by ActivityCreationCommand when activity_library_id is set.
+
+      // Stamp section snapshots onto workpack equipment_technical_data / attachment for planner use
+      await tx.workpack.update({
+        where: { id: workpack.id },
+        data: {
+          equipment_technical_data: {
+            template_revision: tpl.revision,
+            template_family_id: tpl.template_family_id,
+            planning: tpl.planning_json,
+            resources: tpl.resources_json,
+            materials: tpl.materials_json,
+            safety: tpl.safety_json,
+            qaqc: tpl.qaqc_json,
+            references: tpl.references_json,
+            ai_metadata: tpl.ai_metadata_json,
+            logic_links: tpl.logic_links,
+            instantiation_stats: {
+              relationships_created: relationshipsCreated,
+              activities_created: seqToActivityId.size,
+            },
+          } as any,
+        },
+      });
     });
 
     // Part 4: Increment knowledge asset usage metrics (fire-and-forget)

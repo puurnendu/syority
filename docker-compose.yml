@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL_DOCKER:-postgresql://user:pass@db:5432/syority?schema=public}
     depends_on:
       db:
         condition: service_healthy
@@ -23,7 +23,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL_DOCKER:-postgresql://user:pass@db:5432/syority?schema=public}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       # Public URL users open in the browser (must match host + port + scheme).
       - NEXTAUTH_URL=${NEXTAUTH_URL}
@@ -51,6 +51,30 @@ services:
           memory: 2G
         reservations:
           memory: 512M
+
+  # BullMQ background workers (schedule recalculation, report delivery,
+  # knowledge engine). Runs from the builder stage, which has full
+  # node_modules + tsx + the generated Prisma client. Without this service,
+  # queued jobs never execute (E2E lineage audit P0-5).
+  worker:
+    build:
+      context: .
+      target: builder
+    restart: unless-stopped
+    command: ["npx", "tsx", "src/workers/index.ts"]
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL_DOCKER:-postgresql://user:pass@db:5432/syority?schema=public}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   db:
     image: postgres:15-alpine

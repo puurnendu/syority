@@ -7,10 +7,20 @@ import { format } from 'date-fns';
 import { withTenantGuard } from '@/lib/withTenantGuard';
 import { assertTenantAccess } from '@/lib/tenantGuard';
 import { checkRateLimit, rateLimitResponse } from '@/lib/rateLimiter';
+import { isLegacyProjectChainEnabled, LEGACY_PROJECT_CHAIN_RETIRED } from '@/lib/legacyProjectChain';
 
 export const POST = withTenantGuard(async (req, { params }, session) => {
   const { id } = await params;
-  
+
+  // Phase 0 item 5: legacy Project daily-report chain is quarantined.
+  // STO shift/daily reporting lives at /shift-reports (M14, Event-scoped).
+  {
+    const orgId0 = (session?.user as { organization_id?: string })?.organization_id ?? '';
+    if (!(await isLegacyProjectChainEnabled(orgId0))) {
+      return NextResponse.json(LEGACY_PROJECT_CHAIN_RETIRED, { status: 410 });
+    }
+  }
+
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? '127.0.0.1';
   const identifier = session?.user?.id ?? ip;
   const { allowed, resetAt } = await checkRateLimit(identifier, 'ai');
@@ -24,17 +34,17 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
   await assertTenantAccess('project', id, orgId);
 
   const project = await prisma.project.findFirst({
-    where: { id, orgId },
+    where: { id, org_id: orgId },
     include: {
-      workpacks: {
+      Workpack: {
         where: { organization_id: orgId, deleted_at: null },
         include: {
           activities: {
             where: {
               deleted_at: null,
-              progress_logs: { some: { logDate: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } },
+              ProgressLog: { some: { log_date: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } },
             },
-            include: { progress_logs: true },
+            include: { ProgressLog: true },
           },
         },
       },
@@ -43,8 +53,8 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
 
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
-  const proj = project as { workpacks: { activities: { description: string; progress_percent?: number | null; status: string | null }[] }[] };
-  const activities = proj.workpacks.flatMap((w: { activities: { description: string; progress_percent?: number | null; status: string | null }[] }) => w.activities);
+  const proj = project as { Workpack: { activities: { description: string; progress_percent?: number | null; status: string | null }[] }[] };
+  const activities = proj.Workpack.flatMap((w: { activities: { description: string; progress_percent?: number | null; status: string | null }[] }) => w.activities);
   const activitySummary = activities
     .map((a: { description: string; progress_percent?: number | null; status: string | null }) => `- ${a.description}: ${a.progress_percent ?? 0}% complete (${a.status})`)
     .join('\n');

@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { calculateProgressMetrics } from '@/core/progress/ProgressCalculationService';
+import type { ProgressActivityInput } from '@/core/progress/types';
 import { loadProviderForJob } from '@/services/ai/ProviderLoader';
 import { generateSyorityAI } from '@/lib/ai/universalAiClient';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { assertTenantAccess } from '@/lib/tenantGuard';
 import { checkRateLimit, rateLimitResponse } from '@/lib/rateLimiter';
+import { isLegacyProjectChainEnabled, LEGACY_PROJECT_CHAIN_RETIRED } from '@/lib/legacyProjectChain';
 
 export async function POST(
   req: NextRequest,
@@ -19,6 +22,12 @@ export async function POST(
   if (error) return error;
 
   const { orgId } = orgScope(session);
+
+  // Phase 0 item 5: legacy Project AI assistant is quarantined.
+  if (!(await isLegacyProjectChainEnabled(orgId))) {
+    return NextResponse.json(LEGACY_PROJECT_CHAIN_RETIRED, { status: 410 });
+  }
+
   const { id: projectId } = await params;
   await assertTenantAccess('project', projectId, orgId);
 
@@ -30,7 +39,7 @@ export async function POST(
   const { message, chatHistory = [] } = await req.json().catch(() => ({}));
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, orgId },
+    where: { id: projectId, org_id: orgId },
     select: { id: true, name: true, code: true, status: true },
   });
   if (!project) {
@@ -40,18 +49,18 @@ export async function POST(
     );
   }
 
-  const [actStats, openConstraints, punchSummary, criticalCount] = await Promise.all([
-    prisma.activity.aggregate({
-      where: { workpack: { project_id: projectId, organization_id: orgId, deleted_at: null } },
-      _count: { _all: true },
-      _avg: { progress_percent: true },
+  // M8.13 GOVERNANCE: Use authoritative duration-weighted progress for AI context
+  const [allActivities, openConstraints, punchSummary, criticalCount] = await Promise.all([
+    prisma.activity.findMany({
+      where: { workpack: { project_id: projectId, organization_id: orgId, deleted_at: null }, deleted_at: null },
+      select: { id: true, duration_hours: true, progress_percent: true, status: true, workpack_id: true, event_id: true },
     }),
-    prisma.projectConstraint.count({
-      where: { projectId, status: 'Open' },
+    prisma.project_constraints.count({
+      where: { project_id: projectId, status: 'Open' },
     }),
-    prisma.punchItem.groupBy({
+    prisma.punch_items.groupBy({
       by: ['category'],
-      where: { projectId, status: 'Open' },
+      where: { project_id: projectId, status: 'Open' },
       _count: { _all: true },
     }),
     prisma.activity.count({
@@ -63,12 +72,22 @@ export async function POST(
   ]);
 
   const punchA = punchSummary.find((p) => p.category === 'A')?._count._all ?? 0;
-  const progress = Math.round(Number(actStats._avg.progress_percent ?? 0));
+  const progressInput: ProgressActivityInput[] = allActivities.map(a => ({
+    activityId: a.id,
+    durationHours: Number(a.duration_hours ?? 0),
+    progressPercent: a.progress_percent ?? 0,
+    status: a.status ?? 'not_started',
+    workpackId: a.workpack_id,
+    eventId: a.event_id,
+  }));
+  const progressMetrics = calculateProgressMetrics(progressInput);
+  const progress = progressMetrics.weightedProgress;
+  const actCount = allActivities.length;
 
   const systemPrompt = `You are SYORITY AI — a turnaround planning expert assistant.
 
 Project: ${project.name} (${project.code}) | Status: ${project.status}
-Activities: ${actStats._count._all} total | Progress: ${progress}% | Critical: ${criticalCount}
+Activities: ${actCount} total | Progress: ${progress}% (duration-weighted, authoritative) | Critical: ${criticalCount}
 Open Constraints: ${openConstraints} | A-Punch Items: ${punchA}
 Date: ${new Date().toLocaleDateString('en-IN')}
 

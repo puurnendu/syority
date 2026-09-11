@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import AIAssistantPanel from '@/components/Dashboard/AIAssistantPanel';
-import { SCurveChart } from '@/components/Dashboard/SCurveChart';
 
 export function ProjectDetailClient({
   projectId,
@@ -13,30 +11,11 @@ export function ProjectDetailClient({
   const [project, setProject] = useState<Record<string, unknown> | null>(
     null
   );
-  const [kpis, setKpis] = useState({
-    spi: 1,
-    planned: 0,
-    actual: 0,
-  });
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}`)
       .then((r) => r.json())
       .then(setProject);
-  }, [projectId]);
-
-  useEffect(() => {
-    if (!projectId) return;
-    fetch(`/api/projects/${projectId}/s-curve`)
-      .then((r) => r.json())
-      .then((d) =>
-        setKpis({
-          spi: d.spi ?? 1,
-          planned: d.latestPlanned ?? 0,
-          actual: d.latestActual ?? 0,
-        })
-      )
-      .catch(() => {});
   }, [projectId]);
 
   if (!project) {
@@ -47,51 +26,47 @@ export function ProjectDetailClient({
 
   const counts = (project._count as Record<string, number>) ?? {};
 
+  // ── OD9.2 §22 / §28 — PROJECT surfaces only ─────────────────────────────────
+  // A user inside PROJECT must not feel they are inside an STO system. The following
+  // STO-owned surfaces were removed from the Project workspace, each for a stated reason:
+  //
+  //   TA Dashboard  — "TA" is Turnaround: an STO campaign dashboard, and a duplicate of
+  //                   /events/[eventId]/ta-dashboard.
+  //   Workpacks     — Workpack is the STO work-package container owned by Event
+  //                   (Event → Workpack → Activity). STO surface: /workpacks.
+  //   Punch List    — STO execution punch. STO surface: /punch.
+  //   Permits       — §22: Permit Management is STO-only. STO surface: /permits.
+  //   Safety        — §22: Safety is STO-only. STO surface: /safety.
+  //   Daily Reports — STO daily/shift reporting. STO surface: /shift-reports.
+  //
+  // None of that STO functionality is deleted; it remains under the STO domain.
+  // Retained as genuine Project functionality: Overview, Schedule, Lookahead (P6-class
+  // planning), Constraints (`project_constraints` — a Project-domain table distinct from
+  // the STO `Constraint` model) and Equipment.
   const STAT_CARDS = [
     {
-      label: 'Workpacks',
-      value: counts.workpacks ?? 0,
+      label: 'WBS nodes',
+      value: counts.wbsNodes ?? 0,
+      icon: '🌳',
+      href: `/projects/${projectId}/wbs`,
+    },
+    {
+      label: 'Work packages',
+      value: counts.Workpack ?? 0,
       icon: '📦',
-      href: `/projects/${projectId}/workpacks`,
-    },
-    {
-      label: 'Equipment',
-      value: counts.equipment ?? 0,
-      icon: '🔧',
-      href: `/projects/${projectId}/equipment`,
-    },
-    {
-      label: 'Constraints',
-      value: counts.projectConstraints ?? 0,
-      icon: '⚠️',
-      href: `/projects/${projectId}/constraints`,
-    },
-    {
-      label: 'Punch Items',
-      value: counts.punchItems ?? 0,
-      icon: '📋',
-      href: `/projects/${projectId}/punch`,
-    },
-    {
-      label: 'Permits',
-      value: counts.permits ?? 0,
-      icon: '🔏',
-      href: `/projects/${projectId}/permits`,
+      href: `/projects/${projectId}/schedule`,
     },
   ];
 
   const PROJECT_TABS = [
     { label: 'Overview', href: `/projects/${projectId}` },
-    { label: 'TA Dashboard', href: `/projects/${projectId}/ta-dashboard` },
     { label: 'Schedule', href: `/projects/${projectId}/schedule` },
+    { label: 'WBS', href: `/projects/${projectId}/wbs` },
     { label: 'Lookahead', href: `/projects/${projectId}/lookahead` },
-    { label: 'Workpacks', href: `/projects/${projectId}/workpacks` },
-    { label: 'Equipment', href: `/projects/${projectId}/equipment` },
+    { label: 'Baselines', href: `/projects/${projectId}/baselines` },
+    { label: 'Reports', href: `/projects/${projectId}/reports/status` },
+    { label: 'Communications', href: `/projects/${projectId}/communications` },
     { label: 'Constraints', href: `/projects/${projectId}/constraints` },
-    { label: 'Punch List', href: `/projects/${projectId}/punch` },
-    { label: 'Permits', href: `/projects/${projectId}/permits` },
-    { label: 'Daily Reports', href: `/projects/${projectId}/reports` },
-    { label: 'Safety', href: `/projects/${projectId}/safety` },
   ];
 
   return (
@@ -145,75 +120,35 @@ export function ProjectDetailClient({
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {[
-          {
-            label: 'SPI',
-            value: kpis.spi.toFixed(2),
-            sub: kpis.spi >= 1 ? 'Ahead of schedule' : 'Behind schedule',
-            color:
-              kpis.spi >= 1
-                ? 'text-green-600'
-                : kpis.spi >= 0.85
-                  ? 'text-amber-600'
-                  : 'text-red-600',
-            bg:
-              kpis.spi >= 1
-                ? 'bg-green-50 border-green-200'
-                : kpis.spi >= 0.85
-                  ? 'bg-amber-50 border-amber-200'
-                  : 'bg-red-50 border-red-200',
-          },
-          {
-            label: 'Planned Progress',
-            value: `${kpis.planned.toFixed(1)}%`,
-            sub: 'As of today',
-            color: 'text-blue-600',
-            bg: 'bg-blue-50 border-blue-200',
-          },
-          {
-            label: 'Actual Progress',
-            value: `${kpis.actual.toFixed(1)}%`,
-            sub: `${kpis.actual >= kpis.planned ? '▲' : '▼'} vs planned`,
-            color:
-              kpis.actual >= kpis.planned ? 'text-green-600' : 'text-red-600',
-            bg: 'bg-gray-50 border-gray-200',
-          },
-        ].map((k) => (
-          <div
-            key={k.label}
-            className={`border rounded-xl p-4 ${k.bg}`}
-          >
-            <p className="text-xs text-gray-500 mb-1">{k.label}</p>
-            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-            <p className="text-xs text-gray-400 mt-1">{k.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
-        <SCurveChart projectId={projectId} />
-      </div>
+      {/* Phase 0 item 5: the SPI / Planned / Actual KPI cards, the Project
+          SCurveChart and the AIAssistantPanel were removed from this overview.
+          They were fed by the retired legacy Project S-curve endpoint and the
+          quarantined legacy ai-assistant route, so they rendered an empty
+          chart and misleading default KPIs (SPI 1.00). Project schedule and
+          performance truth lives on the Schedule, Baselines and Reports tabs. */}
 
       <div className="bg-white border border-gray-200 rounded-xl p-5">
         <h3 className="font-semibold text-gray-900 mb-4">Project Details</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          {/* OD9.2 §15/§28: field names match what /api/projects/[id] returns
+              (snake_case), and the labels are general project terms rather than
+              shutdown terms. Both were previously wrong, so these rows never rendered. */}
           {([
             ['Client', project.client],
-            ['Plant / Refinery', project.plantName],
+            ['Site', project.plant_name],
             ['Location', project.location],
             [
-              'Planned Shutdown',
-              project.plannedSdDate
-                ? new Date(String(project.plannedSdDate)).toLocaleDateString(
+              'Planned Start',
+              project.planned_sd_date
+                ? new Date(String(project.planned_sd_date)).toLocaleDateString(
                     'en-IN'
                   )
                 : null,
             ],
             [
-              'Planned Startup',
-              project.plannedSuDate
-                ? new Date(String(project.plannedSuDate)).toLocaleDateString(
+              'Planned Finish',
+              project.planned_su_date
+                ? new Date(String(project.planned_su_date)).toLocaleDateString(
                     'en-IN'
                   )
                 : null,
@@ -227,7 +162,6 @@ export function ProjectDetailClient({
           ))}
         </div>
       </div>
-      <AIAssistantPanel projectId={projectId} />
     </div>
   );
 }

@@ -1,37 +1,44 @@
 import { Worker } from 'bullmq';
 import { getRedis } from '@/lib/redis';
-import { SchedulingService } from '@/modules/Scheduling/Services/SchedulingService';
+import { ScheduleOrchestrationService } from '@/core/schedule/ScheduleOrchestrationService';
 
 /**
  * CPM recalculation worker.
  *
- * Expects job.data: { projectId: string; orgId: string }
+ * Expects job.data: { eventId: string; orgId: string }
+ *
+ * Event-less or Project-only jobs are rejected. No Project→Event inference.
  *
  * To start this worker, run:
  *   tsx src/workers/index.ts
  * or configure the "worker" npm script (see package.json).
  *
+ * M11-R0: Redirected from SchedulingService → ScheduleOrchestrationService.
  * Created via factory — never instantiated at import time.
  */
 export function createScheduleRecalculateWorker(): Worker<{
-  projectId: string;
+  eventId: string;
   orgId: string;
 }> {
   const worker = new Worker<{
-    projectId: string;
+    eventId: string;
     orgId: string;
   }>(
     'schedule-recalculate',
     async (job) => {
-      const { projectId, orgId } = job.data;
+      const { orgId, eventId } = job.data;
 
-      if (!projectId || !orgId) {
-        throw new Error(`[CPM Worker] Missing projectId or orgId in job ${job.id}`);
+      if (!eventId || !orgId) {
+        throw new Error(`[CPM Worker] Missing eventId or orgId in job ${job.id}`);
       }
 
-      job.log(`Starting CPM recalculation for project ${projectId}`);
+      job.log(`Starting CPM recalculation for event ${eventId}`);
 
-      const result = await SchedulingService.calculateProjectSchedule(projectId, orgId);
+      const result = await ScheduleOrchestrationService.calculateEventSchedule(eventId, orgId);
+
+      if (!result.success) {
+        throw new Error(`[CPM Worker] CPM failed: ${result.error}`);
+      }
 
       job.log(`CPM complete: ${result.count} activities recalculated`);
 
