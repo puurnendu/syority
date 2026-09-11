@@ -14,7 +14,16 @@ export type ReplyType =
   | 'ask_activity'
   | 'unregistered'
   | 'no_active_workpack'
-  | 'tag_not_found';
+  | 'tag_not_found'
+  // R4: M16 pipeline reply types
+  | 'confirmation_prompt'
+  | 'execution_success'
+  | 'execution_failed'
+  | 'permission_denied'
+  | 'event_ambiguous'
+  | 'entity_ambiguous'
+  | 'identity_rejected'
+  | 'no_active_event';
 
 const REPLIES: Record<ReplyType, Record<Language, string>> = {
   confirmed: {
@@ -72,6 +81,63 @@ const REPLIES: Record<ReplyType, Record<Language, string>> = {
     gu: '⚠ Equipment tag {tag} register ma nathi. Tag number tapasine pharthi moklo.',
     ta: '⚠ உபகரண குறிச்சொல் {tag} கண்டறியப்படவில்லை.',
     ml: '⚠ ഉപകരണ ടാഗ് {tag} കണ്ടെത്തിയില്ല.',
+  },
+  // ── R4: M16 Pipeline Reply Types ──────────────────────────────────────────
+  confirmation_prompt: {
+    en: '⚠ {message}\n\nReply *YES* to confirm or *NO* to cancel.',
+    hi: '⚠ {message}\n\n*YES* likhein confirm karne ke liye ya *NO* cancel karne ke liye.',
+    gu: '⚠ {message}\n\nConfirm karva *YES* lakho ke cancel karva *NO* lakho.',
+    ta: '⚠ {message}\n\nஉறுதிப்படுத்த *YES* அனுப்பவும் அல்லது ரத்து செய்ய *NO* அனுப்பவும்.',
+    ml: '⚠ {message}\n\nസ്ഥിരീകരിക്കാൻ *YES* അയക്കൂ അല്ലെങ്കിൽ റദ്ദാക്കാൻ *NO* അയക്കൂ.',
+  },
+  execution_success: {
+    en: '✅ {message}',
+    hi: '✅ {message}',
+    gu: '✅ {message}',
+    ta: '✅ {message}',
+    ml: '✅ {message}',
+  },
+  execution_failed: {
+    en: '❌ Action failed: {message}',
+    hi: '❌ Action fail hua: {message}',
+    gu: '❌ Action nisfal: {message}',
+    ta: '❌ செயல் தோல்வியடைந்தது: {message}',
+    ml: '❌ പ്രവർത്തനം പരാജയപ്പെട്ടു: {message}',
+  },
+  permission_denied: {
+    en: '🔒 {message}',
+    hi: '🔒 {message}',
+    gu: '🔒 {message}',
+    ta: '🔒 {message}',
+    ml: '🔒 {message}',
+  },
+  event_ambiguous: {
+    en: '❓ Multiple turnarounds found. Which one?\n{list}\n\nReply with number.',
+    hi: '❓ Kai turnaround mile. Kaun sa?\n{list}\n\nNumber se jawab dein.',
+    gu: '❓ Kai turnaround malya. Kayo?\n{list}\n\nNumber reply karo.',
+    ta: '❓ பல நிகழ்வுகள் கண்டறியப்பட்டன. எது?\n{list}\n\nஎண்ணில் பதில் அளிக்கவும்.',
+    ml: '❓ ഒന്നിലധികം ഇവന്റുകൾ. ഏത്?\n{list}\n\nനമ്പർ ഉത്തരം നൽകുക.',
+  },
+  entity_ambiguous: {
+    en: 'Found {count} matching items. Reply with number:\n{list}',
+    hi: '{count} items mile. Number se jawab dein:\n{list}',
+    gu: '{count} items malya. Number reply karo:\n{list}',
+    ta: '{count} உருப்படிகள் கண்டறியப்பட்டன. எண்ணில் பதில் அளிக்கவும்:\n{list}',
+    ml: '{count} ഇനങ്ങൾ കണ്ടെത്തി. നമ്പർ ഉത്തരം നൽകുക:\n{list}',
+  },
+  identity_rejected: {
+    en: '⛔ Access denied: {reason}. Contact your supervisor.',
+    hi: '⛔ Access denied: {reason}. Supervisor se baat karein.',
+    gu: '⛔ Access denied: {reason}. Supervisor ne contact karo.',
+    ta: '⛔ அணுகல் மறுக்கப்பட்டது: {reason}.',
+    ml: '⛔ ആക്സസ് നിഷേധിച്ചു: {reason}.',
+  },
+  no_active_event: {
+    en: '⚠ No active turnaround found. Contact your planner.',
+    hi: '⚠ Koi active turnaround nahi mila. Planner se baat karein.',
+    gu: '⚠ Active turnaround nathi. Planner ne contact karo.',
+    ta: '⚠ செயலில் உள்ள நிகழ்வு இல்லை.',
+    ml: '⚠ സജീവ ഇവന്റ് ഇല്ല.',
   },
 };
 

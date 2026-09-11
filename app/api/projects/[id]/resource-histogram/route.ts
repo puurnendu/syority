@@ -34,12 +34,12 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
   const orgId = session.user.organization_id;
 
   try {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { plannedSdDate: true, plannedSuDate: true },
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, org_id: orgId },
+      select: { planned_sd_date: true, planned_su_date: true },
     });
 
-    if (!project?.plannedSdDate || !project?.plannedSuDate) {
+    if (!project?.planned_sd_date || !project?.planned_su_date) {
       return NextResponse.json({ error: 'Project missing planned dates' }, { status: 422 });
     }
 
@@ -58,8 +58,8 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
     });
 
     // Determine project date range
-    const projectStart = new Date(project.plannedSdDate);
-    const projectFinish = new Date(project.plannedSuDate);
+    const projectStart = new Date(project.planned_sd_date);
+    const projectFinish = new Date(project.planned_su_date);
 
     // Initialize buckets
     const bucketsMap = new Map<string, Record<string, number>>();

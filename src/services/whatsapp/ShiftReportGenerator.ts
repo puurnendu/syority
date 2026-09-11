@@ -232,7 +232,7 @@ async function generateUnitShiftReport(
       },
       take: 5,
     }),
-    prisma.whatsappUpdate.count({
+    prisma.whatsapp_updates.count({
       where: {
         organization_id: orgId,
         created_at: { gte: shiftStart, lte: shiftEnd },

@@ -6,11 +6,11 @@ type AddItemData = { description: string; responsible_party?: string; sequence_n
 type UpdateItemData = { is_done?: boolean; signed_by?: string | null; signed_at?: Date | null; notes?: string | null };
 
 async function fetchChecklistWithItems(id: string, orgId: string) {
-    const checklist = await prisma.droppingBoxupChecklist.findFirst({
+    const checklist = await prisma.dropping_boxup_checklists.findFirst({
         where: { id, organization_id: orgId },
     });
     if (!checklist) return null;
-    const items = await prisma.droppingBoxupChecklistItem.findMany({
+    const items = await prisma.dropping_boxup_checklist_items.findMany({
         where: { checklist_id: id, organization_id: orgId },
         orderBy: { sequence_number: 'asc' },
     });
@@ -20,11 +20,11 @@ async function fetchChecklistWithItems(id: string, orgId: string) {
 export class DroppingBoxupService {
     // ── Dropping ──────────────────────────────────────────────────────────
     static async getChecklist(workpackId: string, orgId: string) {
-        const checklist = await prisma.droppingBoxupChecklist.findFirst({
+        const checklist = await prisma.dropping_boxup_checklists.findFirst({
             where: { workpack_id: workpackId, organization_id: orgId, checklist_type: ChecklistType.dropping },
         });
         if (!checklist) return null;
-        const items = await prisma.droppingBoxupChecklistItem.findMany({
+        const items = await prisma.dropping_boxup_checklist_items.findMany({
             where: { checklist_id: checklist.id, organization_id: orgId },
             orderBy: { sequence_number: 'asc' },
         });
@@ -32,7 +32,7 @@ export class DroppingBoxupService {
     }
 
     static async createChecklist(workpackId: string, orgId: string, userId: string) {
-        const created = await prisma.droppingBoxupChecklist.create({
+        const created = await prisma.dropping_boxup_checklists.create({
             data: { organization_id: orgId, workpack_id: workpackId, checklist_type: ChecklistType.dropping, created_by: userId },
         });
         await AuditService.log({ organization_id: orgId, user_id: userId, action: 'created', model_name: 'DroppingBoxupChecklist', model_id: created.id, new_values: created as Record<string, unknown> });
@@ -41,11 +41,11 @@ export class DroppingBoxupService {
 
     // ── Box-up ────────────────────────────────────────────────────────────
     static async getBoxUpChecklist(workpackId: string, orgId: string) {
-        const checklist = await prisma.droppingBoxupChecklist.findFirst({
+        const checklist = await prisma.dropping_boxup_checklists.findFirst({
             where: { workpack_id: workpackId, organization_id: orgId, checklist_type: ChecklistType.boxup },
         });
         if (!checklist) return null;
-        const items = await prisma.droppingBoxupChecklistItem.findMany({
+        const items = await prisma.dropping_boxup_checklist_items.findMany({
             where: { checklist_id: checklist.id, organization_id: orgId },
             orderBy: { sequence_number: 'asc' },
         });
@@ -53,7 +53,7 @@ export class DroppingBoxupService {
     }
 
     static async createBoxUpChecklist(workpackId: string, orgId: string, userId: string) {
-        const created = await prisma.droppingBoxupChecklist.create({
+        const created = await prisma.dropping_boxup_checklists.create({
             data: { organization_id: orgId, workpack_id: workpackId, checklist_type: ChecklistType.boxup, created_by: userId },
         });
         await AuditService.log({ organization_id: orgId, user_id: userId, action: 'created', model_name: 'DroppingBoxupChecklist', model_id: created.id, new_values: { checklist_type: 'boxup', workpack_id: workpackId } });
@@ -62,7 +62,7 @@ export class DroppingBoxupService {
 
     // ── Shared ────────────────────────────────────────────────────────────
     static async updateChecklist(id: string, orgId: string, data: Record<string, unknown>, userId: string) {
-        const updated = await prisma.droppingBoxupChecklist.update({ where: { id, organization_id: orgId }, data });
+        const updated = await prisma.dropping_boxup_checklists.update({ where: { id, organization_id: orgId }, data });
         await AuditService.log({ organization_id: orgId, user_id: userId, action: 'updated', model_name: 'DroppingBoxupChecklist', model_id: id, new_values: data });
         return updated;
     }
@@ -72,9 +72,9 @@ export class DroppingBoxupService {
     }
 
     static async addItemsToChecklist(checklistId: string, orgId: string, items: AddItemData[]) {
-        const existing = await prisma.droppingBoxupChecklistItem.findMany({ where: { checklist_id: checklistId, organization_id: orgId } });
+        const existing = await prisma.dropping_boxup_checklist_items.findMany({ where: { checklist_id: checklistId, organization_id: orgId } });
         const startSeq = (existing?.length ?? 0) + 1;
-        await prisma.droppingBoxupChecklistItem.createMany({
+        await prisma.dropping_boxup_checklist_items.createMany({
             data: items.map((item, i) => ({
                 organization_id: orgId,
                 checklist_id: checklistId,
@@ -87,7 +87,7 @@ export class DroppingBoxupService {
     }
 
     static async updateItem(itemId: string, orgId: string, _userId: string, data: UpdateItemData) {
-        return prisma.droppingBoxupChecklistItem.update({
+        return prisma.dropping_boxup_checklist_items.update({
             where: { id: itemId, organization_id: orgId },
             data: {
                 ...(data.is_done !== undefined ? { is_done: data.is_done } : {}),

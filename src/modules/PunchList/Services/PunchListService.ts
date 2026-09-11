@@ -18,7 +18,13 @@ export class PunchListService {
         target_close_date?: Date;
     }) {
         const created = await prisma.punchListItem.create({
-            data: { ...data, status: 'open', raised_at: new Date() },
+            data: {
+                id: crypto.randomUUID(),
+                ...data,
+                status: 'open',
+                raised_at: new Date(),
+                updated_at: new Date(),
+            },
         });
         await AuditService.log({
             organization_id: data.organization_id,

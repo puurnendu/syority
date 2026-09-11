@@ -10,7 +10,7 @@ export async function POST(
   if (error) return error;
   const { orgId, userId } = orgScope(session!);
   const { lineId } = await ctx.params;
-  const line = await prisma.lineList.findFirst({
+  const line = await prisma.line_lists.findFirst({
     where: { id: lineId, organization_id: orgId, deleted_at: null },
     select: { id: true, line_number: true, site_id: true, total_joint_count: true },
   });
@@ -18,10 +18,10 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const totalJointCount = body.total_joint_count != null ? Math.max(0, Number(body.total_joint_count)) : (line.total_joint_count ?? 0);
   if (totalJointCount <= 0) return NextResponse.json({ error: 'total_joint_count must be > 0' }, { status: 400 });
-  const existingCount = await prisma.jointMaster.count({ where: { line_id: lineId } });
+  const existingCount = await prisma.joint_masters.count({ where: { line_id: lineId } });
   if (existingCount > 0) return NextResponse.json({ created: 0, skipped: existingCount, message: 'Joints already exist for this line' });
   const jointNumbers = Array.from({ length: totalJointCount }, (_, i) => line.line_number + '-J' + String(i + 1).padStart(3, '0'));
-  await prisma.jointMaster.createMany({
+  await prisma.joint_masters.createMany({
     data: jointNumbers.map((joint_number, idx) => ({
       organization_id: orgId,
       site_id: line.site_id,
@@ -33,7 +33,7 @@ export async function POST(
     })),
   });
   if (line.total_joint_count !== totalJointCount) {
-    await prisma.lineList.update({ where: { id: lineId }, data: { total_joint_count: totalJointCount } });
+    await prisma.line_lists.update({ where: { id: lineId }, data: { total_joint_count: totalJointCount } });
   }
   return NextResponse.json({ created: totalJointCount, skipped: 0 });
 }

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     };
     if (equipment_type) where.equipment_types = { has: equipment_type };
 
-    const templates = await prisma.certificateTemplate.findMany({
+    const templates = await prisma.certificate_templates.findMany({
         where,
         orderBy: { cert_name: 'asc' },
     });

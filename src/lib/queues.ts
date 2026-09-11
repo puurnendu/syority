@@ -15,10 +15,10 @@ let _scheduleRecalculateQueue: Queue | undefined;
 /**
  * CPM schedule recalculation queue.
  *
- * Jobs:  { projectId: string; orgId: string }
+ * Jobs:  { eventId: string; orgId: string }
  *
  * Deduplication pattern: callers should pass
- *   jobId: `recalc-${projectId}`
+ *   jobId: `recalc-${eventId}`
  * so that rapid saves collapse into a single scheduled run.
  */
 export function getScheduleRecalculateQueue(): Queue {

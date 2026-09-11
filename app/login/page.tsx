@@ -23,7 +23,7 @@ export default async function LoginPage() {
 
         const readiness = await getSystemReadiness();
         if (!readiness.isReady) {
-            redirect('/admin/setup');
+            redirect('/install');
         }
         if (isPlatform) {
             redirect('/platform/tenants');

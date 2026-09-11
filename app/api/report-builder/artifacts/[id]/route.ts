@@ -15,7 +15,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!hasPermission(session, 'reporting:view')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const artifact = await ArtifactService.getForDownload(params.id);
+    const orgId = session.user.organizationId || (session.user as any).organization_id;
+    const artifact = await ArtifactService.getForDownload(params.id, orgId);
 
     // Return binary data if available
     if (artifact.file_data) {
@@ -46,7 +47,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!hasPermission(session, 'reporting:admin')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    await ArtifactService.archive(params.id);
+    const orgId = session.user.organizationId || (session.user as any).organization_id;
+    await ArtifactService.archive(params.id, orgId);
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

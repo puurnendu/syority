@@ -42,7 +42,7 @@ export async function POST(
         if (!authoriserName) return NextResponse.json({ error: 'authoriser_name is required' }, { status: 400 });
 
         // Verify the sign-off belongs to this org
-        const existing = await prisma.clearanceSignOff.findFirst({
+        const existing = await prisma.clearance_sign_offs.findFirst({
             where: { id: signOffId, organization_id: orgId },
         });
         if (!existing) return NextResponse.json({ error: 'Sign-off not found' }, { status: 404 });
@@ -56,7 +56,7 @@ export async function POST(
             `granted_at: ${new Date().toISOString()}`,
         ].filter(Boolean).join(' | ');
 
-        const updated = await prisma.clearanceSignOff.update({
+        const updated = await prisma.clearance_sign_offs.update({
             where: { id: signOffId, organization_id: orgId },
             data: {
                 signed_by: userId,

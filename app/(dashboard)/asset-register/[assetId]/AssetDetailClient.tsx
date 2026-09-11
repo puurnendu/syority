@@ -37,7 +37,9 @@ export default function AssetDetailClient({ asset, lines, joints, drawings, proc
                 <div><dt className="text-gray-400 text-xs font-semibold mb-1">Tag Number</dt><dd className="font-medium">{asset.tag_number}</dd></div>
                 <div><dt className="text-gray-400 text-xs font-semibold mb-1">Name</dt><dd className="font-medium">{asset.name}</dd></div>
                 <div><dt className="text-gray-400 text-xs font-semibold mb-1">Asset Type</dt><dd className="font-medium">{asset.asset_type || '—'}</dd></div>
-                <div><dt className="text-gray-400 text-xs font-semibold mb-1">Criticality</dt><dd className="font-medium">{asset.criticality || '—'}</dd></div>
+                <div><dt className="text-gray-400 text-xs font-semibold mb-1">Criticality</dt><dd className="font-medium capitalize">{asset.criticality || '—'}</dd></div>
+                <div><dt className="text-gray-400 text-xs font-semibold mb-1">Status</dt><dd className="font-medium capitalize">{asset.status || '—'}</dd></div>
+                <div><dt className="text-gray-400 text-xs font-semibold mb-1">Data Source</dt><dd className="font-medium">{asset.data_source || 'manual'}</dd></div>
                 <div><dt className="text-gray-400 text-xs font-semibold mb-1">Site</dt><dd className="font-medium">{asset.site?.name || '—'}</dd></div>
                 <div><dt className="text-gray-400 text-xs font-semibold mb-1">Unit</dt><dd className="font-medium">{asset.system?.unit?.name || '—'}</dd></div>
                 <div><dt className="text-gray-400 text-xs font-semibold mb-1">System</dt><dd className="font-medium">{asset.system?.name || '—'}</dd></div>

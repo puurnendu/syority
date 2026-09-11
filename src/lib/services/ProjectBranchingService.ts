@@ -5,6 +5,14 @@ export class ProjectBranchingService {
   /**
    * Creates a deep-copy of a project as a baseline.
    * This includes all activities, relationships, and secondary data.
+   *
+   * ⚠️ NON-FUNCTIONAL — pre-dates the R0.4 Event architecture and does not compile.
+   * It reads `Project.activities` and writes `Project.orgId` / `plantName` / `isBaseline`,
+   * none of which exist on the model. OD9.1 removed its retired `Activity.project_id`
+   * write but deliberately did not rebuild the feature: under R0.4 the Event is the STO
+   * campaign container and `ScheduleBaseline` is the baseline mechanism M11 actually uses,
+   * so reviving project branching is a product decision, not schema reconciliation.
+   * Recorded as OD9-035. Its only callers are app/api/projects/[id]/baselines/route.ts.
    */
   static async createBaseline(projectId: string, baselineName: string, userId: string): Promise<string> {
     const sourceProject = await prisma.project.findUnique({
@@ -47,7 +55,9 @@ export class ProjectBranchingService {
         const newAct = await tx.activity.create({
           data: {
             ...actData as any,
-            project_id: baseline.id,
+            // OD9.1: `project_id: baseline.id` removed — Activity.project_id was retired
+            // and never existed in the database, so this write would always have failed.
+            // Nothing replaces it: cloned activities are reached through the Workpack.
             // Detach from workpacks to avoid confusion in baseline snapshots
             workpack_id: null,
             // Re-clone UDF values

@@ -70,7 +70,7 @@ export async function generateWorkpackIdCode(
     const disc = normaliseDiscCode(disciplineCode);
 
     const counter = await prisma.$transaction(async (tx) => {
-        return tx.workpackIdCounter.upsert({
+        return tx.workpack_id_counters.upsert({
             where: {
                 organization_id_unit_code_discipline_code: {
                     organization_id: organizationId,
@@ -78,12 +78,17 @@ export async function generateWorkpackIdCode(
                     discipline_code: disc,
                 },
             },
-            update: { last_number: { increment: 1 } },
+            update: {
+                last_number: { increment: 1 },
+                updated_at: new Date(),
+            },
             create: {
+                id: crypto.randomUUID(),
                 organization_id: organizationId,
                 unit_code: unit,
                 discipline_code: disc,
                 last_number: 1,
+                updated_at: new Date(),
             },
         });
     });
@@ -102,7 +107,7 @@ export async function previewNextWorkpackIdCode(
 ): Promise<string> {
     const unit = normaliseUnitCode(unitCode);
     const disc = normaliseDiscCode(disciplineCode);
-    const counter = await prisma.workpackIdCounter.findFirst({
+    const counter = await prisma.workpack_id_counters.findFirst({
         where: {
             organization_id: organizationId,
             unit_code: unit,

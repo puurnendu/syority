@@ -30,7 +30,7 @@ export async function POST(
 
     const { id: sourceId } = await params;
 
-    const source = await prisma.workpackTemplate.findFirst({
+    const source = await prisma.workpack_templates.findFirst({
         where: { id: sourceId, deleted_at: null },
         include: {
             activities: { orderBy: { sequence_number: 'asc' } },
@@ -47,7 +47,7 @@ export async function POST(
 
     const newName = `Copy of ${source.name}`;
 
-    const template = await prisma.workpackTemplate.create({
+    const template = await prisma.workpack_templates.create({
         data: {
             organization_id: orgId,
             name: newName,

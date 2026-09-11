@@ -40,7 +40,7 @@ export class CertificateService {
 
         const activityIds = activities.map((a) => a.id);
         const clearances = activityIds.length > 0
-            ? await prisma.qaClearanceRecord.findMany({ where: { activity_id: { in: activityIds } } })
+            ? await prisma.qa_clearance_records.findMany({ where: { activity_id: { in: activityIds } } })
             : [];
 
         const activitiesWithClearances = activities.map((a) => ({

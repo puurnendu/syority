@@ -8,6 +8,7 @@ import { ActivityCodeLibraryModal } from './ActivityCodeLibraryModal';
 import { GanttChart } from './GanttChart';
 import { PredecessorEditor, type PredecessorItem } from './Activity/PredecessorEditor';
 import { BulkPredecessorModal } from './Activity/BulkPredecessorModal';
+import { mapGridFieldToExecution } from '@/core/execution/executionFieldGuard';
 
 // ── Column resize handle (reusable) ─────────────────────
 function ColResizeHandle({
@@ -314,8 +315,8 @@ export function ActivitiesPanel({ workpack, udfDefinitions = [] }: { workpack: a
                     preds.push(pred.sequence_number);
                     const code = pred.activity_id ?? (pred.activity_number || String(pred.sequence_number ?? ''));
                     const type = (rel.relationship_type ?? 'FS') as string;
-                    const lagDays = rel.lag_days != null ? Number(rel.lag_days) : 0;
-                    const lagDisplay = lagDays !== 0 ? (lagDays > 0 ? `+${Math.round(lagDays * 8)}h` : `${Math.round(lagDays * 8)}h`) : '';
+                    const lagHrs = rel.lag_minutes != null ? Number(rel.lag_minutes) / 60 : (rel.lag_days != null ? Number(rel.lag_days) * 8 : 0);
+                    const lagDisplay = lagHrs !== 0 ? (lagHrs > 0 ? `+${Math.round(lagHrs)}h` : `${Math.round(lagHrs)}h`) : '';
                     displayList.push({ code, type, lagDisplay });
                 }
             }
@@ -432,6 +433,38 @@ export function ActivitiesPanel({ workpack, udfDefinitions = [] }: { workpack: a
 
         // Activity ID column: send activity_id to API
         const patchBody = col.key === 'act_code' ? { activity_id: value } : { [field]: value };
+
+        if (field === 'status' || field === 'progress_percent') {
+            const activity = activities.find((a: any) => a.id === rowId);
+            const mapped = mapGridFieldToExecution(field, value, activity?.status);
+            if ('error' in mapped) {
+                setError(mapped.error);
+                setEditCell(null);
+                return;
+            }
+            try {
+                const res = await fetch('/api/execution/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        activityId: rowId,
+                        action: mapped.action,
+                        progress: mapped.progress,
+                        hold_reason: mapped.action === 'HOLD' ? 'Hold from workpack activity grid' : undefined,
+                    }),
+                });
+                const errData = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error((errData as { error?: string }).error || 'Execution update blocked');
+                }
+                setEditCell(null);
+                router.refresh();
+            } catch (err: unknown) {
+                setEditCell(null);
+                setError(err instanceof Error ? err.message : 'Save failed');
+            }
+            return;
+        }
 
         try {
             const res = await fetch(`/api/workpacks/${workpack.id}/activities/${rowId}`, {
@@ -728,7 +761,8 @@ export function ActivitiesPanel({ workpack, udfDefinitions = [] }: { workpack: a
             const predecessors: PredecessorItem[] = (activity?.predecessors ?? []).map((rel: any) => ({
                 predecessorId: rel.predecessor_id,
                 type: (rel.relationship_type ?? 'FS') as PredecessorItem['type'],
-                lagHours: (rel.lag_days != null ? Number(rel.lag_days) : 0) * 8,
+                // Sprint 1a — canonical lag_minutes → hours; legacy lag_days × 8 fallback.
+                lagHours: rel.lag_minutes != null ? Number(rel.lag_minutes) / 60 : (rel.lag_days != null ? Number(rel.lag_days) : 0) * 8,
             }));
             return (
                 <PredecessorEditor
@@ -882,14 +916,23 @@ export function ActivitiesPanel({ workpack, udfDefinitions = [] }: { workpack: a
                         </button>
                         <button
                             onClick={async () => {
-                                if (!confirm('Calculate Critical Path for this project?')) return;
+                                if (!workpack.event_id) {
+                                    alert('Cannot calculate CPM: this Workpack has no Event context.');
+                                    return;
+                                }
+                                if (!confirm('Calculate Critical Path for this event?')) return;
                                 setSaving(true);
-                                const res = await fetch(`/api/projects/${workpack.project_id}/schedule`, { method: 'POST' });
+                                const res = await fetch('/api/schedule/calculate', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ event_id: workpack.event_id }),
+                                });
                                 if (res.ok) {
                                     alert('CPM Calculation complete!');
                                     router.refresh();
                                 } else {
-                                    alert('Failed to calculate CPM');
+                                    const payload = await res.json().catch(() => ({}));
+                                    alert(payload.error || 'Failed to calculate CPM');
                                 }
                                 setSaving(false);
                             }}
@@ -921,7 +964,7 @@ export function ActivitiesPanel({ workpack, udfDefinitions = [] }: { workpack: a
                                         status: a.status ?? null,
                                         duration_hours: a.duration_hours != null ? Number(a.duration_hours) : null,
                                         is_critical: a.is_critical ?? false,
-                                        workpack: { project_id: workpack.project_id }
+                                        workpack: { project_id: workpack.project_id, event_id: workpack.event_id }
                                     }))}
                                     workpackStart={workpack.planned_start_date ? (typeof workpack.planned_start_date === 'string' ? workpack.planned_start_date : new Date(workpack.planned_start_date).toISOString()) : null}
                                     workpackEnd={workpack.planned_end_date ? (typeof workpack.planned_end_date === 'string' ? workpack.planned_end_date : new Date(workpack.planned_end_date).toISOString()) : null}

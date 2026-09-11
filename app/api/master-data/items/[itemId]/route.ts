@@ -14,13 +14,13 @@ export async function PATCH(
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
 
-  const existing = await prisma.itemCatalog.findFirst({
+  const existing = await prisma.item_catalog.findFirst({
     where: { id: itemId, organization_id: orgId, deleted_at: null },
     select: { id: true },
   });
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const updated = await prisma.itemCatalog.update({
+  const updated = await prisma.item_catalog.update({
     where: { id: itemId },
     data: {
       ...(body.description !== undefined && { description: body.description }),
@@ -54,7 +54,7 @@ export async function DELETE(
   const { orgId } = orgScope(session!);
   const { itemId } = await context.params;
 
-  await prisma.itemCatalog.updateMany({
+  await prisma.item_catalog.updateMany({
     where: { id: itemId, organization_id: orgId },
     data: { deleted_at: new Date(), is_active: false },
   });

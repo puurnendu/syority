@@ -1,5 +1,10 @@
 'use client';
 
+/**
+ * M8.13 GOVERNANCE: PRESENTATION-ONLY — reads cached overall_progress from workpacks.
+ * The cached value is synced by the authoritative ProgressCalculationService via
+ * FieldExecutionService.syncWorkpackProgress or ProgressAggregationService.recalculateEvent.
+ */
 export function WorkpackSummaryBar({ workpacks }: { workpacks: any[] }) {
     if (workpacks.length === 0) return null;
 

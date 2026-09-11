@@ -15,7 +15,7 @@ export const PUT = withTenantGuard(async (req: NextRequest, { params }, session)
   const body = await req.json();
   const { name, pages } = body ?? {};
 
-  const template = await prisma.reportTemplate.updateMany({
+  const template = await prisma.report_templates.updateMany({
     where: { id, organization_id: session.user.organization_id, deleted_at: null },
     data: {
       ...(name  !== undefined && { name }),
@@ -35,7 +35,7 @@ export const DELETE = withTenantGuard(async (_req: NextRequest, { params }, sess
   if (error) return error;
 
   const { id } = await params;
-  const result = await prisma.reportTemplate.updateMany({
+  const result = await prisma.report_templates.updateMany({
     where: { id, organization_id: session.user.organization_id, deleted_at: null },
     data: { deleted_at: new Date() },
   });

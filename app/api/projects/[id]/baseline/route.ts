@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { guardApi } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
 import { prisma } from '@/lib/prisma';
+import { randomUUID } from 'crypto';
+
+export const GET = withTenantGuard(async (_req: NextRequest, { params }, session) => {
+  const { error } = await guardApi('projects.view');
+  if (error) return error;
+  const { id: projectId } = await params;
+  const orgId = session.user.organization_id;
+  const { ProjectBaselineCompareService } = await import('@/core/project/ProjectBaselineCompareService');
+  try {
+    const data = await ProjectBaselineCompareService.list(orgId, projectId);
+    return NextResponse.json({ data });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 404 });
+  }
+});
 
 /**
  * POST /api/projects/[id]/baseline
@@ -60,6 +75,7 @@ export const POST = withTenantGuard(async (req: NextRequest, { params }, session
       // Create the new baseline header
       const baseline = await tx.scheduleBaseline.create({
         data: {
+          id: randomUUID(),
           organization_id: orgId,
           project_id: projectId,
           name,
@@ -70,6 +86,8 @@ export const POST = withTenantGuard(async (req: NextRequest, { params }, session
 
       // Snapshot each activity's schedule into BaselineActivity
       const baselineActivities = activities.map(a => ({
+        id:              randomUUID(),
+        organization_id: orgId,
         baseline_id:    baseline.id,
         activity_id:    a.id,
         planned_start:  a.planned_start  ?? new Date(),

@@ -167,7 +167,7 @@ export async function POST(
         if (!t.name?.trim()) continue;
         const category = VALID_CATEGORIES.includes(String(t.category)) ? String(t.category) : 'General';
         const dbCategory: DbCategory = DB_CATEGORIES.includes(category as DbCategory) ? (category as DbCategory) : 'General';
-        await prisma.workpackTool.create({
+        await prisma.workpack_tools.create({
           data: {
             workpack: { connect: { id: workpackId } },
             organization: { connect: { id: orgId } },

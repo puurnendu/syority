@@ -14,7 +14,7 @@ export class QaClearanceService {
         notes?: string;
     }) {
         // 1. Create the clearance record
-        const created = await prisma.qaClearanceRecord.create({
+        const created = await prisma.qa_clearance_records.create({
             data: {
                 ...data,
             }
@@ -41,7 +41,7 @@ export class QaClearanceService {
     }
 
     static async getClearancesByActivity(activityId: string, organizationId: string) {
-        return prisma.qaClearanceRecord.findMany({
+        return prisma.qa_clearance_records.findMany({
             where: {
                 activity_id: activityId,
                 organization_id: organizationId
@@ -51,7 +51,7 @@ export class QaClearanceService {
     }
 
     static async getClearancesByWorkpack(workpackId: string, organizationId: string) {
-        return prisma.qaClearanceRecord.findMany({
+        return prisma.qa_clearance_records.findMany({
             where: {
                 workpack_id: workpackId,
                 organization_id: organizationId
@@ -69,7 +69,7 @@ export class QaClearanceService {
     }
 
     static async deleteClearance(id: string, organizationId: string, deletedBy: string) {
-        const deleted = await prisma.qaClearanceRecord.delete({
+        const deleted = await prisma.qa_clearance_records.delete({
             where: { id, organization_id: organizationId }
         });
 

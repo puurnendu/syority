@@ -21,14 +21,10 @@ export async function GET() {
     const orgId = user.organization_id;
     if (!orgId) return NextResponse.json({ error: 'No organization' }, { status: 403 });
 
-    const templates = await prisma.workpackTemplate.findMany({
+    const templates = await prisma.workpack_templates.findMany({
         where: {
             OR: [{ organization_id: orgId }, { is_system: true }],
             deleted_at: null,
-        },
-        include: {
-            activities: { orderBy: { sequence_number: 'asc' } },
-            checklist_items: { orderBy: { sequence_number: 'asc' } },
         },
         orderBy: [{ is_system: 'asc' }, { name: 'asc' }],
     });
@@ -64,7 +60,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Organization mismatch' }, { status: 403 });
     }
 
-    const template = await prisma.workpackTemplate.create({
+    const template = await prisma.workpack_templates.create({
         data: {
             organization_id: orgId,
             name,

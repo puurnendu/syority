@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     };
     if (itemCategory) where.item_category = itemCategory;
 
-    const items = await prisma.itemCatalog.findMany({
+    const items = await prisma.item_catalog.findMany({
       where,
       orderBy: { description: 'asc' },
     });
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     const itemCode =
       (body.material_number && String(body.material_number).trim()) ||
       `LEG-${Date.now().toString(36).toUpperCase()}`;
-    const item = await prisma.itemCatalog.create({
+    const item = await prisma.item_catalog.create({
       data: {
         organization_id: orgId,
         item_code: itemCode.slice(0, 50),
@@ -127,12 +127,12 @@ export async function PUT(req: NextRequest) {
     const id = body.id;
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
-    const existing = await prisma.itemCatalog.findFirst({
+    const existing = await prisma.item_catalog.findFirst({
       where: { id, organization_id: orgId, deleted_at: null },
     });
     if (!existing) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
 
-    const updated = await prisma.itemCatalog.update({
+    const updated = await prisma.item_catalog.update({
       where: { id },
       data: {
         description: body.name !== undefined ? String(body.name).trim() : undefined,

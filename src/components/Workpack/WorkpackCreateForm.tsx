@@ -61,9 +61,10 @@ interface WorkpackCreateFormProps {
     sites: Site[];
     disciplines: Discipline[];
     initialProjectId?: string;
+    initialEventId?: string;
 }
 
-export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: WorkpackCreateFormProps) {
+export function WorkpackCreateForm({ sites, disciplines, initialProjectId, initialEventId }: WorkpackCreateFormProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -121,7 +122,7 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
 
     const [events, setEvents] = useState<EventOption[]>([]);
     const [hierarchy, setHierarchy] = useState<HierarchyPlant[]>([]);
-    const [eventId, setEventId] = useState('');
+    const [eventId, setEventId] = useState(initialEventId ?? '');
     const [plantId, setPlantId] = useState('');
     const [unitId, setUnitId] = useState('');
     const [systemId, setSystemId] = useState('');
@@ -129,9 +130,8 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
     const [scopeData, setScopeData] = useState<{ nozzles: ScopeNozzle[]; line_lists: ScopeLine[] } | null>(null);
     const [selectedJointMasterIds, setSelectedJointMasterIds] = useState<Set<string>>(new Set());
     const [scopeLoading, setScopeLoading] = useState(false);
-    const [equipmentTypes, setEquipmentTypes] = useState<string[]>([]);
+    const [equipmentTypes, setEquipmentTypes] = useState<Array<{ id: string; name: string; code?: string }>>([]);
     const [equipmentType, setEquipmentType] = useState('');
-    const [otherEquipmentType, setOtherEquipmentType] = useState('');
     const [gadFile, setGadFile] = useState<File | undefined>();
     const [equipmentDrawingFile, setEquipmentDrawingFile] = useState<File | undefined>();
     const [riggingPlanFile, setRiggingPlanFile] = useState<File | undefined>();
@@ -139,11 +139,11 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
     const [isAiGenerating, setIsAiGenerating] = useState(false);
 
     useEffect(() => {
-        fetch('/api/certificate-templates')
-            .then((r) => (r.ok ? r.json() : []))
-            .then((templates: any[]) => {
-                const all = templates.flatMap((t: any) => t.equipment_types ?? []);
-                setEquipmentTypes([...new Set(all)].sort());
+        fetch('/api/equipment-types')
+            .then((r) => (r.ok ? r.json() : { data: [] }))
+            .then((d) => {
+                const list = d.data ?? d.equipment_types ?? [];
+                setEquipmentTypes(list);
             })
             .catch(() => {});
     }, []);
@@ -168,7 +168,10 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
         ]).then(([evts, plants]) => {
             setEvents(evts);
             setHierarchy(plants);
-            setEventId('');
+            const keep = initialEventId && evts.some((e: EventOption) => e.id === initialEventId)
+              ? initialEventId
+              : '';
+            setEventId(keep);
             setPlantId('');
             setUnitId('');
             setSystemId('');
@@ -176,7 +179,7 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
             setScopeData(null);
             setSelectedJointMasterIds(new Set());
         });
-    }, [siteId]);
+    }, [siteId, initialEventId]);
 
     useEffect(() => {
         if (!assetId) {
@@ -210,6 +213,10 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
             setError('Primary Discipline is required');
             return;
         }
+        if (!eventId) {
+            setError('Event is required. STO Workpacks cannot be created without Event context.');
+            return;
+        }
         setIsSubmitting(true);
         setError(null);
 
@@ -223,7 +230,7 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
                     workpack_number: formData.workpack_number?.trim() || (suggestedWorkpackNumber || undefined),
                     unit_code: formData.unit_code.trim() || undefined,
                     primary_discipline: primary_discipline || undefined,
-                    equipment_type: equipmentType && equipmentType !== '__other' ? equipmentType : (otherEquipmentType?.trim() || undefined),
+                    equipment_type: equipmentType || undefined,
                     planned_start_date: formData.planned_start_date ? new Date(formData.planned_start_date) : null,
                     planned_end_date: formData.planned_end_date ? new Date(formData.planned_end_date) : null,
                     estimated_manhours: formData.estimated_manhours ? parseFloat(formData.estimated_manhours) : 0,
@@ -262,11 +269,16 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
             setError('Site Location is required for AI generation.');
             return;
         }
+        if (!eventId) {
+            setError('Event is required for AI generation.');
+            return;
+        }
         setIsAiGenerating(true);
         try {
             const form = new FormData();
             form.append('title', formData.title);
             form.append('site_id', formData.site_id);
+            form.append('event_id', eventId);
             form.append('sap_work_order', formData.sap_work_order);
             form.append('sap_notification', formData.sap_notification);
             form.append('discipline_id', formData.discipline_id);
@@ -420,20 +432,12 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
                                 >
                                     <option value="">Select equipment type...</option>
-                                    {equipmentTypes.map((et) => (
-                                        <option key={et} value={et}>{et}</option>
-                                    ))}
-                                    <option value="__other">Other (type below)</option>
+                                    {equipmentTypes.map((et: any) => {
+                                        const val = typeof et === 'string' ? et : (et.code || et.id);
+                                        const label = typeof et === 'string' ? et : `${et.code ? `${et.code} — ` : ''}${et.name}`;
+                                        return <option key={val} value={val}>{label}</option>;
+                                    })}
                                 </select>
-                                {equipmentType === '__other' && (
-                                    <input
-                                        type="text"
-                                        placeholder="Enter equipment type..."
-                                        value={otherEquipmentType}
-                                        onChange={(e) => setOtherEquipmentType(e.target.value)}
-                                        className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    />
-                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Workpack ID</label>
@@ -692,13 +696,13 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
                             {siteId && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Event (optional)</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Event *</label>
                                         <select
                                             value={eventId}
                                             onChange={(e) => setEventId(e.target.value)}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
                                         >
-                                            <option value="">None</option>
+                                            <option value="">Select event...</option>
                                             {events.map((ev) => (
                                                 <option key={ev.id} value={ev.id}>{ev.code} — {ev.name}</option>
                                             ))}
@@ -721,7 +725,16 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
                                         <select
                                             value={unitId}
-                                            onChange={(e) => { setUnitId(e.target.value); setSystemId(''); setAssetId(''); }}
+                                            onChange={(e) => {
+                                                const uId = e.target.value;
+                                                setUnitId(uId);
+                                                setSystemId('');
+                                                setAssetId('');
+                                                const selectedUnit = hierarchy.find((p) => p.id === plantId)?.units.find((u) => u.id === uId);
+                                                if (selectedUnit?.code) {
+                                                    setFormData((prev) => ({ ...prev, unit_code: selectedUnit.code!.toUpperCase() }));
+                                                }
+                                            }}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
                                         >
                                             <option value="">Select unit...</option>
@@ -747,7 +760,14 @@ export function WorkpackCreateForm({ sites, disciplines, initialProjectId }: Wor
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Asset</label>
                                         <select
                                             value={assetId}
-                                            onChange={(e) => setAssetId(e.target.value)}
+                                            onChange={(e) => {
+                                                const aId = e.target.value;
+                                                setAssetId(aId);
+                                                const selectedAsset: any = hierarchy.find((p) => p.id === plantId)?.units.find((u) => u.id === unitId)?.systems.find((s) => s.id === systemId)?.assets.find((a) => a.id === aId);
+                                                if (selectedAsset?.equipment_type_id || selectedAsset?.asset_type) {
+                                                    setEquipmentType(selectedAsset.equipment_type_id || selectedAsset.asset_type || '');
+                                                }
+                                            }}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
                                         >
                                             <option value="">Select asset...</option>

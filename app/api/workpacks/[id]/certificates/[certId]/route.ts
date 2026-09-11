@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 async function withTemplate(cert: { template_id: string } & Record<string, unknown>) {
-    const template = await prisma.certificateTemplate.findFirst({
+    const template = await prisma.certificate_templates.findFirst({
         where: { id: cert.template_id },
         select: { cert_name: true, cert_type: true, fields: true },
     });

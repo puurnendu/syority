@@ -29,7 +29,7 @@ export async function POST(
     );
   }
 
-  const update = await prisma.whatsappUpdate.findFirst({
+  const update = await prisma.whatsapp_updates.findFirst({
     where: { id: updateId, organization_id: orgId },
     select: {
       id: true,
@@ -47,7 +47,7 @@ export async function POST(
   const replyText = template.replace('{notes}', reviewNotes);
   await sendWhatsAppMessage(update.phone_number, replyText);
 
-  const updated = await prisma.whatsappUpdate.update({
+  const updated = await prisma.whatsapp_updates.update({
     where: { id: updateId },
     data: {
       status: 'rejected_planner',

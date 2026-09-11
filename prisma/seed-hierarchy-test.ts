@@ -98,9 +98,9 @@ async function main() {
 
     // 3. Create Scope (Nozzle & Joints)
     const nozzleName = 'N1';
-    let nozzle = await prisma.nozzle.findFirst({ where: { asset_id: asset.id, designation: nozzleName } });
+    let nozzle = await prisma.nozzles.findFirst({ where: { asset_id: asset.id, designation: nozzleName } });
     if (!nozzle) {
-        nozzle = await prisma.nozzle.create({
+        nozzle = await prisma.nozzles.create({
             data: {
                 id: randomUUID(),
                 organization_id: org.id,
@@ -114,9 +114,9 @@ async function main() {
     }
 
     const jointNozzleNum = 'J-E101-N1';
-    let jointMaster = await prisma.jointMaster.findFirst({ where: { organization_id: org.id, joint_number: jointNozzleNum } });
+    let jointMaster = await prisma.joint_masters.findFirst({ where: { organization_id: org.id, joint_number: jointNozzleNum } });
     if (!jointMaster) {
-        jointMaster = await prisma.jointMaster.create({
+        jointMaster = await prisma.joint_masters.create({
             data: {
                 id: randomUUID(),
                 organization_id: org.id,
@@ -133,9 +133,9 @@ async function main() {
     }
 
     const lineNum = '8-OIL-1001-A1';
-    let line = await prisma.lineList.findFirst({ where: { organization_id: org.id, line_number: lineNum } });
+    let line = await prisma.line_lists.findFirst({ where: { organization_id: org.id, line_number: lineNum } });
     if (!line) {
-        line = await prisma.lineList.create({
+        line = await prisma.line_lists.create({
             data: {
                 id: randomUUID(),
                 organization_id: org.id,
@@ -150,9 +150,9 @@ async function main() {
     }
 
     const jointLineNum = 'J-L1001-01';
-    let lineJoint = await prisma.jointMaster.findFirst({ where: { organization_id: org.id, joint_number: jointLineNum } });
+    let lineJoint = await prisma.joint_masters.findFirst({ where: { organization_id: org.id, joint_number: jointLineNum } });
     if (!lineJoint) {
-        lineJoint = await prisma.jointMaster.create({
+        lineJoint = await prisma.joint_masters.create({
             data: {
                 id: randomUUID(),
                 organization_id: org.id,

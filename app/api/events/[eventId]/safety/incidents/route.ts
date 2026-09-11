@@ -23,11 +23,11 @@ export async function GET(
   if (!event) return NextResponse.json({ error: 'Event not found' }, { status: 404 });
 
   const incidents = await prisma.safetyIncident.findMany({
-    where: { eventId },
+    where: { event_id: eventId },
     include: {
-      photos: { select: { id: true, publicUrl: true } },
+      SafetyPhoto: { select: { id: true, public_url: true } },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { created_at: 'desc' },
   });
   return NextResponse.json(incidents);
 }
@@ -51,46 +51,50 @@ export async function POST(
   today.setHours(0, 0, 0, 0);
 
   let log = await prisma.safetyLog.findFirst({
-    where: { eventId, logDate: today },
+    where: { event_id: eventId, log_date: today },
   });
 
   if (!log) {
     log = await prisma.safetyLog.create({
       data: {
-        eventId,
-        logDate: today,
-        submittedBy: userId ?? user.id ?? null,
-        submittedByName: user.name ?? user.email ?? null,
+        id: crypto.randomUUID(),
+        event_id: eventId,
+        log_date: today,
+        submitted_by: userId ?? user.id ?? null,
+        submitted_by_name: user.name ?? user.email ?? null,
+        updated_at: new Date(),
       },
     });
   }
 
   const incident = await prisma.safetyIncident.create({
     data: {
-      safetyId: body.safety_id ?? null,
-      safetyLogId: log.id,
-      eventId,
-      incidentDate: body.incident_date ? new Date(body.incident_date) : new Date(),
-      incidentTime: body.incident_time ?? null,
-      incidentType: body.incident_type ?? 'Near Miss',
+      id: crypto.randomUUID(),
+      safety_id: body.safety_id ?? null,
+      safety_log_id: log.id,
+      event_id: eventId,
+      incident_date: body.incident_date ? new Date(body.incident_date) : new Date(),
+      incident_time: body.incident_time ?? null,
+      incident_type: body.incident_type ?? 'Near Miss',
       severity: body.severity ?? 'Low',
       title: body.title ?? '',
       description: body.description ?? '',
       location: body.location ?? null,
-      unitArea: body.unit_area ?? null,
+      unit_area: body.unit_area ?? null,
       contractor: body.contractor ?? null,
-      personsInvolved: body.persons_involved ?? null,
-      immediateAction: body.immediate_action ?? null,
-      rootCause: body.root_cause ?? null,
-      rootCauseCategory: body.root_cause_category ?? null,
-      contributingFactors: body.contributing_factors ?? null,
-      correctiveActions: body.corrective_actions ?? null,
-      preventiveActions: body.preventive_actions ?? null,
-      lessonLearned: body.lesson_learned ?? null,
-      actionOwner: body.action_owner ?? null,
-      actionDueDate: body.action_due_date ? new Date(body.action_due_date) : null,
+      persons_involved: body.persons_involved ?? null,
+      immediate_action: body.immediate_action ?? null,
+      root_cause: body.root_cause ?? null,
+      root_cause_category: body.root_cause_category ?? null,
+      contributing_factors: body.contributing_factors ?? null,
+      corrective_actions: body.corrective_actions ?? null,
+      preventive_actions: body.preventive_actions ?? null,
+      lesson_learned: body.lesson_learned ?? null,
+      action_owner: body.action_owner ?? null,
+      action_due_date: body.action_due_date ? new Date(body.action_due_date) : null,
       status: 'Open',
-      reportedBy: user.name ?? user.email ?? null,
+      reported_by: user.name ?? user.email ?? null,
+      updated_at: new Date(),
     },
   });
 

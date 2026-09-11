@@ -138,9 +138,13 @@ export function GanttChart({
                 <button
                     type="button"
                     onClick={async () => {
-                        const projectId = (activities[0] as any)?.workpack?.project_id;
-                        if (!projectId) return alert('Cannot find project ID');
-                        const res = await fetch(`/api/projects/${projectId}/schedule`, { method: 'POST' });
+                        const eventId = (activities[0] as any)?.workpack?.event_id;
+                        if (!eventId) return alert('Cannot calculate CPM: no Event context.');
+                        const res = await fetch('/api/schedule/calculate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event_id: eventId }),
+                        });
                         if (res.ok) {
                             alert('CPM Calculation complete! Please refresh to see changes.');
                             window.location.reload();

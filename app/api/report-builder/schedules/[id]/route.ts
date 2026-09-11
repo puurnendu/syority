@@ -13,15 +13,15 @@ export const PUT = withTenantGuard(async (req: NextRequest, ctx, session) => {
 
   const { id } = await ctx.params;
   const body = await req.json();
-  const schedule = await ReportScheduleService.update(id, body, session.user.id);
+  const schedule = await ReportScheduleService.update(id, body, session.user.id, session.user.organization_id);
   return NextResponse.json({ schedule });
 });
 
-export const DELETE = withTenantGuard(async (_req: NextRequest, ctx, _session) => {
+export const DELETE = withTenantGuard(async (_req: NextRequest, ctx, session) => {
   const { error } = await guardApi('reporting:build');
   if (error) return error;
 
   const { id } = await ctx.params;
-  await ReportScheduleService.delete(id);
+  await ReportScheduleService.delete(id, session.user.organization_id);
   return NextResponse.json({ success: true });
 });

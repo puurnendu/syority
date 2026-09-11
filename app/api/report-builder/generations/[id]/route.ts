@@ -11,7 +11,7 @@ export const GET = withTenantGuard(async (_req: NextRequest, ctx, session) => {
   if (error) return error;
 
   const { id } = await ctx.params;
-  const generation = await ReportGenerationService.getGeneration(id);
+  const generation = await ReportGenerationService.getGeneration(id, session.user.organization_id);
   if (!generation) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }

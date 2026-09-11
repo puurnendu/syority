@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { NotificationSubNav } from '@/components/platform/NotificationSubNav';
 
 interface Rule {
   id: string;
@@ -20,14 +21,7 @@ interface Template {
   slug: string;
 }
 
-const NAV_ITEMS = [
-  { href: '/platform/notifications', label: 'Dashboard', icon: '📊' },
-  { href: '/platform/notifications/providers', label: 'Providers', icon: '🔌' },
-  { href: '/platform/notifications/templates', label: 'Templates', icon: '📝' },
-  { href: '/platform/notifications/rules', label: 'Rules', icon: '⚡' },
-  { href: '/platform/notifications/groups', label: 'Groups', icon: '👥' },
-  { href: '/platform/notifications/queue', label: 'Queue', icon: '📬' },
-];
+
 
 const EVENT_TYPES = [
   'password.reset', 'user.invited', 'user.welcome',
@@ -137,14 +131,7 @@ export default function RulesPage() {
         </button>
       </div>
 
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-        {NAV_ITEMS.map((item) => (
-          <Link key={item.href} href={item.href}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-md transition-colors ${
-              item.href === '/platform/notifications/rules' ? 'bg-white text-gray-900 font-medium shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}><span>{item.icon}</span>{item.label}</Link>
-        ))}
-      </div>
+      <NotificationSubNav />
 
       {loading ? (
         <div className="text-center py-20 text-gray-400">Loading rules…</div>

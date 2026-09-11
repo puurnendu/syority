@@ -36,13 +36,13 @@ export async function GET(req: Request) {
   }
 
   const [items, total] = await Promise.all([
-    prisma.itemCatalog.findMany({
+    prisma.item_catalog.findMany({
       where,
       orderBy: [{ item_category: 'asc' }, { item_code: 'asc' }],
       skip,
       take: limit,
     }),
-    prisma.itemCatalog.count({ where }),
+    prisma.item_catalog.count({ where }),
   ]);
 
   return NextResponse.json({
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
 
   const itemCode = String(body.item_code).trim().toUpperCase();
 
-  const existing = await prisma.itemCatalog.findFirst({
+  const existing = await prisma.item_catalog.findFirst({
     where: {
       organization_id: orgId,
       item_code: itemCode,
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const item = await prisma.itemCatalog.create({
+  const item = await prisma.item_catalog.create({
     data: {
       organization_id: orgId,
       item_code: itemCode,

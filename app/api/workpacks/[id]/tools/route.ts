@@ -17,7 +17,7 @@ export async function GET(
   });
   if (!workpack) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const tools = await prisma.workpackTool.findMany({
+  const tools = await prisma.workpack_tools.findMany({
     where: { workpack_id: workpackId, organization_id: orgId },
     orderBy: [{ category: 'asc' }, { name: 'asc' }],
   });
@@ -58,8 +58,9 @@ export async function POST(
   ];
   const categoryEnum = validCategories.includes(category) ? category : 'General';
 
-  const tool = await prisma.workpackTool.create({
+  const tool = await prisma.workpack_tools.create({
     data: {
+      id: crypto.randomUUID(),
       organization_id: orgId,
       workpack_id: workpackId,
       category: categoryEnum as any,
@@ -72,6 +73,7 @@ export async function POST(
       cert_required: Boolean(body.cert_required),
       notes: body.notes?.trim() || null,
       status: body.status?.trim() || 'Required',
+      updated_at: new Date(),
     },
   });
 

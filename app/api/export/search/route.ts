@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const q = url.searchParams.get('q')?.trim() ?? '';
+  // OD9.2 §6: PROJECT and STO scope are separate parameters, never interchangeable.
   const projectId = url.searchParams.get('projectId') ?? undefined;
+  const eventId = url.searchParams.get('eventId') ?? undefined;
 
   // Diagnostic: log actual Workpack field names (remove after fixing search)
   try {
@@ -39,16 +41,10 @@ export async function GET(req: NextRequest) {
       ],
     };
 
-    if (projectId) {
-      where.AND = [
-        {
-          OR: [
-            { project_id: projectId },
-            { event_id: projectId },
-          ],
-        },
-      ];
-    }
+    const scope: Record<string, unknown>[] = [];
+    if (projectId) scope.push({ project_id: projectId });
+    if (eventId) scope.push({ event_id: eventId });
+    if (scope.length > 0) where.AND = scope;
 
     const workpacks = await prisma.workpack.findMany({
       where,
@@ -69,12 +65,14 @@ export async function GET(req: NextRequest) {
     // Equipment types (optional, can fail if model differs)
     let equipTypes: { id: string; name: string }[] = [];
     try {
+      // OD9.2: `EquipmentType` is tenant-scoped by `org_id`. The camelCase `orgId` meant
+      // this always threw and equipment-type search silently returned nothing.
       equipTypes = await prisma.equipmentType.findMany({
-        where: { orgId, name: { contains: q, mode: 'insensitive' } },
+        where: { org_id: orgId, name: { contains: q, mode: 'insensitive' } },
         take: 4,
       });
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('[Export] Equipment type search failed:', err);
     }
 
     const results = [

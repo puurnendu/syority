@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrgIdFromRequest, getUserIdFromRequest } from '@/lib/apiAuth';
 import { prisma } from '@/lib/prisma';
+import { JointIntegrityService } from '@/modules/JointIntegrity/Services/JointIntegrityService';
 import type { TighteningMethod, JointStatus } from '@prisma/client';
 
 export async function PATCH(
@@ -34,9 +35,13 @@ export async function PATCH(
             if (['torque', 'tensioning', 'manual'].includes(v)) data.tightening_method = v as TighteningMethod;
         }
         if (body.torque_tightening_value !== undefined) data.torque_tightening_value = body.torque_tightening_value;
-        if (body.status !== undefined) {
-            const v = body.status;
-            if (['pending', 'assembled', 'inspected', 'signed_off', 'dismantled'].includes(v)) data.status = v as JointStatus;
+        if (body.action) {
+            const act = body.action;
+            const uId = userId ?? '';
+            if (act === 'assemble') return NextResponse.json({ data: await JointIntegrityService.markAssembled(jointId, orgId, uId) });
+            if (act === 'inspect') return NextResponse.json({ data: await JointIntegrityService.markInspected(jointId, orgId, uId) });
+            if (act === 'sign-off') return NextResponse.json({ data: await JointIntegrityService.signOff(jointId, orgId, uId) });
+            if (act === 'dismantle') return NextResponse.json({ data: await JointIntegrityService.dismantle(jointId, orgId, uId) });
         }
         data.updated_by = userId ?? undefined;
 

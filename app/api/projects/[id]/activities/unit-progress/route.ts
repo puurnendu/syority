@@ -10,7 +10,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
   const { id: projectId } = await params;
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, orgId },
+    where: { id: projectId, org_id: orgId },
     select: { id: true },
   });
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });

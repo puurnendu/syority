@@ -48,7 +48,7 @@ export default function LookaheadPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Lookahead Schedule</h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Upcoming activities grouped by execution window
+            Upcoming Project activities by planned start — not STO execution windows
           </p>
         </div>
         <div className="flex gap-1">
@@ -95,7 +95,10 @@ export default function LookaheadPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {Object.entries(data.byWindow ?? {}).map(([window, acts]: [string, any]) => (
+          {(Object.keys(data.byWindow ?? {}).length > 0
+            ? Object.entries(data.byWindow ?? {})
+            : ([['Upcoming', data.activities ?? []]] as [string, any[]][])
+          ).map(([window, acts]) => (
             <div
               key={window}
               className={`border rounded-xl overflow-hidden ${

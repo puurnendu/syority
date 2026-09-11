@@ -10,9 +10,13 @@ import type {
   TreeNode,
   WorkpackGridRow,
   ActivityGridRow,
+} from '@/core/planner-workspace/PlannerWorkspaceService';
+import type {
   ValidationIssue,
-} from '@/core/planner-workspace';
+} from '@/core/planner-workspace/ValidationEngineService';
 import type { RollupValues, HierarchyRollup } from '@/core/planner-workspace/RollupEngine';
+import { mergeWithExistingColumns } from '@/core/workspace/columnFactory';
+import type { WorkspaceQuery, WorkspaceQueryResult, GroupingMetadata } from '@/core/workspace/types';
 
 // ── Filter & Group Types ────────────────────────────────────────────────────
 
@@ -50,6 +54,8 @@ export interface ColumnConfig {
   width: number;
   visible: boolean;
   frozen: boolean;
+  /** Stable dimension code from DimensionRegistry (M12 V1 Phase 1) */
+  dimensionCode?: string;
   /** UDF column (dynamically added) */
   isUdf?: boolean;
   udfCode?: string;
@@ -67,6 +73,10 @@ export interface SavedLayout {
   groups: GroupLevel[];
   sort: SortConfig[];
   scope: 'personal' | 'organization' | 'predefined';
+  /** Stable dimension codes for layout persistence — survives column reordering (M12 V1) */
+  dimensionCodes?: string[];
+  /** Version for forward-compatible migration (M12 V1) */
+  version?: number;
 }
 
 export interface SavedFilter {
@@ -90,9 +100,11 @@ export interface UndoEntry {
 // ── View Types ───────────────────────────────────────────────────────────────
 
 export type WorkspaceView =
-  | 'hierarchy' | 'workpacks' | 'activities' | 'schedule'
+  | 'hierarchy' | 'workpacks' | 'activities' | 'schedule' | 'gantt'
   | 'relationships' | 'resources' | 'contractor_quantities'
-  | 'documents' | 'qaqc' | 'certificates' | 'calendar' | 'logic';
+  | 'documents' | 'qaqc' | 'certificates' | 'calendar' | 'logic' | 'scenarios' | 'cost'
+  | 'scope_changes'
+  | 'material_readiness';
 
 // ── Store State ──────────────────────────────────────────────────────────────
 
@@ -186,6 +198,16 @@ interface WorkspaceState {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
 
+  // ── Pagination & Server Data ────────────────────────────────────────────
+  page: number;
+  pageSize: number;
+  totalActivities: number;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+  groupingMetadata: GroupingMetadata | null;
+  fetchWorkspaceGrid: () => Promise<void>;
+  fetchDimensions: () => Promise<void>;
+
   // ── Loading ─────────────────────────────────────────────────────────────
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -204,7 +226,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   // ── Event Context ─────────────────────────────────────────────────────────
   selectedEventId: null,
   selectedEventName: null,
-  setSelectedEvent: (id, name) =>
+  setSelectedEvent: (id, name) => {
     set({
       selectedEventId: id,
       selectedEventName: name,
@@ -215,7 +237,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       selectedWorkpackIds: new Set(),
       selectedActivityIds: new Set(),
       validationIssues: [],
-    }),
+      page: 1,
+    });
+    if (id) get().fetchWorkspaceGrid();
+  },
 
   // ── View ──────────────────────────────────────────────────────────────────
   activeView: 'hierarchy',
@@ -233,7 +258,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       else next.add(id);
       return { treeExpandedIds: next };
     }),
-  selectTreeNode: (id) => set({ selectedTreeNodeId: id }),
+  selectTreeNode: (id) => {
+    set({ selectedTreeNodeId: id, page: 1 });
+    get().fetchWorkspaceGrid();
+  },
 
   // ── Workpack Grid ─────────────────────────────────────────────────────────
   workpacks: [],
@@ -294,8 +322,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   groupLevels: [],
   sortConfig: [],
   showGroupTotals: true,
-  setGroupLevels: (levels) => set({ groupLevels: levels }),
-  setSortConfig: (config) => set({ sortConfig: config }),
+  setGroupLevels: (levels) => {
+    set({ groupLevels: levels, page: 1 });
+    get().fetchWorkspaceGrid();
+  },
+  setSortConfig: (config) => {
+    set({ sortConfig: config, page: 1 });
+    get().fetchWorkspaceGrid();
+  },
   setShowGroupTotals: (show) => set({ showGroupTotals: show }),
 
   // ── Column Layout ─────────────────────────────────────────────────────────
@@ -372,6 +406,136 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   // ── Search ────────────────────────────────────────────────────────────────
   searchQuery: '',
   setSearchQuery: (q) => set({ searchQuery: q }),
+
+  // ── Pagination & Server Data ──────────────────────────────────────────────
+  page: 1,
+  pageSize: 100,
+  totalActivities: 0,
+  setPage: (page) => {
+    set({ page });
+    get().fetchWorkspaceGrid();
+  },
+  setPageSize: (pageSize) => {
+    set({ pageSize, page: 1 });
+    get().fetchWorkspaceGrid();
+  },
+  groupingMetadata: null,
+
+  fetchWorkspaceGrid: async () => {
+    const state = get();
+    if (!state.selectedEventId) return;
+
+    set({ isLoading: true });
+    try {
+      // Build the query
+      const query: Partial<WorkspaceQuery> = {
+        eventId: state.selectedEventId,
+        page: state.page,
+        pageSize: state.pageSize,
+        search: state.searchQuery || undefined,
+        sort: state.sortConfig.map(s => ({
+          dimensionCode: s.field.toUpperCase(),
+          direction: s.direction
+        })),
+        groupBy: state.groupLevels.map(g => g.field.toUpperCase()),
+        dimensions: state.columns.filter(c => c.visible && c.dimensionCode).map(c => c.dimensionCode!),
+      };
+
+      // Add hierarchy context if a node is selected
+      if (state.selectedTreeNodeId) {
+        let selectedNode: TreeNode | undefined;
+        const findNode = (nodes: TreeNode[]) => {
+          for (const n of nodes) {
+            if (n.id === state.selectedTreeNodeId) selectedNode = n;
+            if (n.children) findNode(n.children);
+          }
+        };
+        findNode(state.treeNodes);
+        
+        if (selectedNode) {
+            query.hierarchyContext = {};
+            if (selectedNode.type === 'unit') query.hierarchyContext.unitId = selectedNode.id;
+            if (selectedNode.type === 'system') query.hierarchyContext.systemId = selectedNode.id;
+            if (selectedNode.type === 'asset') query.hierarchyContext.assetId = selectedNode.id;
+            if (selectedNode.type === 'workpack') query.hierarchyContext.workpackId = selectedNode.id;
+        }
+      }
+
+      const res = await fetch('/api/workspace/grid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(query),
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch grid data');
+      
+      const result: WorkspaceQueryResult = await res.json();
+      
+      // Map back to ActivityGridRow for compatibility
+      const mappedRows: ActivityGridRow[] = result.rows.map(row => {
+        const udf_values: Record<string, any> = {};
+        for (const [code, valObj] of Object.entries(row.dimensionValues)) {
+            udf_values[code] = valObj.value;
+        }
+
+        return {
+          id: row.activityId,
+          activity_id: row.activityIdCode,
+          description: row.description,
+          wbs_code: (row.dimensionValues['WBS_CODE']?.value as string) ?? null,
+          discipline_code: (row.dimensionValues['DISCIPLINE']?.value as string) ?? null,
+          discipline_name: (row.dimensionValues['DISCIPLINE']?.label) ?? null,
+          duration_hours: row.durationHours,
+          planned_start: row.plannedStart,
+          planned_end: row.plannedEnd,
+          early_start: row.earlyStart,
+          early_finish: row.earlyFinish,
+          total_float: row.totalFloat,
+          free_float: null,
+          is_critical: row.isCritical,
+          manpower_count: null,
+          manpower_type: null,
+          priority: null,
+          status: row.status,
+          hold_point_type: null,
+          is_template_generated: false,
+          notes: null,
+          sequence_number: row.sequenceNumber,
+          predecessors: row.predecessors,
+          successors: row.successors,
+          udf_values,
+          actual_start: null,
+          actual_end: null,
+          progress: 0,
+          remarks: null,
+          workpack_id: row.workpackId ?? null,
+        };
+      });
+
+      set({
+        activities: mappedRows,
+        totalActivities: result.totalCount,
+        groupingMetadata: result.groupingMetadata ?? null,
+        isLoading: false
+      });
+    } catch (err) {
+      console.error('fetchWorkspaceGrid Error:', err);
+      set({ isLoading: false });
+    }
+  },
+
+  fetchDimensions: async () => {
+    try {
+      const res = await fetch('/api/workspace/dimensions');
+      if (!res.ok) throw new Error('Failed to fetch dimensions');
+      const dimensions = await res.json();
+      
+      const { columns } = mergeWithExistingColumns(get().columns, dimensions);
+      set({ columns });
+    } catch (err) {
+      console.error('fetchDimensions Error:', err);
+    }
+  },
 
   // ── Loading ───────────────────────────────────────────────────────────────
   isLoading: false,

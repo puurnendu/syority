@@ -17,11 +17,13 @@ function getEventId(params: Record<string, any>): string {
 
 // ─── Providers ──────────────────────────────────────────────────────────────
 
+import { ProgressAggregationService } from '@/core/progress/ProgressAggregationService';
+
 export class WorkspaceEventRollupProvider extends BaseProvider {
   readonly key = 'workspace.event_rollup';
   readonly category = 'planning';
   readonly name = 'Event Rollup';
-  readonly description = 'Event-level rollup KPIs from RollupEngine — workpack progress, critical metrics, completion.';
+  readonly description = 'Event-level rollup KPIs combining RollupEngine with M8.13 progress authority.';
   readonly requiredParams = ['event'];
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
@@ -29,24 +31,27 @@ export class WorkspaceEventRollupProvider extends BaseProvider {
     if (!eventId) return { kpis: [] };
 
     try {
-      const rollup = await RollupEngine.computeEventRollups(eventId, ctx.organizationId);
+      const [rollup, progressSummary] = await Promise.all([
+        RollupEngine.computeEventRollups(ctx.organizationId, eventId),
+        ProgressAggregationService.getDashboardSummary(ctx.organizationId, eventId).catch(() => null),
+      ]);
+
+      const overallProgress = progressSummary?.overallProgress ?? 0;
 
       return {
         kpis: [
-          { label: 'Total Workpacks', value: rollup.totalWorkpacks },
-          { label: 'Completed', value: rollup.completedWorkpacks, color: '#10B981' },
-          { label: 'In Progress', value: rollup.inProgressWorkpacks, color: '#3B82F6' },
-          { label: 'Not Started', value: rollup.notStartedWorkpacks, color: '#6B7280' },
+          { label: 'Total Workpacks', value: rollup.event.workpackCount },
+          { label: 'Total Activities', value: rollup.event.activityCount },
+          { label: 'Resource Hours', value: Math.round(rollup.event.totalResourceHrs), unit: 'hrs' },
           {
             label: 'Progress',
-            value: `${rollup.overallProgress}%`,
-            color: rollup.overallProgress >= 90 ? '#10B981' : rollup.overallProgress >= 50 ? '#F59E0B' : '#DC2626',
+            value: `${Math.round(overallProgress)}%`,
+            color: overallProgress >= 90 ? '#10B981' : overallProgress >= 50 ? '#F59E0B' : '#DC2626',
           },
-          { label: 'Total Activities', value: rollup.totalActivities },
-          { label: 'Critical Activities', value: rollup.criticalActivities, color: '#DC2626' },
-          { label: 'Overdue', value: rollup.overdueActivities, color: rollup.overdueActivities > 0 ? '#DC2626' : '#10B981' },
+          { label: 'Avg Readiness', value: `${Math.round(rollup.event.avgReadiness)}%` },
+          { label: 'Total Crew', value: rollup.event.totalCrew, unit: 'pax' },
         ],
-        metadata: { ...rollup },
+        metadata: { rollup, progressSummary },
       };
     } catch (err: any) {
       return {
@@ -60,7 +65,7 @@ export class WorkspaceHierarchyProgressProvider extends BaseProvider {
   readonly key = 'workspace.hierarchy_progress';
   readonly category = 'planning';
   readonly name = 'Hierarchy Progress';
-  readonly description = 'Unit/system-level progress breakdown for an event.';
+  readonly description = 'Unit-level progress breakdown from M8.13 progress authority.';
   readonly requiredParams = ['event'];
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
@@ -68,19 +73,20 @@ export class WorkspaceHierarchyProgressProvider extends BaseProvider {
     if (!eventId) return { rows: [] };
 
     try {
-      const rollup = await RollupEngine.computeEventRollups(eventId, ctx.organizationId);
-      const breakdown = rollup.unitBreakdown ?? [];
+      const payload = await ProgressAggregationService.getEventProgress(ctx.organizationId, eventId, { includeUnit: true });
+      const rows = (payload.byUnit ?? []).map((u) => ({
+        unit: u.label ?? u.key ?? 'Unassigned',
+        activities: u.metrics.totalActivities,
+        completed: u.metrics.completedActivities,
+        inProgress: u.metrics.inProgressActivities,
+        progress: `${Math.round(u.metrics.weightedProgress)}%`,
+      }));
 
       return {
-        rows: breakdown.map((u: any) => ({
-          unit: u.unitName ?? u.unitId,
-          total: u.totalWorkpacks,
-          completed: u.completedWorkpacks,
-          inProgress: u.inProgressWorkpacks,
-          progress: `${u.progress ?? 0}%`,
-        })),
+        rows,
         kpis: [
-          { label: 'Units', value: breakdown.length },
+          { label: 'Units', value: rows.length },
+          { label: 'Total Activities', value: rows.reduce((s, r) => s + r.activities, 0) },
         ],
       };
     } catch {

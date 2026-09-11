@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { guardApi } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
+import { listedExecutionFields, EXECUTION_FIELD_REJECT_MESSAGE } from '@/core/execution/executionFieldGuard';
+import { listedPlannedDateFields, PLANNED_DATE_REJECT_MESSAGE } from '@/core/schedule/plannedDateGuard';
 
 export const PUT = withTenantGuard(async (req: NextRequest, { params }, session) => {
   const { error } = await guardApi('workpacks.edit');
@@ -12,23 +14,34 @@ export const PUT = withTenantGuard(async (req: NextRequest, { params }, session)
 
   try {
     const body = await req.json();
-    
-    // Only allow specific updates
+
+    const executionFields = listedExecutionFields(body);
+    if (executionFields.length > 0) {
+      return NextResponse.json(
+        { error: EXECUTION_FIELD_REJECT_MESSAGE, rejectedFields: executionFields },
+        { status: 409 }
+      );
+    }
+
+    const plannedFields = listedPlannedDateFields(body);
+    if (plannedFields.length > 0) {
+      return NextResponse.json(
+        { error: PLANNED_DATE_REJECT_MESSAGE, rejectedFields: plannedFields },
+        { status: 409 }
+      );
+    }
+
+    // Planning / administrative fields only
     const updates: any = {};
     const allowed = [
-      'activity_number', 'progress_percent', 'status', 'duration_hours', 'crew_size', 
-      'description', 'notes', 'responsible', 'discipline', 'actual_start', 'actual_end', 
-      'remaining_duration', 'actual_duration', 'physical_percent_complete', 
-      'duration_percent_complete', 'unit_percent_complete'
+      'activity_number', 'duration_hours', 'crew_size',
+      'description', 'notes', 'responsible', 'discipline',
+      'remaining_duration',
     ];
     
     for (const field of allowed) {
       if (body[field] !== undefined) {
-        if (field === 'actual_start' || field === 'actual_end') {
-           updates[field] = body[field] ? new Date(body[field]) : null;
-        } else if (['progress_percent', 'physical_percent_complete', 'duration_percent_complete', 'unit_percent_complete'].includes(field)) {
-           updates[field] = parseInt(body[field], 10) || 0;
-        } else if (['duration_hours', 'actual_duration', 'remaining_duration'].includes(field)) {
+        if (['duration_hours', 'remaining_duration'].includes(field)) {
            updates[field] = parseFloat(body[field]) || 0;
         } else {
            updates[field] = body[field];

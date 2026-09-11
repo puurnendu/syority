@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sy
     select: { id: true },
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
-  const blind = await prisma.systemBlind.findFirst({
+  const blind = await prisma.system_blinds.findFirst({
     where: { id: blindId, system_id: systemId },
     select: { id: true },
   });
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sy
   if (data.removed_at !== undefined) updateData.removed_at = data.removed_at ? new Date(data.removed_at as string) : null;
   if (data.responsible_user_id !== undefined) updateData.responsible_user_id = data.responsible_user_id;
   if (data.workpack_id !== undefined) updateData.workpack_id = data.workpack_id;
-  const updated = await prisma.systemBlind.update({
+  const updated = await prisma.system_blinds.update({
     where: { id: blindId },
     data: updateData as any,
     include: { responsible_user: { select: { id: true, name: true, email: true } } },
@@ -68,11 +68,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ s
     select: { id: true },
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
-  const blind = await prisma.systemBlind.findFirst({
+  const blind = await prisma.system_blinds.findFirst({
     where: { id: blindId, system_id: systemId },
     select: { id: true },
   });
   if (!blind) return NextResponse.json({ error: 'Blind not found' }, { status: 404 });
-  await prisma.systemBlind.delete({ where: { id: blindId } });
+  await prisma.system_blinds.delete({ where: { id: blindId } });
   return NextResponse.json({ ok: true });
 }

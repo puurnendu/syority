@@ -8,7 +8,7 @@ export async function generateJointMaterialLines(
   pressureRating: string,
   flangeType: string
 ) {
-  const lookup = await prisma.gasketBoltLookup.findFirst({
+  const lookup = await prisma.gasket_bolt_lookup.findFirst({
     where: {
       organization_id: organizationId,
       pipe_size: pipeSize,
@@ -18,7 +18,7 @@ export async function generateJointMaterialLines(
     },
   });
 
-  await prisma.workpackMaterialLine.updateMany({
+  await prisma.workpack_material_lines.updateMany({
     where: {
       workpack_id: workpackId,
       source_type: 'joint',
@@ -29,7 +29,7 @@ export async function generateJointMaterialLines(
   });
 
   if (!lookup) {
-    await prisma.workpackMaterialLine.create({
+    await prisma.workpack_material_lines.create({
       data: {
         organization_id: organizationId,
         workpack_id: workpackId,
@@ -94,7 +94,7 @@ export async function generateJointMaterialLines(
     });
   }
 
-  await prisma.workpackMaterialLine.createMany({
+  await prisma.workpack_material_lines.createMany({
     data: linesToCreate,
   });
 
@@ -113,7 +113,7 @@ export async function generateBlindMaterialLines(
   pipeSize?: string,
   pressureRating?: string
 ) {
-  await prisma.workpackMaterialLine.updateMany({
+  await prisma.workpack_material_lines.updateMany({
     where: {
       workpack_id: workpackId,
       source_type: 'blind',
@@ -128,7 +128,7 @@ export async function generateBlindMaterialLines(
       ? `Gasket (blind isolation — ${pipeSize} ${pressureRating})`
       : 'Gasket (blind isolation)';
 
-  await prisma.workpackMaterialLine.create({
+  await prisma.workpack_material_lines.create({
     data: {
       organization_id: organizationId,
       workpack_id: workpackId,

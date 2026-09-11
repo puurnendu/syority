@@ -31,7 +31,7 @@ export async function GET(
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
 
   const status = req.nextUrl.searchParams.get('status') ?? undefined;
-  const blinds = await prisma.systemBlind.findMany({
+  const blinds = await prisma.system_blinds.findMany({
     where: {
       system_id: systemId,
       ...(status && { status }),
@@ -69,7 +69,7 @@ export async function POST(
   }
   const data = parsed.data;
 
-  const blind = await prisma.systemBlind.create({
+  const blind = await prisma.system_blinds.create({
     data: {
       system_id: systemId,
       blind_id: data.blind_id.trim(),

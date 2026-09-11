@@ -33,7 +33,7 @@ export async function GET(
     });
     if (!workpack) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    const lines = await prisma.workpackMaterialLine.findMany({
+    const lines = await prisma.workpack_material_lines.findMany({
         where: { workpack_id: workpackId, deleted_at: null, includedInPdf: true },
         orderBy: [{ material_category: 'asc' }, { description: 'asc' }],
     });

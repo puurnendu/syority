@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       site: { select: { id: true, name: true, code: true } },
       unit: { select: { id: true, name: true, code: true } },
       _count: {
-        select: { blinds: true, gaskets: true, workpacks: true },
+        select: { system_blinds: true, system_gaskets: true, workpacks: true },
       },
     },
     orderBy: [{ unit: { name: 'asc' } }, { code: 'asc' }, { name: 'asc' }],
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     include: {
       site: { select: { id: true, name: true, code: true } },
       unit: { select: { id: true, name: true, code: true } },
-      _count: { select: { blinds: true, gaskets: true, workpacks: true } },
+      _count: { select: { system_blinds: true, system_gaskets: true, workpacks: true } },
     },
   });
 

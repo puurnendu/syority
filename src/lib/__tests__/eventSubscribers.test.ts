@@ -18,7 +18,7 @@ describe('eventSubscribers integration', () => {
         const admin = await prisma.user.create({
             data: {
                 id: randomUUID(),
-                Organization: { connect: { id: org.id } },
+                organization: { connect: { id: org.id } },
                 name: 'Admin User',
                 email: `admin_${Date.now()}@test.com`,
                 is_tenant_admin: true,
@@ -29,7 +29,7 @@ describe('eventSubscribers integration', () => {
         const creator = await prisma.user.create({
             data: {
                 id: randomUUID(),
-                Organization: { connect: { id: org.id } },
+                organization: { connect: { id: org.id } },
                 name: 'Creator User',
                 email: `creator_${Date.now()}@test.com`,
                 updated_at: new Date(),
@@ -75,7 +75,7 @@ describe('eventSubscribers integration', () => {
         const creator = await prisma.user.create({
             data: {
                 id: randomUUID(),
-                Organization: { connect: { id: org.id } },
+                organization: { connect: { id: org.id } },
                 name: 'Creator User 2',
                 email: `creator2_${Date.now()}@test.com`,
                 updated_at: new Date(),
@@ -118,7 +118,7 @@ describe('eventSubscribers integration', () => {
         const creator = await prisma.user.create({
             data: {
                 id: randomUUID(),
-                Organization: { connect: { id: org.id } },
+                organization: { connect: { id: org.id } },
                 name: 'Creator User 3',
                 email: `creator3_${Date.now()}@test.com`,
                 updated_at: new Date(),
@@ -161,7 +161,7 @@ describe('eventSubscribers integration', () => {
         const creator = await prisma.user.create({
             data: {
                 id: randomUUID(),
-                Organization: { connect: { id: org.id } },
+                organization: { connect: { id: org.id } },
                 name: 'Creator User 4',
                 email: `creator4_${Date.now()}@test.com`,
                 updated_at: new Date(),

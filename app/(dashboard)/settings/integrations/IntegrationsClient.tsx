@@ -217,7 +217,7 @@ export default function IntegrationsClient() {
                       placeholder="https://p6.company.local/api"
                     />
                   </div>
-                  <p className="text-xs text-gray-500">Alternatively, schedules can be imported manually via the Schedule view without a direct server connection.</p>
+                  <p className="text-xs text-gray-500">P6 integration is available for schedule export only. Schedule creation uses the native STO workflow.</p>
                 </div>
               )}
 

@@ -4,6 +4,25 @@ import { authOptions } from '@/lib/auth';
 import { EventPlanningService } from '@/core/planning/EventPlanningService';
 import { prisma } from '@/lib/prisma';
 
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const orgId = (session.user as any).organization_id;
+    const { eventId } = await params;
+
+    const event = await EventPlanningService.get(eventId, orgId);
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found or access denied' }, { status: 404 });
+    }
+
+    return NextResponse.json(event);
+  } catch (error: any) {
+    console.error('Error fetching event:', error);
+    return NextResponse.json({ error: error.message || 'Failed to fetch event' }, { status: 500 });
+  }
+}
+
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const session = await getServerSession(authOptions);

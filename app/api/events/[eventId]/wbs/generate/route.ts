@@ -14,7 +14,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ eve
     const event = await prisma.event.findFirst({
       where: { id: eventId, organization_id: orgId, deleted_at: null },
       include: {
-        event_phases: true,
         eventUnits: { include: { unit: { include: { systems: true } } } }
       }
     });
@@ -42,8 +41,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ eve
       }
     });
 
-    // 2. Phases
-    const phases = event.event_phases.length > 0 ? event.event_phases : [
+    // 2. Phases — the standard turnaround phase spine.
+    //    OD9.1: this route used to `include: { event_phases: true }` and prefer those rows
+    //    over the list below. EventPhase has never existed as a model or a table, so the
+    //    include threw before the handler ran and WBS generation failed for every event —
+    //    the fallback was unreachable. EventPhase is retired, not created: a phase table
+    //    would be a third planned-date window, which the R1.0-C1 Time Authority Contract
+    //    forbids. These phases are WBS structure only and carry no dates.
+    const phases = [
       { id: 'pre', name: 'Pre-TA' },
       { id: 'exe', name: 'Execution' },
       { id: 'post', name: 'Post-TA' }

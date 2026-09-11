@@ -7,7 +7,7 @@ export async function GET() {
   if (error) return error;
   const { orgId } = orgScope(session!);
 
-  const logs = await prisma.itemCatalogImportLog.findMany({
+  const logs = await prisma.item_catalog_import_logs.findMany({
     where: { organization_id: orgId },
     orderBy: { created_at: 'desc' },
     take: 50,

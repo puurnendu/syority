@@ -80,7 +80,7 @@ async function main() {
 
   let count = 0;
   for (const [size, cls, type, gasketDesc, boltDesc, boltCount, boltMm, nutDesc] of LOOKUP_TABLE) {
-    await prisma.gasketBoltLookup.upsert({
+    await prisma.gasket_bolt_lookup.upsert({
       where: {
         organization_id_pipe_size_pressure_class_flange_type: {
           organization_id: demoOrg.id,

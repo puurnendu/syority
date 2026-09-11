@@ -1,14 +1,11 @@
+/**
+ * @deprecated M11-R0 — Schedule import status tracking has been permanently retired.
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { withTenantGuard } from '@/lib/withTenantGuard';
-import { getImportStatus } from '@/lib/importStatus';
 
-export const GET = withTenantGuard(async (req: NextRequest, { params }, hSession) => {
-    const { id: projectId } = await params;
-    const userId = hSession.user.id;
-
-    const status = await getImportStatus(projectId, userId);
-    
-    return NextResponse.json({ 
-        status: status ?? 'Uploading file...' 
-    });
-});
+export async function GET(_req: NextRequest) {
+  return NextResponse.json({
+    status: 'deprecated',
+    message: 'Schedule import has been retired (M11-R0). The STO platform uses native schedule creation.',
+  });
+}

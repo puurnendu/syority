@@ -10,7 +10,7 @@ export async function GET(
   if (error) return error;
   const { orgId } = orgScope(session!);
   const { lineId } = await params;
-  const line = await prisma.lineList.findFirst({
+  const line = await prisma.line_lists.findFirst({
     where: { id: lineId, organization_id: orgId, deleted_at: null },
     include: {
       unit: { select: { id: true, name: true, code: true } },
@@ -33,7 +33,7 @@ export async function PATCH(
   if (error) return error;
   const { orgId, userId } = orgScope(session!);
   const { lineId } = await params;
-  const existing = await prisma.lineList.findFirst({
+  const existing = await prisma.line_lists.findFirst({
     where: { id: lineId, organization_id: orgId, deleted_at: null },
     select: { id: true, line_number: true, total_joint_count: true, site_id: true },
   });
@@ -66,23 +66,23 @@ export async function PATCH(
   if (body.total_joint_count !== undefined) data.total_joint_count = Math.max(0, Number(body.total_joint_count) ?? 0);
   if (body.notes !== undefined) data.notes = str(body.notes) ?? null;
 
-  const line = await prisma.lineList.update({
+  const line = await prisma.line_lists.update({
     where: { id: lineId },
     data: data as any,
     include: {
-      unit: { select: { id: true, name: true, code: true } },
-      system: { select: { id: true, name: true, code: true } },
-      _count: { select: { joints: true } },
+      Unit: { select: { id: true, name: true, code: true } },
+      System: { select: { id: true, name: true, code: true } },
+      _count: { select: { joint_masters: true } },
     },
   });
 
   const newCount = line.total_joint_count ?? 0;
-  const existingJoints = await prisma.jointMaster.count({ where: { line_id: lineId } });
+  const existingJoints = await prisma.joint_masters.count({ where: { line_id: lineId } });
   if (newCount !== existingJoints && newCount > 0 && existingJoints === 0) {
     const jointNumbers = Array.from({ length: newCount }, (_, i) =>
       `${line.line_number}-J${String(i + 1).padStart(3, '0')}`
     );
-    await prisma.jointMaster.createMany({
+    await prisma.joint_masters.createMany({
       data: jointNumbers.map((joint_number, idx) => ({
         organization_id: orgId,
         site_id: existing.site_id,

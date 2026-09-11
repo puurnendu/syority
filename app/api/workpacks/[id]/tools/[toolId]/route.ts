@@ -32,12 +32,12 @@ export async function PATCH(
     updateData.category = body.category;
   }
 
-  const tool = await prisma.workpackTool.findFirst({
+  const tool = await prisma.workpack_tools.findFirst({
     where: { id: toolId, workpack_id: workpackId, organization_id: orgId },
   });
   if (!tool) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const updated = await prisma.workpackTool.update({
+  const updated = await prisma.workpack_tools.update({
     where: { id: toolId },
     data: updateData,
   });
@@ -54,11 +54,11 @@ export async function DELETE(
   const { orgId } = orgScope(session!);
   const { id: workpackId, toolId } = await context.params;
 
-  const tool = await prisma.workpackTool.findFirst({
+  const tool = await prisma.workpack_tools.findFirst({
     where: { id: toolId, workpack_id: workpackId, organization_id: orgId },
   });
   if (!tool) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  await prisma.workpackTool.delete({ where: { id: toolId } });
+  await prisma.workpack_tools.delete({ where: { id: toolId } });
   return NextResponse.json({ success: true });
 }

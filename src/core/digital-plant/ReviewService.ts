@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
 import { DigitalPlantService } from './DigitalPlantService';
+import { AssetRegisterService, AssetExtractionMapper } from '@/core/asset-register';
 
 // ── Types ──────────────────────────────────────────
 
@@ -148,6 +149,30 @@ export class ReviewService {
     // Update project counters
     await DigitalPlantService.incrementCounters(candidate.project_id, 'approved_count');
 
+    // ─── M8.6 BRIDGE: Write technical attributes to Asset Register as AI candidates ───
+    // Candidate approval means "this is a real asset", NOT "technical values are verified".
+    // Values enter as ai_candidate status and must go through reviewAiExtraction() for verification.
+    if (Object.keys(attrs).length > 0) {
+      try {
+        const mapped = AssetExtractionMapper.fromExtractedAttributes(attrs as Record<string, any>);
+        if (mapped.length > 0) {
+          await AssetRegisterService.batchSetAttributeValues(
+            asset.id,
+            mapped,
+            {
+              organization_id: input.organizationId,
+              user_id: input.userId,
+              source_type: 'ai_extraction',
+              reason: `Digital Plant extraction candidate ${input.candidateId}`,
+            }
+          );
+        }
+      } catch (regErr: any) {
+        // Asset Register write failure should NOT break candidate approval
+        console.error('[ReviewService.approveCandidate] M8.6 Asset Register bridge failed (non-fatal):', regErr.message);
+      }
+    }
+
     return { asset, candidate_id: input.candidateId };
   }
 
@@ -255,6 +280,28 @@ export class ReviewService {
     });
 
     await DigitalPlantService.incrementCounters(candidate.project_id, 'approved_count');
+
+    // ─── M8.6 BRIDGE: Write technical attributes to Asset Register as AI candidates ───
+    const mergeAttrs = (candidate.extracted_attributes ?? {}) as Record<string, any>;
+    if (Object.keys(mergeAttrs).length > 0) {
+      try {
+        const mapped = AssetExtractionMapper.fromExtractedAttributes(mergeAttrs);
+        if (mapped.length > 0) {
+          await AssetRegisterService.batchSetAttributeValues(
+            input.existingAssetId,
+            mapped,
+            {
+              organization_id: input.organizationId,
+              user_id: input.userId,
+              source_type: 'ai_extraction',
+              reason: `Digital Plant merge candidate ${input.candidateId}`,
+            }
+          );
+        }
+      } catch (regErr: any) {
+        console.error('[ReviewService.mergeCandidate] M8.6 Asset Register bridge failed (non-fatal):', regErr.message);
+      }
+    }
 
     return { candidate_id: input.candidateId, merged_into_asset: input.existingAssetId };
   }

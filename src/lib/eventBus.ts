@@ -25,6 +25,15 @@ export interface WorkpackEvents {
 export interface ActivityEvents {
     'ActivityProgressUpdated': { activity_id: string; workpack_id: string; progress_percent: number };
     'ActivityApprovedForScheduling': { activity_id: string; workpack_id: string };
+    // M12-R0.1: Execution lifecycle events
+    'ActivityReleased': { activity_id: string; workpack_id: string; user_id: string };
+    'ActivityStarted': { activity_id: string; workpack_id: string; user_id: string };
+    'ActivityHeld': { activity_id: string; workpack_id: string; user_id: string; progress_percent: number };
+    'ActivityResumed': { activity_id: string; workpack_id: string; user_id: string; progress_percent: number };
+    'ActivityCompleted': { activity_id: string; workpack_id: string; user_id: string };
+    'ActivityVerified': { activity_id: string; workpack_id: string; user_id: string };
+    'ActivityClosed': { activity_id: string; workpack_id: string; user_id: string };
+    'ExecutionDelayReported': { workpack_id: string; category: string; severity: string };
 }
 
 export interface WorkflowEvents {

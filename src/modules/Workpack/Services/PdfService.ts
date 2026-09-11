@@ -5,10 +5,12 @@ import { PDFDocument, rgb, StandardFonts, type PDFPage } from 'pdf-lib';
 import { prisma } from '@/lib/prisma';
 import { CertificateService } from '@/modules/certificates/services/CertificateService';
 import { renderBandHtml } from '@/lib/renderZoneItemHtml';
+import { AssetRegisterService, WorkpackAssetSnapshotService, AssetExtractionMapper } from '@/core/asset-register';
 import { resolveVariables } from '@/lib/printVariables';
 import type { HeaderFooterZones } from '@/types/printSettings.types';
 import { parseZones, DEFAULT_HEADER_ZONES, DEFAULT_FOOTER_ZONES } from '@/lib/printSettingsZones';
 import { MATERIAL_DISCIPLINES } from '@/lib/materials/disciplines';
+import { formatLag } from '@/lib/lagFormat';
 import { appUrl } from '@/lib/appUrl';
 
 const MAX_MERGED_PDF_BYTES = 100 * 1024 * 1024; // 100MB
@@ -966,17 +968,6 @@ export class PdfService {
                 workpack_materials: { where: { deleted_at: null } },
                 workpack_material_lines: {
                     where: { deleted_at: null },
-                    include: {
-                        item_catalog: {
-                            select: {
-                                item_code: true,
-                                sap_material_number: true,
-                                specification: true,
-                                unit_cost: true,
-                                currency: true,
-                            },
-                        },
-                    },
                     orderBy: [{ source_type: 'asc' }, { created_at: 'asc' }],
                 },
                 constraints: { where: { deleted_at: null } },
@@ -992,7 +983,7 @@ export class PdfService {
                 form_instances: {
                     where: { deleted_at: null },
                     orderBy: { sequence_number: 'asc' },
-                    include: { form_template: true },
+                    include: { FormTemplate: true },
                 },
                 cleaning_records: { where: { deleted_at: null } },
                 job_completion_certificate: true,
@@ -1003,6 +994,10 @@ export class PdfService {
                 organization: true,
                 site: true,
                 asset: true,
+                asset_snapshots: {
+                    orderBy: { snapshotted_at: 'desc' as const },
+                    take: 1,
+                },
                 contractor: true,
                 discipline: true,
                 User_Workpack_created_byToUser: { select: { id: true, name: true, email: true } },
@@ -1050,7 +1045,7 @@ export class PdfService {
             }).catch(() => [] as any[]),
         ]);
 
-        const printSettings = await prisma.workpackPrintSettings.findUnique({
+        const printSettings = await prisma.workpack_print_settings.findUnique({
             where: { organization_id: orgId },
         });
 
@@ -1111,6 +1106,49 @@ export class PdfService {
             left: `${marginLeft} mm`,
             right: `${marginRight} mm`,
         };
+
+        // ── M8.6 THREE-TIER EQUIPMENT DATA RESOLUTION ─────────────────────
+        // Tier 1: Issued workpacks → use frozen WorkpackAssetSnapshot
+        // Tier 2: Draft/Review workpacks → use live verified Asset Register data
+        // Tier 3: Fallback → use legacy equipment_technical_data JSON
+        const wp = workpack as any;
+        let resolvedEquipmentData: Record<string, any> = {};
+        {
+            const isIssued = ['issued', 'in_progress', 'completed', 'closed'].includes(wp.status?.toLowerCase() ?? '');
+            const snapshot = wp.asset_snapshots?.[0];
+
+            // Tier 1: Issued → snapshot
+            if (isIssued && snapshot?.attributes_json && Array.isArray(snapshot.attributes_json) && snapshot.attributes_json.length > 0) {
+                resolvedEquipmentData = AssetExtractionMapper.toLegacyEquipmentTechnicalData(
+                    snapshot.attributes_json,
+                    snapshot.asset_data_json,
+                    snapshot.nozzles_json as any[]
+                );
+            }
+            // Tier 2: Draft/Review → live Asset Register
+            else if (wp.asset_id && wp.organization_id) {
+                try {
+                    const assetData = await AssetRegisterService.getCurrentVerifiedAssetData(wp.asset_id, wp.organization_id);
+                    if (assetData && Object.keys(assetData.attributes).length > 0) {
+                        resolvedEquipmentData = AssetExtractionMapper.toLegacyEquipmentTechnicalData(
+                            assetData.attributes,
+                            assetData.asset,
+                            assetData.nozzles
+                        );
+                    }
+                } catch {
+                    // Fall through to Tier 3
+                }
+            }
+
+            // Tier 3: Legacy JSON fallback (only if tiers 1 and 2 did not resolve)
+            if (Object.keys(resolvedEquipmentData).length === 0) {
+                resolvedEquipmentData = typeof wp.equipment_technical_data === 'string'
+                    ? JSON.parse(wp.equipment_technical_data || '{}')
+                    : (wp.equipment_technical_data || {});
+            }
+        }
+        // ── END THREE-TIER RESOLUTION ─────────────────────────────────────
 
         const { getBrowser } = await import('@/lib/puppeteer');
         const browser = await getBrowser();
@@ -1334,9 +1372,7 @@ export class PdfService {
     <div class="page-break"></div>
 
                 ${(() => {
-                const data = typeof wp.equipment_technical_data === 'string'
-                    ? JSON.parse(wp.equipment_technical_data || '{}')
-                    : (wp.equipment_technical_data || {});
+                const data = resolvedEquipmentData;
                 if (!data || Object.keys(data).length === 0) return '';
 
                 const eq = data.equipment || {};
@@ -1486,9 +1522,7 @@ export class PdfService {
                     return preds.map((rel: any) => {
                         const code = sanitiseForPdf(rel.predecessor?.activity_number ?? rel.predecessor?.description ?? '?');
                         const type = (rel.relationship_type ?? 'FS') + '';
-                        const lag = rel.lag_days != null && Number(rel.lag_days) !== 0
-                            ? (Number(rel.lag_days) > 0 ? '+' + rel.lag_days + 'd' : rel.lag_days + 'd')
-                            : '';
+                        const lag = formatLag(rel);
                         return lag ? code + ' ' + type + lag : code + ' ' + type;
                     }).join(', ');
                 };

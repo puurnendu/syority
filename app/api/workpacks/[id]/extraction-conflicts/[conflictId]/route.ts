@@ -21,7 +21,7 @@ export async function PATCH(
         );
     }
 
-    const conflict = await prisma.extractionConflict.findFirst({
+    const conflict = await prisma.extraction_conflicts.findFirst({
         where: {
             id: conflictId,
             organization_id: orgId,
@@ -34,7 +34,7 @@ export async function PATCH(
             { status: 404 }
         );
 
-    const updated = await prisma.extractionConflict.update({
+    const updated = await prisma.extraction_conflicts.update({
         where: { id: conflictId },
         data: {
             status: 'resolved',

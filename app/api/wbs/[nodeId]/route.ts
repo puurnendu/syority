@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ no
 
   const node = await prisma.wbsNode.findFirst({
     where: { id: nodeId, organization_id: orgId },
-    select: { id: true, locked: true, parent_id: true, event_id: true },
+    select: { id: true, locked: true, parent_id: true, event_id: true, project_id: true },
   });
   if (!node) return NextResponse.json({ error: 'WBS node not found' }, { status: 404 });
 
@@ -36,7 +36,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ no
 
   if (data.parent_id !== undefined && data.parent_id !== null) {
     const parent = await prisma.wbsNode.findFirst({
-      where: { id: data.parent_id as string, organization_id: orgId, event_id: node.event_id },
+      where: {
+        id: data.parent_id as string,
+        organization_id: orgId,
+        ...(node.event_id ? { event_id: node.event_id } : { project_id: node.project_id }),
+      },
       select: { id: true },
     });
     if (!parent) return NextResponse.json({ error: 'Parent node not found' }, { status: 404 });

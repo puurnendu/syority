@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { EventPlanningService } from '@/core/planning/EventPlanningService';
-import { isUuid } from '@/lib/uuid';
+import { isUuid, normalizeUuid } from '@/lib/uuid';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -24,23 +24,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, code, site_id } = body;
 
+    // [TRACE-1] Browser Request Payload
+    console.log('[TRACE-1][API /api/events POST] body.site =', body.site, '| body.site_id =', body.site_id, '| isUuid(site_id):', isUuid(String(site_id ?? '')));
+
     if (!name || !code || !site_id) {
       return NextResponse.json({ error: 'Name, code, and site_id are required' }, { status: 400 });
     }
 
-    // Validate UUID format for all foreign key fields
-    if (!isUuid(site_id)) {
-      return NextResponse.json({ error: 'site_id must be a valid UUID' }, { status: 400 });
-    }
-    if (body.calendar_id && !isUuid(body.calendar_id)) {
-      return NextResponse.json({ error: 'calendar_id must be a valid UUID' }, { status: 400 });
-    }
-    if (body.discipline_id && !isUuid(body.discipline_id)) {
-      return NextResponse.json({ error: 'discipline_id must be a valid UUID' }, { status: 400 });
-    }
-    if (body.parent_event_id && !isUuid(body.parent_event_id)) {
-      return NextResponse.json({ error: 'parent_event_id must be a valid UUID' }, { status: 400 });
-    }
+    // Normalize optional foreign key strings (empty string -> null)
+    const calendarId = normalizeUuid(body.calendar_id);
+    const disciplineId = normalizeUuid(body.discipline_id);
+    const parentEventId = normalizeUuid(body.parent_event_id);
+
+    // [TRACE-2] API Route — after destructure, before service call
+    console.log('[TRACE-2][API route] name:', name, '| code:', code, '| site_id (passed to service):', site_id);
 
     const event = await EventPlanningService.create(orgId, userId, {
       name,
@@ -54,9 +51,9 @@ export async function POST(req: NextRequest) {
       description: body.description,
       budget_manhours: body.budget_manhours ? parseInt(body.budget_manhours, 10) : undefined,
       budget_cost: body.budget_cost ? parseFloat(body.budget_cost) : undefined,
-      calendar_id: body.calendar_id,
-      discipline_id: body.discipline_id,
-      parent_event_id: body.parent_event_id,
+      calendar_id: calendarId,
+      discipline_id: disciplineId,
+      parent_event_id: parentEventId,
     });
 
     return NextResponse.json(event, { status: 201 });

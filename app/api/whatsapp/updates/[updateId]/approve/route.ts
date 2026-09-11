@@ -3,6 +3,7 @@ import { guardApi, orgScope } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
 import { sendWhatsAppMessage } from '@/services/whatsapp/MetaClient';
 import { buildReply } from '@/services/whatsapp/ReplyBuilder';
+import { ExecutionWriteService } from '@/core/execution/ExecutionWriteService';
 
 export async function POST(
   req: NextRequest,
@@ -17,7 +18,7 @@ export async function POST(
   const activityId = body.activity_id as string | undefined;
   const reviewNotes = body.review_notes as string | undefined;
 
-  const update = await prisma.whatsappUpdate.findFirst({
+  const update = await prisma.whatsapp_updates.findFirst({
     where: { id: updateId, organization_id: orgId },
     select: {
       id: true,
@@ -40,26 +41,21 @@ export async function POST(
   const workpackId = update.matched_workpack_id;
 
   if (targetActivityId && workpackId) {
-    await prisma.activity.update({
-      where: { id: targetActivityId },
-      data: {
-        progress_percent: progress,
-        status: progress >= 100 ? 'completed' : 'in_progress',
-        updated_by: userId,
-      },
-    });
-    const activities = await prisma.activity.findMany({
-      where: { workpack_id: workpackId, deleted_at: null },
-      select: { progress_percent: true },
-    });
-    if (activities.length > 0) {
-      const avg =
-        activities.reduce((s, a) => s + (a.progress_percent ?? 0), 0) /
-        activities.length;
-      await prisma.workpack.update({
-        where: { id: workpackId },
-        data: { overall_progress: Math.round(avg), updated_by: userId },
-      });
+    try {
+      await ExecutionWriteService.applyAction(
+        orgId,
+        userId,
+        {
+          activityId: targetActivityId,
+          action: 'UPDATE_PROGRESS',
+          progress,
+          notes: reviewNotes || 'Updated via WhatsApp',
+        },
+        { source_channel: 'whatsapp' }
+      );
+    } catch (err: any) {
+      console.error('[WhatsApp Approve] Execution action failed:', err.message);
+      return NextResponse.json({ error: `Execution action failed: ${err.message}` }, { status: 400 });
     }
   }
 
@@ -87,7 +83,7 @@ export async function POST(
   );
   await sendWhatsAppMessage(update.phone_number, replyText);
 
-  const updated = await prisma.whatsappUpdate.update({
+  const updated = await prisma.whatsapp_updates.update({
     where: { id: updateId },
     data: {
       status: 'approved_planner',

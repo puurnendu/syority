@@ -10,14 +10,14 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
   const { id: projectId } = await params;
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, orgId },
+    where: { id: projectId, org_id: orgId },
     select: { id: true },
   });
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const list = await prisma.projectConstraint.findMany({
-    where: { projectId },
-    orderBy: { createdAt: 'desc' },
+  const list = await prisma.project_constraints.findMany({
+    where: { project_id: projectId },
+    orderBy: { created_at: 'desc' },
   });
   return NextResponse.json({ data: list });
 });

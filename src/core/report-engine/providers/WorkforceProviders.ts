@@ -30,45 +30,45 @@ export class WorkforceHeadcountProvider extends BaseProvider {
     const eventId = getEventId(params);
     if (!eventId) return { rows: [], kpis: [] };
 
-    const where: any = { eventId };
+    const where: any = { event_id: eventId };
     if (params.date_from || params.date_to) {
-      where.logDate = {};
-      if (params.date_from) where.logDate.gte = new Date(params.date_from);
-      if (params.date_to) where.logDate.lte = new Date(params.date_to);
+      where.log_date = {};
+      if (params.date_from) where.log_date.gte = new Date(params.date_from);
+      if (params.date_to) where.log_date.lte = new Date(params.date_to);
     }
 
     const logs = await prisma.safetyLog.findMany({
       where,
-      orderBy: { logDate: 'asc' },
+      orderBy: { log_date: 'asc' },
       select: {
-        logDate: true,
-        manpowerPlanned: true,
-        manpowerActual: true,
+        log_date: true,
+        manpower_planned: true,
+        manpower_actual: true,
         shift: true,
       },
     });
 
     const latest = logs.length > 0 ? logs[logs.length - 1] : null;
     const avgActual = logs.length > 0
-      ? Math.round(logs.reduce((s, l) => s + (l.manpowerActual ?? 0), 0) / logs.length)
+      ? Math.round(logs.reduce((s, l) => s + (l.manpower_actual ?? 0), 0) / logs.length)
       : 0;
 
     return {
       rows: logs.map((l) => ({
-        date: l.logDate.toISOString().split('T')[0],
+        date: l.log_date.toISOString().split('T')[0],
         shift: l.shift,
-        planned: l.manpowerPlanned,
-        actual: l.manpowerActual,
-        variance: (l.manpowerActual ?? 0) - (l.manpowerPlanned ?? 0),
+        planned: l.manpower_planned,
+        actual: l.manpower_actual,
+        variance: (l.manpower_actual ?? 0) - (l.manpower_planned ?? 0),
       })),
       chartData: logs.map((l) => ({
-        date: l.logDate.toISOString().split('T')[0],
-        planned: l.manpowerPlanned,
-        actual: l.manpowerActual,
+        date: l.log_date.toISOString().split('T')[0],
+        planned: l.manpower_planned,
+        actual: l.manpower_actual,
       })),
       kpis: [
-        { label: 'Current Headcount', value: latest?.manpowerActual ?? 0, unit: 'pax' },
-        { label: 'Planned', value: latest?.manpowerPlanned ?? 0, unit: 'pax' },
+        { label: 'Current Headcount', value: latest?.manpower_actual ?? 0, unit: 'pax' },
+        { label: 'Planned', value: latest?.manpower_planned ?? 0, unit: 'pax' },
         { label: 'Average', value: avgActual, unit: 'pax' },
         { label: 'Data Points', value: logs.length },
       ],
@@ -80,45 +80,36 @@ export class WorkforceCrewUtilizationProvider extends BaseProvider {
   readonly key = 'workforce.crew_utilization';
   readonly category = 'workforce';
   readonly name = 'Crew Utilization';
-  readonly description = 'Resource utilization from ActivityResource assignments.';
+  readonly description = 'Planned vs actual crew and hours by resource type.';
   readonly requiredParams = ['event'];
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
     const eventId = getEventId(params);
     if (!eventId) return { rows: [], kpis: [] };
 
-    // Get workpacks for this event to find resource assignments
-    const workpacks = await prisma.workpack.findMany({
-      where: { event_id: eventId, organization_id: ctx.organizationId, deleted_at: null },
+    // Get resources for this event's activities
+    const resources = await (prisma.activityResource as any).findMany({
+      where: { activity: { organization_id: ctx.organizationId, event_id: eventId, deleted_at: null } },
       select: {
         id: true,
-        workpack_number: true,
-        title: true,
-        resources: {
-          select: {
-            id: true,
-            resource_type: true,
-            quantity_planned: true,
-            quantity_actual: true,
-            hours_planned: true,
-            hours_actual: true,
-          },
-        },
+        resource_type: true,
+        planned_hours: true,
+        actual_hours: true,
+        quantity_planned: true,
+        quantity_actual: true,
       },
-    });
+    }).catch(() => []);
 
     const resourceSummary: Record<string, { planned: number; actual: number; hoursPlanned: number; hoursActual: number }> = {};
-    for (const wp of workpacks) {
-      for (const r of wp.resources) {
-        const key = r.resource_type ?? 'Unknown';
-        if (!resourceSummary[key]) {
-          resourceSummary[key] = { planned: 0, actual: 0, hoursPlanned: 0, hoursActual: 0 };
-        }
-        resourceSummary[key].planned += Number(r.quantity_planned ?? 0);
-        resourceSummary[key].actual += Number(r.quantity_actual ?? 0);
-        resourceSummary[key].hoursPlanned += Number(r.hours_planned ?? 0);
-        resourceSummary[key].hoursActual += Number(r.hours_actual ?? 0);
+    for (const r of resources as any[]) {
+      const key = r.resource_type ?? 'Unknown';
+      if (!resourceSummary[key]) {
+        resourceSummary[key] = { planned: 0, actual: 0, hoursPlanned: 0, hoursActual: 0 };
       }
+      resourceSummary[key].planned += Number(r.quantity_planned ?? 0);
+      resourceSummary[key].actual += Number(r.quantity_actual ?? 0);
+      resourceSummary[key].hoursPlanned += Number(r.planned_hours ?? 0);
+      resourceSummary[key].hoursActual += Number(r.actual_hours ?? 0);
     }
 
     const rows = Object.entries(resourceSummary).map(([type, data]) => ({
@@ -162,39 +153,39 @@ export class WorkforceManhourAnalysisProvider extends BaseProvider {
     const eventId = getEventId(params);
     if (!eventId) return { rows: [], kpis: [] };
 
-    const where: any = { eventId };
+    const where: any = { event_id: eventId };
     if (params.date_from || params.date_to) {
-      where.logDate = {};
-      if (params.date_from) where.logDate.gte = new Date(params.date_from);
-      if (params.date_to) where.logDate.lte = new Date(params.date_to);
+      where.log_date = {};
+      if (params.date_from) where.log_date.gte = new Date(params.date_from);
+      if (params.date_to) where.log_date.lte = new Date(params.date_to);
     }
 
     const logs = await prisma.safetyLog.findMany({
       where,
-      orderBy: { logDate: 'asc' },
+      orderBy: { log_date: 'asc' },
       select: {
-        logDate: true,
-        manhoursWorked: true,
-        manhoursPlanned: true,
-        cumulativeManhours: true,
+        log_date: true,
+        manhours_worked: true,
+        manhours_planned: true,
+        cumulative_manhours: true,
       },
     });
 
-    const totalWorked = logs.reduce((s, l) => s + Number(l.manhoursWorked ?? 0), 0);
-    const totalPlanned = logs.reduce((s, l) => s + Number(l.manhoursPlanned ?? 0), 0);
+    const totalWorked = logs.reduce((s, l) => s + Number(l.manhours_worked ?? 0), 0);
+    const totalPlanned = logs.reduce((s, l) => s + Number(l.manhours_planned ?? 0), 0);
 
     return {
       rows: logs.map((l) => ({
-        date: l.logDate.toISOString().split('T')[0],
-        worked: Number(l.manhoursWorked ?? 0),
-        planned: Number(l.manhoursPlanned ?? 0),
-        cumulative: Number(l.cumulativeManhours ?? 0),
+        date: l.log_date.toISOString().split('T')[0],
+        worked: Number(l.manhours_worked ?? 0),
+        planned: Number(l.manhours_planned ?? 0),
+        cumulative: Number(l.cumulative_manhours ?? 0),
       })),
       chartData: logs.map((l) => ({
-        date: l.logDate.toISOString().split('T')[0],
-        worked: Number(l.manhoursWorked ?? 0),
-        planned: Number(l.manhoursPlanned ?? 0),
-        cumulative: Number(l.cumulativeManhours ?? 0),
+        date: l.log_date.toISOString().split('T')[0],
+        worked: Number(l.manhours_worked ?? 0),
+        planned: Number(l.manhours_planned ?? 0),
+        cumulative: Number(l.cumulative_manhours ?? 0),
       })),
       kpis: [
         { label: 'Total Manhours Worked', value: Math.round(totalWorked).toLocaleString(), unit: 'hrs' },

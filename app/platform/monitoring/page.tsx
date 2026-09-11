@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * M7.6G — Platform Diagnostics Dashboard
+ * M7.6H — Platform Diagnostics Dashboard (Enhanced)
  *
- * Replaces the "Coming Soon" placeholder with a full diagnostics view.
- * Shows: application info, infrastructure, DB, Redis, queues, SMTP, memory, AI, health.
+ * Full diagnostics view with enhanced application info, DB metrics,
+ * and SMTP source tracking.
  */
 
 import useSWR from 'swr';
@@ -64,8 +64,11 @@ export default function PlatformMonitoringPage() {
           { label: 'Version', value: d.application.version },
           { label: 'Environment', value: d.application.environment },
           { label: 'Node ENV', value: d.application.nodeEnv },
-          { label: 'Git Commit', value: d.application.gitCommit.substring(0, 8) },
+          { label: 'Git Commit', value: (d.application.gitCommit || 'unknown').substring(0, 8) },
+          { label: 'Git Branch', value: d.application.gitBranch || 'unknown' },
           { label: 'Build', value: d.application.buildNumber },
+          { label: 'Build Date', value: d.application.buildDate || '—' },
+          { label: 'Docker Image', value: d.application.dockerImage || 'local' },
           { label: 'Uptime', value: formatUptime(d.application.uptime) },
         ]} />
       </Section>

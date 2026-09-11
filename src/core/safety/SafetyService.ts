@@ -1,9 +1,12 @@
 /**
- * M7.6C — Safety Service
+ * M7.6C — Safety Service (corrected for snake_case schema fields)
  *
  * Centralizes safety business logic previously inline in API routes.
  * Consumed by SafetyProviders (Report Engine) and OIS widgets.
  * Pattern: Service → Prisma. Providers → Service (never raw Prisma).
+ *
+ * SCHEMA NOTE: SafetyLog, SafetyIncident, SafetyPhoto models use snake_case
+ * field names. All Prisma queries here use snake_case to match.
  */
 
 import { prisma } from '@/lib/prisma';
@@ -72,22 +75,22 @@ export class SafetyService {
    * Fetch the latest or date-specific safety log with incidents and photos.
    */
   static async getDailyLog(eventId: string, date?: string) {
-    const where: any = { eventId };
-    if (date) where.logDate = new Date(date);
+    const where: any = { event_id: eventId };
+    if (date) where.log_date = new Date(date);
 
     return prisma.safetyLog.findFirst({
       where,
-      orderBy: { logDate: 'desc' },
+      orderBy: { log_date: 'desc' },
       include: {
         SafetyIncident: {
           include: {
-            SafetyPhoto: { select: { id: true, publicUrl: true, photoType: true } },
+            SafetyPhoto: { select: { id: true, public_url: true, photo_type: true } },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
         },
         SafetyPhoto: {
-          select: { id: true, publicUrl: true, photoType: true },
-          orderBy: { takenAt: 'desc' },
+          select: { id: true, public_url: true, photo_type: true },
+          orderBy: { taken_at: 'desc' },
         },
       },
     });
@@ -105,34 +108,34 @@ export class SafetyService {
 
     const [logs, total] = await Promise.all([
       prisma.safetyLog.findMany({
-        where: { eventId },
-        orderBy: { logDate: 'desc' },
+        where: { event_id: eventId },
+        orderBy: { log_date: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
           SafetyIncident: { select: { id: true } },
         },
       }),
-      prisma.safetyLog.count({ where: { eventId } }),
+      prisma.safetyLog.count({ where: { event_id: eventId } }),
     ]);
 
     return {
-      logs: logs.map((l) => ({
+      logs: logs.map((l: any) => ({
         id: l.id,
-        eventId: l.eventId,
-        logDate: l.logDate,
+        eventId: l.event_id,
+        logDate: l.log_date,
         shift: l.shift,
-        manpowerPlanned: l.manpowerPlanned,
-        manpowerActual: l.manpowerActual,
+        manpowerPlanned: l.manpower_planned,
+        manpowerActual: l.manpower_actual,
         lti: l.lti,
-        nearMiss: l.nearMiss,
-        firstAid: l.firstAid,
-        medicalTreatment: l.medicalTreatment,
-        dangerousOccurrence: l.dangerousOccurrence,
-        manhours: Number(l.manhoursWorked ?? 0),
-        ptwIssued: l.ptwIssued,
-        ptwClosed: l.ptwClosed,
-        toolboxTalks: l.toolboxTalks,
+        nearMiss: l.near_miss,
+        firstAid: l.first_aid,
+        medicalTreatment: l.medical_treatment,
+        dangerousOccurrence: l.dangerous_occurrence,
+        manhours: Number(l.manhours_worked ?? 0),
+        ptwIssued: l.ptw_issued,
+        ptwClosed: l.ptw_closed,
+        toolboxTalks: l.toolbox_talks,
         incidentCount: l.SafetyIncident.length,
       })),
       total,
@@ -144,33 +147,33 @@ export class SafetyService {
    */
   static async getStats(eventId: string): Promise<SafetyKpis> {
     const logs = await prisma.safetyLog.findMany({
-      where: { eventId },
-      orderBy: { logDate: 'asc' },
+      where: { event_id: eventId },
+      orderBy: { log_date: 'asc' },
       select: {
-        logDate: true,
+        log_date: true,
         lti: true,
-        ltiDaysLost: true,
-        nearMiss: true,
-        firstAid: true,
-        medicalTreatment: true,
-        dangerousOccurrence: true,
-        manhoursWorked: true,
-        manhoursPlanned: true,
-        manpowerPlanned: true,
-        manpowerActual: true,
-        ptwIssued: true,
-        ptwClosed: true,
-        ptwSuspended: true,
-        toolboxTalks: true,
+        lti_days_lost: true,
+        near_miss: true,
+        first_aid: true,
+        medical_treatment: true,
+        dangerous_occurrence: true,
+        manhours_worked: true,
+        manhours_planned: true,
+        manpower_planned: true,
+        manpower_actual: true,
+        ptw_issued: true,
+        ptw_closed: true,
+        ptw_suspended: true,
+        toolbox_talks: true,
       },
     });
 
-    const totalManhours = logs.reduce((s, l) => s + Number(l.manhoursWorked ?? 0), 0);
-    const totalLTI = logs.reduce((s, l) => s + (l.lti ?? 0), 0);
-    const totalNearMiss = logs.reduce((s, l) => s + (l.nearMiss ?? 0), 0);
-    const totalFirstAid = logs.reduce((s, l) => s + (l.firstAid ?? 0), 0);
-    const totalMedicalTreatment = logs.reduce((s, l) => s + (l.medicalTreatment ?? 0), 0);
-    const totalDangerousOccurrence = logs.reduce((s, l) => s + (l.dangerousOccurrence ?? 0), 0);
+    const totalManhours = logs.reduce((s: number, l: any) => s + Number(l.manhours_worked ?? 0), 0);
+    const totalLTI = logs.reduce((s: number, l: any) => s + (l.lti ?? 0), 0);
+    const totalNearMiss = logs.reduce((s: number, l: any) => s + (l.near_miss ?? 0), 0);
+    const totalFirstAid = logs.reduce((s: number, l: any) => s + (l.first_aid ?? 0), 0);
+    const totalMedicalTreatment = logs.reduce((s: number, l: any) => s + (l.medical_treatment ?? 0), 0);
+    const totalDangerousOccurrence = logs.reduce((s: number, l: any) => s + (l.dangerous_occurrence ?? 0), 0);
 
     // TRIR = (Total Recordable Incidents × 200,000) / Total Manhours
     const totalRecordable = totalLTI + totalMedicalTreatment + totalDangerousOccurrence;
@@ -181,32 +184,32 @@ export class SafetyService {
 
     // Days without LTI — count from last LTI log date to today
     let daysWithoutLTI = 0;
-    const lastLTILog = [...logs].reverse().find((l) => l.lti > 0);
+    const lastLTILog = [...logs].reverse().find((l: any) => l.lti > 0);
     if (lastLTILog) {
       daysWithoutLTI = Math.floor(
-        (Date.now() - new Date(lastLTILog.logDate).getTime()) / 86_400_000
+        (Date.now() - new Date(lastLTILog.log_date).getTime()) / 86_400_000
       );
     } else if (logs.length > 0) {
       daysWithoutLTI = Math.floor(
-        (Date.now() - new Date(logs[0].logDate).getTime()) / 86_400_000
+        (Date.now() - new Date(logs[0].log_date).getTime()) / 86_400_000
       );
     }
 
     return {
       totalManhours,
-      totalManhoursPlanned: logs.reduce((s, l) => s + Number(l.manhoursPlanned ?? 0), 0),
+      totalManhoursPlanned: logs.reduce((s: number, l: any) => s + Number(l.manhours_planned ?? 0), 0),
       totalLTI,
       ltiFrequencyRate: Math.round(ltiRate * 100) / 100,
       totalNearMiss,
       totalFirstAid,
       totalMedicalTreatment,
       totalDangerousOccurrence,
-      totalPtwIssued: logs.reduce((s, l) => s + (l.ptwIssued ?? 0), 0),
-      totalPtwClosed: logs.reduce((s, l) => s + (l.ptwClosed ?? 0), 0),
-      totalPtwSuspended: logs.reduce((s, l) => s + (l.ptwSuspended ?? 0), 0),
-      totalToolboxTalks: logs.reduce((s, l) => s + (l.toolboxTalks ?? 0), 0),
-      totalManpowerPlanned: logs.reduce((s, l) => s + (l.manpowerPlanned ?? 0), 0),
-      totalManpowerActual: logs.reduce((s, l) => s + (l.manpowerActual ?? 0), 0),
+      totalPtwIssued: logs.reduce((s: number, l: any) => s + (l.ptw_issued ?? 0), 0),
+      totalPtwClosed: logs.reduce((s: number, l: any) => s + (l.ptw_closed ?? 0), 0),
+      totalPtwSuspended: logs.reduce((s: number, l: any) => s + (l.ptw_suspended ?? 0), 0),
+      totalToolboxTalks: logs.reduce((s: number, l: any) => s + (l.toolbox_talks ?? 0), 0),
+      totalManpowerPlanned: logs.reduce((s: number, l: any) => s + (l.manpower_planned ?? 0), 0),
+      totalManpowerActual: logs.reduce((s: number, l: any) => s + (l.manpower_actual ?? 0), 0),
       trir: Math.round(trir * 100) / 100,
       daysWithoutLTI,
       logCount: logs.length,
@@ -220,38 +223,38 @@ export class SafetyService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<SafetyTrendPoint[]> {
-    const where: any = { eventId };
+    const where: any = { event_id: eventId };
     if (opts?.dateFrom || opts?.dateTo) {
-      where.logDate = {};
-      if (opts?.dateFrom) where.logDate.gte = new Date(opts.dateFrom);
-      if (opts?.dateTo) where.logDate.lte = new Date(opts.dateTo);
+      where.log_date = {};
+      if (opts?.dateFrom) where.log_date.gte = new Date(opts.dateFrom);
+      if (opts?.dateTo) where.log_date.lte = new Date(opts.dateTo);
     }
 
     const logs = await prisma.safetyLog.findMany({
       where,
-      orderBy: { logDate: 'asc' },
+      orderBy: { log_date: 'asc' },
     });
 
-    return logs.map((l) => {
-      const manhours = Number(l.manhoursWorked ?? 0);
-      const cumManhours = Number(l.cumulativeManhours ?? 0);
-      const cumLti = l.cumulativeLti ?? 0;
-      const totalRecordable = (l.lti ?? 0) + (l.medicalTreatment ?? 0) + (l.dangerousOccurrence ?? 0);
+    return logs.map((l: any) => {
+      const manhours = Number(l.manhours_worked ?? 0);
+      const cumManhours = Number(l.cumulative_manhours ?? 0);
+      const cumLti = l.cumulative_lti ?? 0;
+      const totalRecordable = (l.lti ?? 0) + (l.medical_treatment ?? 0) + (l.dangerous_occurrence ?? 0);
       const trir = cumManhours > 0 ? (totalRecordable * 200_000) / cumManhours : 0;
 
       return {
-        date: l.logDate.toISOString().split('T')[0],
+        date: l.log_date.toISOString().split('T')[0],
         manhours,
         lti: l.lti ?? 0,
-        nearMiss: l.nearMiss ?? 0,
-        firstAid: l.firstAid ?? 0,
-        medicalTreatment: l.medicalTreatment ?? 0,
+        nearMiss: l.near_miss ?? 0,
+        firstAid: l.first_aid ?? 0,
+        medicalTreatment: l.medical_treatment ?? 0,
         cumulativeManhours: cumManhours,
         cumulativeLti: cumLti,
-        ltiRate: Number(l.ltiFrequencyRate ?? 0),
+        ltiRate: Number(l.lti_frequency_rate ?? 0),
         trir: Math.round(trir * 100) / 100,
-        manpowerActual: l.manpowerActual ?? 0,
-        ptwIssued: l.ptwIssued ?? 0,
+        manpowerActual: l.manpower_actual ?? 0,
+        ptwIssued: l.ptw_issued ?? 0,
       };
     });
   }
@@ -269,19 +272,19 @@ export class SafetyService {
     const page = opts?.page ?? 1;
     const pageSize = opts?.pageSize ?? 25;
 
-    const where: any = { eventId };
+    const where: any = { event_id: eventId };
     if (opts?.status) where.status = opts.status;
     if (opts?.severity) where.severity = opts.severity;
-    if (opts?.type) where.incidentType = opts.type;
+    if (opts?.type) where.incident_type = opts.type;
 
     const [incidents, total] = await Promise.all([
       prisma.safetyIncident.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          SafetyPhoto: { select: { id: true, publicUrl: true } },
+          SafetyPhoto: { select: { id: true, public_url: true } },
         },
       }),
       prisma.safetyIncident.count({ where }),
@@ -304,49 +307,49 @@ export class SafetyService {
 
     // Compute cumulative values
     const prevLogs = await prisma.safetyLog.findMany({
-      where: { eventId, logDate: { lt: logDate } },
-      orderBy: { logDate: 'asc' },
+      where: { event_id: eventId, log_date: { lt: logDate } },
+      orderBy: { log_date: 'asc' },
     });
-    const prevManhours = prevLogs.reduce((s, l) => s + Number(l.manhoursWorked ?? 0), 0);
-    const prevLTI = prevLogs.reduce((s, l) => s + (l.lti ?? 0), 0);
+    const prevManhours = prevLogs.reduce((s: number, l: any) => s + Number(l.manhours_worked ?? 0), 0);
+    const prevLTI = prevLogs.reduce((s: number, l: any) => s + (l.lti ?? 0), 0);
     const cumManhours = prevManhours + Number(data.manhours_worked ?? 0);
     const cumLTI = prevLTI + Number(data.lti ?? 0);
     const ltiRate = cumManhours > 0 ? (cumLTI * 1_000_000) / cumManhours : 0;
 
     const logData = {
-      manpowerPlanned: data.manpower_planned ?? 0,
-      manpowerActual: data.manpower_actual ?? 0,
+      manpower_planned: data.manpower_planned ?? 0,
+      manpower_actual: data.manpower_actual ?? 0,
       lti: data.lti ?? 0,
-      ltiDaysLost: data.lti_days_lost ?? 0,
-      nearMiss: data.near_miss ?? 0,
-      firstAid: data.first_aid ?? 0,
-      medicalTreatment: data.medical_treatment ?? 0,
-      dangerousOccurrence: data.dangerous_occurrence ?? 0,
-      ptwIssued: data.ptw_issued ?? 0,
-      ptwClosed: data.ptw_closed ?? 0,
-      ptwSuspended: data.ptw_suspended ?? 0,
-      toolboxTalks: data.toolbox_talks ?? 0,
-      manhoursWorked: data.manhours_worked ?? 0,
-      manhoursPlanned: data.manhours_planned ?? 0,
-      cumulativeManhours: cumManhours,
-      cumulativeLti: cumLTI,
-      ltiFrequencyRate: ltiRate,
-      safetyNotes: data.safety_notes ?? null,
+      lti_days_lost: data.lti_days_lost ?? 0,
+      near_miss: data.near_miss ?? 0,
+      first_aid: data.first_aid ?? 0,
+      medical_treatment: data.medical_treatment ?? 0,
+      dangerous_occurrence: data.dangerous_occurrence ?? 0,
+      ptw_issued: data.ptw_issued ?? 0,
+      ptw_closed: data.ptw_closed ?? 0,
+      ptw_suspended: data.ptw_suspended ?? 0,
+      toolbox_talks: data.toolbox_talks ?? 0,
+      manhours_worked: data.manhours_worked ?? 0,
+      manhours_planned: data.manhours_planned ?? 0,
+      cumulative_manhours: cumManhours,
+      cumulative_lti: cumLTI,
+      lti_frequency_rate: ltiRate,
+      safety_notes: data.safety_notes ?? null,
     };
 
     return prisma.safetyLog.upsert({
-      where: { eventId_logDate: { eventId, logDate } },
+      where: { event_id_log_date: { event_id: eventId, log_date: logDate } },
       create: {
-        eventId,
-        logDate,
+        event_id: eventId,
+        log_date: logDate,
         ...logData,
-        submittedBy: userId ?? null,
-        submittedByName: userName ?? null,
+        submitted_by: userId ?? null,
+        submitted_by_name: userName ?? null,
       },
       update: {
         ...logData,
-        lastUpdatedBy: userId ?? null,
-        lastUpdatedByName: userName ?? null,
+        last_updated_by: userId ?? null,
+        last_updated_by_name: userName ?? null,
       },
     });
   }

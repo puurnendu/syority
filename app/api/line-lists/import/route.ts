@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     for (const row of lineData) {
       if (!row['Line Number']) continue;
       
-      await prisma.lineList.upsert({
+      await prisma.line_lists.upsert({
         where: {
           organization_id_line_number: {
             organization_id: orgId,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       for (const row of jointData) {
         if (!row['Joint Number']) continue;
         
-        await prisma.jointMaster.upsert({
+        await prisma.joint_masters.upsert({
           where: {
             organization_id_joint_number: {
               organization_id: orgId,

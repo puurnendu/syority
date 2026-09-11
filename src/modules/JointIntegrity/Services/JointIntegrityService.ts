@@ -3,6 +3,32 @@ import { AuditService } from '@/lib/audit';
 import type { TighteningMethod } from '@prisma/client';
 
 export class JointIntegrityService {
+    private static async _verifyExecutionGate(jointId: string, organizationId: string) {
+        const joint = await prisma.jointIntegrityItem.findFirst({
+            where: { id: jointId, organization_id: organizationId },
+            include: { workpack: { select: { status: true } } }
+        });
+        
+        if (!joint) throw new Error('Joint not found');
+        
+        if (joint.workpack.status !== 'issued' && joint.workpack.status !== 'in_execution') {
+            throw new Error(`Cannot mutate joint in workpack status: ${joint.workpack.status}`);
+        }
+
+        const activityIds = [joint.activity_id, joint.construct_operation_id, joint.destruct_operation_id].filter(Boolean) as string[];
+        if (activityIds.length > 0) {
+            const activities = await prisma.activity.findMany({
+                where: { id: { in: activityIds }, organization_id: organizationId }
+            });
+            for (const activity of activities) {
+                if (activity.workpack_id !== joint.workpack_id) {
+                    throw new Error(`Associated activity ${activity.id} does not belong to workpack ${joint.workpack_id}`);
+                }
+            }
+        }
+        return joint;
+    }
+
     static async createJoint(data: {
         organization_id: string;
         site_id: string;
@@ -38,8 +64,7 @@ export class JointIntegrityService {
     }
 
     static async markAssembled(id: string, organizationId: string, userId: string, assembledAt?: Date) {
-        const oldValues = await prisma.jointIntegrityItem.findFirst({ where: { id, organization_id: organizationId } });
-        if (!oldValues) throw new Error('Joint not found');
+        const oldValues = await this._verifyExecutionGate(id, organizationId);
         const updated = await prisma.jointIntegrityItem.update({
             where: { id, organization_id: organizationId },
             data: { status: 'assembled', assembled_by: userId, assembled_at: assembledAt ?? new Date(), updated_by: userId },
@@ -58,8 +83,7 @@ export class JointIntegrityService {
     }
 
     static async markInspected(id: string, organizationId: string, userId: string, inspectedAt?: Date) {
-        const oldValues = await prisma.jointIntegrityItem.findFirst({ where: { id, organization_id: organizationId } });
-        if (!oldValues) throw new Error('Joint not found');
+        const oldValues = await this._verifyExecutionGate(id, organizationId);
         const updated = await prisma.jointIntegrityItem.update({
             where: { id, organization_id: organizationId },
             data: { status: 'inspected', inspected_by: userId, inspected_at: inspectedAt ?? new Date(), updated_by: userId },
@@ -78,8 +102,7 @@ export class JointIntegrityService {
     }
 
     static async signOff(id: string, organizationId: string, userId: string, signOffAt?: Date) {
-        const oldValues = await prisma.jointIntegrityItem.findFirst({ where: { id, organization_id: organizationId } });
-        if (!oldValues) throw new Error('Joint not found');
+        const oldValues = await this._verifyExecutionGate(id, organizationId);
         const updated = await prisma.jointIntegrityItem.update({
             where: { id, organization_id: organizationId },
             data: { status: 'signed_off', signed_off_by: userId, signed_off_at: signOffAt ?? new Date(), updated_by: userId },
@@ -98,8 +121,7 @@ export class JointIntegrityService {
     }
 
     static async dismantle(id: string, organizationId: string, userId: string) {
-        const oldValues = await prisma.jointIntegrityItem.findFirst({ where: { id, organization_id: organizationId } });
-        if (!oldValues) throw new Error('Joint not found');
+        const oldValues = await this._verifyExecutionGate(id, organizationId);
         const updated = await prisma.jointIntegrityItem.update({
             where: { id, organization_id: organizationId },
             data: { status: 'dismantled', updated_by: userId },

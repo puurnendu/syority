@@ -11,3 +11,4 @@ export { HierarchyTreePanel } from './HierarchyTreePanel';
 export { InspectorPanel } from './InspectorPanel';
 export { BottomPanel } from './BottomPanel';
 export { WorkspaceToolbar } from './WorkspaceToolbar';
+export { ScenarioControlDashboard } from './ScenarioControlDashboard';

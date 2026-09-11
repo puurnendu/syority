@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   if (!orgId) return NextResponse.json({ error: 'No organization' }, { status: 400 });
 
   try {
-    const settings = await prisma.workpackPrintSettings.findUnique({
+    const settings = await prisma.workpack_print_settings.findUnique({
       where: { organization_id: orgId },
     });
     if (!settings) {
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
       last_page_settings: lastPageSettings != null ? (JSON.parse(JSON.stringify(lastPageSettings)) as Prisma.InputJsonValue) : undefined,
     };
 
-    const updated = await prisma.workpackPrintSettings.upsert({
+    const updated = await prisma.workpack_print_settings.upsert({
       where: { organization_id: orgId },
       create: createData,
       update: updateData,

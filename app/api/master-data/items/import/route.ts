@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         /(150#|#150|#300|300#|#600|600#|#900|900#)/i
       );
 
-      const existing = await prisma.itemCatalog.findFirst({
+      const existing = await prisma.item_catalog.findFirst({
         where: {
           organization_id: orgId,
           item_code: itemCode,
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
       });
 
       if (existing) {
-        await prisma.itemCatalog.update({
+        await prisma.item_catalog.update({
           where: { id: existing.id },
           data: {
             description: data.description ?? undefined,
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
         });
         updated++;
       } else {
-        await prisma.itemCatalog.create({
+        await prisma.item_catalog.create({
           data: {
             organization_id: orgId,
             item_code: itemCode,
@@ -167,7 +167,7 @@ export async function POST(req: Request) {
     }
   }
 
-  await prisma.itemCatalogImportLog.create({
+  await prisma.item_catalog_import_logs.create({
     data: {
       organization_id: orgId,
       batch_id: batchId,

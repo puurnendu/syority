@@ -9,8 +9,8 @@ export class ResourceService {
                 deleted_at: null
             },
             include: {
-                resource_type: true,
-                contractor: true,
+                ResourceType: true,
+                Contractor: true,
             },
             orderBy: { name: 'asc' }
         });

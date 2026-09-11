@@ -77,7 +77,7 @@ export const GET = withTenantGuard(async (req: NextRequest, _ctx, session) => {
     }
 
     if (type === 'blinds') {
-      const data = await prisma.systemBlind.findMany({
+      const data = await prisma.system_blinds.findMany({
         where: { workpack: { organization_id: orgId } },
         include: { workpack: { select: { workpack_number: true } } }
       });

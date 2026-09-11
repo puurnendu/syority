@@ -28,7 +28,7 @@ export class ScopeRegisterProvider extends BaseProvider {
   readonly maxRows = 500;
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
-    const items = await prisma.scopeItem.findMany({
+    const items = await (prisma.scopeItem as any).findMany({
       where: { organization_id: ctx.organizationId, scope: params.scope_id ? { id: params.scope_id } : undefined },
       select: { tag_number: true, asset_name: true, discipline: true, work_description: true, status: true, estimated_hours: true, priority: true },
       orderBy: { tag_number: 'asc' }, take: this.maxRows,
@@ -83,7 +83,7 @@ export class DeferredScopeProvider extends BaseProvider {
   readonly optionalParams = ['scope_id'];
 
   async fetch(ctx: ProviderContext, _params: Record<string, any>): Promise<DataFetcherResult> {
-    const deferrals = await prisma.scopeDeferral.findMany({
+    const deferrals = await (prisma.scopeDeferral as any).findMany({
       where: { organization_id: ctx.organizationId },
       select: { reason: true, deferred_at: true, target_event: true, carried_forward: true, scope_item: { select: { tag_number: true, asset_name: true } } },
       orderBy: { deferred_at: 'desc' },
@@ -130,30 +130,55 @@ export class WorkpackStatusProvider extends BaseProvider {
   }
 }
 
+import { ProgressAggregationService } from '@/core/progress/ProgressAggregationService';
+
+async function getEventIds(orgId: string, params: Record<string, any>): Promise<string[]> {
+  if (params.event) return [params.event];
+  const where: any = { organization_id: orgId, deleted_at: null };
+  if (params.site) where.site_id = params.site;
+  const events = await prisma.event.findMany({ where, select: { id: true } });
+  return events.map(e => e.id);
+}
+
 export class UnitProgressProvider extends BaseProvider {
   readonly key = 'shutdown.unit_progress';
   readonly category = 'shutdown';
   readonly name = 'Unit Progress';
-  readonly description = 'Progress by unit — planned vs actual.';
+  readonly description = 'Progress by unit — planned vs actual from M8.13 progress authority.';
   readonly optionalParams = ['site', 'event'];
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
-    const activities = await prisma.activity.findMany({
-      where: { organization_id: ctx.organizationId, deleted_at: null, ...scopeFilters(params) },
-      select: { wbs_code: true, progress_percent: true, status: true },
-    });
-    const unitMap = new Map<string, { total: number; completed: number; count: number }>();
-    activities.forEach((a) => {
-      const unit = (a.wbs_code ?? 'Unassigned').split('.')[0];
-      const cur = unitMap.get(unit) ?? { total: 0, completed: 0, count: 0 };
-      cur.total += 100; cur.completed += (a.progress_percent ?? 0); cur.count++;
-      unitMap.set(unit, cur);
-    });
+    const eventIds = await getEventIds(ctx.organizationId, params);
+    const unitMap = new Map<string, { totalActivities: number; completedActivities: number; weightedProgress: number; count: number }>();
+
+    for (const eventId of eventIds) {
+      const payload = await ProgressAggregationService.getEventProgress(ctx.organizationId, eventId, { includeUnit: true });
+      for (const u of payload.byUnit ?? []) {
+        const key = u.label ?? u.key ?? 'Unassigned';
+        const cur = unitMap.get(key) ?? { totalActivities: 0, completedActivities: 0, weightedProgress: 0, count: 0 };
+        cur.totalActivities += u.metrics.totalActivities;
+        cur.completedActivities += u.metrics.completedActivities;
+        cur.weightedProgress += u.metrics.weightedProgress;
+        cur.count++;
+        unitMap.set(key, cur);
+      }
+    }
+
+    const rows = Array.from(unitMap.entries()).map(([unit, v]) => ({
+      unit,
+      activities: v.totalActivities,
+      completed: v.completedActivities,
+      planned: '100%',
+      actual: `${v.count > 0 ? Math.round(v.weightedProgress / v.count) : 0}%`,
+    }));
+
     return {
-      rows: Array.from(unitMap.entries()).map(([unit, v]) => ({
-        unit, activities: v.count, planned: '100%', actual: `${v.count > 0 ? Math.round(v.completed / v.count) : 0}%`,
-      })),
-      metadata: { recordCount: unitMap.size },
+      rows,
+      kpis: [
+        { label: 'Units Tracked', value: rows.length },
+        { label: 'Total Activities', value: rows.reduce((s, r) => s + r.activities, 0) },
+      ],
+      metadata: { recordCount: rows.length },
     };
   }
 }
@@ -162,26 +187,40 @@ export class ContractorProgressProvider extends BaseProvider {
   readonly key = 'shutdown.contractor_progress';
   readonly category = 'shutdown';
   readonly name = 'Contractor Progress';
-  readonly description = 'Progress by contractor — workpack counts and average completion.';
+  readonly description = 'Progress by contractor from M8.13 progress authority.';
   readonly optionalParams = ['site', 'event'];
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
-    const workpacks = await prisma.workpack.findMany({
-      where: { organization_id: ctx.organizationId, deleted_at: null, contractor_id: { not: null }, ...scopeFilters(params) },
-      select: { overall_progress: true, status: true, contractor: { select: { name: true } } },
-    });
-    const map = new Map<string, { count: number; totalProgress: number }>();
-    workpacks.forEach((w) => {
-      const name = w.contractor?.name ?? 'Unknown';
-      const cur = map.get(name) ?? { count: 0, totalProgress: 0 };
-      cur.count++; cur.totalProgress += (w.overall_progress ?? 0);
-      map.set(name, cur);
-    });
+    const eventIds = await getEventIds(ctx.organizationId, params);
+    const contractorMap = new Map<string, { totalActivities: number; completedActivities: number; weightedProgress: number; count: number }>();
+
+    for (const eventId of eventIds) {
+      const payload = await ProgressAggregationService.getEventProgress(ctx.organizationId, eventId, { includeContractor: true });
+      for (const c of payload.byContractor ?? []) {
+        const key = c.label ?? c.key ?? 'Unknown Contractor';
+        const cur = contractorMap.get(key) ?? { totalActivities: 0, completedActivities: 0, weightedProgress: 0, count: 0 };
+        cur.totalActivities += c.metrics.totalActivities;
+        cur.completedActivities += c.metrics.completedActivities;
+        cur.weightedProgress += c.metrics.weightedProgress;
+        cur.count++;
+        contractorMap.set(key, cur);
+      }
+    }
+
+    const rows = Array.from(contractorMap.entries()).map(([contractor, v]) => ({
+      contractor,
+      activities: v.totalActivities,
+      completed: v.completedActivities,
+      avg_progress: `${v.count > 0 ? Math.round(v.weightedProgress / v.count) : 0}%`,
+    }));
+
     return {
-      rows: Array.from(map.entries()).map(([contractor, v]) => ({
-        contractor, workpacks: v.count, avg_progress: `${v.count > 0 ? Math.round(v.totalProgress / v.count) : 0}%`,
-      })),
-      metadata: { recordCount: map.size },
+      rows,
+      kpis: [
+        { label: 'Contractors', value: rows.length },
+        { label: 'Total Activities', value: rows.reduce((s, r) => s + r.activities, 0) },
+      ],
+      metadata: { recordCount: rows.length },
     };
   }
 }
@@ -190,26 +229,40 @@ export class DisciplineProgressProvider extends BaseProvider {
   readonly key = 'shutdown.discipline_progress';
   readonly category = 'shutdown';
   readonly name = 'Discipline Progress';
-  readonly description = 'Progress by discipline — workpack counts and average completion.';
+  readonly description = 'Progress by discipline from M8.13 progress authority.';
   readonly optionalParams = ['site', 'event'];
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
-    const workpacks = await prisma.workpack.findMany({
-      where: { organization_id: ctx.organizationId, deleted_at: null, discipline_id: { not: null }, ...scopeFilters(params) },
-      select: { overall_progress: true, status: true, discipline: { select: { name: true } } },
-    });
-    const map = new Map<string, { count: number; totalProgress: number }>();
-    workpacks.forEach((w) => {
-      const name = w.discipline?.name ?? 'Unknown';
-      const cur = map.get(name) ?? { count: 0, totalProgress: 0 };
-      cur.count++; cur.totalProgress += (w.overall_progress ?? 0);
-      map.set(name, cur);
-    });
+    const eventIds = await getEventIds(ctx.organizationId, params);
+    const disciplineMap = new Map<string, { totalActivities: number; completedActivities: number; weightedProgress: number; count: number }>();
+
+    for (const eventId of eventIds) {
+      const payload = await ProgressAggregationService.getEventProgress(ctx.organizationId, eventId, { includeDiscipline: true });
+      for (const d of payload.byDiscipline ?? []) {
+        const key = d.label ?? d.key ?? 'Unknown Discipline';
+        const cur = disciplineMap.get(key) ?? { totalActivities: 0, completedActivities: 0, weightedProgress: 0, count: 0 };
+        cur.totalActivities += d.metrics.totalActivities;
+        cur.completedActivities += d.metrics.completedActivities;
+        cur.weightedProgress += d.metrics.weightedProgress;
+        cur.count++;
+        disciplineMap.set(key, cur);
+      }
+    }
+
+    const rows = Array.from(disciplineMap.entries()).map(([discipline, v]) => ({
+      discipline,
+      activities: v.totalActivities,
+      completed: v.completedActivities,
+      avg_progress: `${v.count > 0 ? Math.round(v.weightedProgress / v.count) : 0}%`,
+    }));
+
     return {
-      rows: Array.from(map.entries()).map(([discipline, v]) => ({
-        discipline, workpacks: v.count, avg_progress: `${v.count > 0 ? Math.round(v.totalProgress / v.count) : 0}%`,
-      })),
-      metadata: { recordCount: map.size },
+      rows,
+      kpis: [
+        { label: 'Disciplines', value: rows.length },
+        { label: 'Total Activities', value: rows.reduce((s, r) => s + r.activities, 0) },
+      ],
+      metadata: { recordCount: rows.length },
     };
   }
 }

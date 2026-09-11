@@ -32,7 +32,7 @@ export async function GET(
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
 
   const status = req.nextUrl.searchParams.get('status') ?? undefined;
-  const gaskets = await prisma.systemGasket.findMany({
+  const gaskets = await prisma.system_gaskets.findMany({
     where: {
       system_id: systemId,
       ...(status && { status }),
@@ -67,7 +67,7 @@ export async function POST(
   }
   const data = parsed.data;
 
-  const gasket = await prisma.systemGasket.create({
+  const gasket = await prisma.system_gaskets.create({
     data: {
       system_id: systemId,
       gasket_id: data.gasket_id.trim(),

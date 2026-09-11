@@ -23,6 +23,7 @@ import { PROCESS_UNITS, CONTRACTOR_UNITS } from './demo/hierarchy';
 import { RESOURCE_TYPES, buildUdfDefinitions } from './demo/resourcesAndUdfs';
 import { buildAllTemplates } from './demo/workpackTemplates';
 import { CERTIFICATE_TEMPLATES, PRINT_TEMPLATE_PRESETS } from './demo/certificates';
+import { buildStandardActivityTypeSeed } from './demo/seedStandardActivityTypes';
 
 const PASSWORD = process.env.DEMO_PASSWORD || 'Admin@123';
 
@@ -440,6 +441,25 @@ async function seedPlatformLibrary(platformOrgId: string, adminUserId: string) {
     }
   }
   console.log(`  · Equipment types: +${stats.equipmentTypes}`);
+
+  // M8.13 — Standard Activity Types (seed after equipment types exist)
+  const equipmentTypeMap = new Map<string, string>();
+  const allEqTypes = await prisma.equipmentType.findMany({ where: { org_id: platformOrgId } });
+  for (const eq of allEqTypes) {
+    if (eq.code) equipmentTypeMap.set(eq.code, eq.id);
+  }
+  const satRecords = buildStandardActivityTypeSeed(equipmentTypeMap);
+  let satCount = 0;
+  for (const rec of satRecords) {
+    const exists = await prisma.standardActivityType.findFirst({
+      where: { equipment_type_id: rec.equipment_type_id, code: rec.code },
+    });
+    if (!exists) {
+      await prisma.standardActivityType.create({ data: rec });
+      satCount++;
+    }
+  }
+  console.log(`  · Standard activity types: +${satCount}`);
 
   // Activity codes
   for (const a of buildActivityCodes()) {

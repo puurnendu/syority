@@ -316,7 +316,7 @@ function OverviewPanel({ workpack, onRefresh, isAdmin = false }: { workpack: any
                         </div>
                         <Badge label={workpack.status?.replace(/_/g, ' ') || 'DRAFT'} color="blue" />
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-4">Current Phase</p>
-                        <p className="text-sm font-black text-gray-900 uppercase italic tracking-tighter mt-1">{workpack.status === 'issued' ? 'Execution phase' : 'Planning phase'}</p>
+                        <p className="text-sm font-black text-gray-900 uppercase italic tracking-tighter mt-1">{['issued', 'in_execution', 'completed'].includes(workpack.status) ? 'Execution phase' : 'Planning phase'}</p>
                         <a
                             href={`/api/workpacks/${workpack.id}/pdf`}
                             className="mt-6 w-full py-3 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-gray-200"

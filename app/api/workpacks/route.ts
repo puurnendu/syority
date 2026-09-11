@@ -9,6 +9,7 @@ import { generateWorkpackIdCode } from '@/lib/workpackId';
 import { autoAttachCertificates } from '@/lib/certificates/autoAttach';
 import { triggerAiAutoFill } from '@/lib/ai/workpackAutoFill';
 import { withTenantGuard } from '@/lib/withTenantGuard';
+import { isWorkpackIdentityError } from '@/modules/Workpack/WorkpackIdentityError';
 
 export const GET = withTenantGuard(async (req, { params }, session) => {
     try {
@@ -21,6 +22,7 @@ export const GET = withTenantGuard(async (req, { params }, session) => {
         const workpacks = await WorkpackService.getWorkpacks(orgId, {
             site_id: searchParams.get('site_id') ?? undefined,
             system_id: searchParams.get('system_id') ?? undefined,
+            event_id: searchParams.get('event_id') ?? undefined,
             status: searchParams.get('status') as any ?? undefined,
             search: searchParams.get('search') ?? undefined,
         });
@@ -58,6 +60,41 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
             (restBody as any).site_id = siteId;
         }
 
+        // ── Resolve or Generate Workpack ID Code ──────────────────
+        let workpack_id_code = body.workpack_id_code?.trim() || null;
+        if (!workpack_id_code) {
+            try {
+                workpack_id_code = await generateWorkpackIdCode(
+                    user.organization_id,
+                    unit_code || 'GEN',
+                    primary_discipline || 'GEN'
+                );
+            } catch (idErr: unknown) {
+                const msg = idErr instanceof Error ? idErr.message : String(idErr);
+                console.error('[WorkpackID] Generation failed:', msg);
+            }
+        }
+
+        // M8.14-R1: Validate asset exists in this org AND is active
+        if (restBody.asset_id) {
+            const asset = await prisma.asset.findFirst({
+                where: { id: restBody.asset_id, organization_id: user.organization_id },
+                select: { id: true, status: true, tag_number: true },
+            });
+            if (!asset) {
+                return NextResponse.json(
+                    { error: 'Asset not found or does not belong to your organization' },
+                    { status: 403 },
+                );
+            }
+            if (asset.status !== 'active') {
+                return NextResponse.json(
+                    { error: `Asset "${asset.tag_number}" is in ${asset.status} status — only active assets can be assigned to workpacks` },
+                    { status: 400 },
+                );
+            }
+        }
+
         let workpack = await WorkpackService.createWorkpack({
             ...restBody,
             organization_id: user.organization_id,
@@ -65,27 +102,8 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
             unit_code: unit_code ?? undefined,
             portfolio_id: portfolio_id ?? undefined,
             project_id: project_id ?? undefined,
+            workpack_id_code,
         });
-
-
-        // ── Generate Workpack ID Code ──────────────────
-        if (unit_code && primary_discipline) {
-            try {
-                const idCode = await generateWorkpackIdCode(
-                    user.organization_id,
-                    unit_code,
-                    primary_discipline
-                );
-                await prisma.workpack.update({
-                    where: { id: workpack.id, organization_id: user.organization_id },
-                    data: { workpack_id_code: idCode },
-                });
-                workpack = { ...workpack, workpack_id_code: idCode };
-            } catch (idErr: unknown) {
-                const msg = idErr instanceof Error ? idErr.message : String(idErr);
-                console.error('[WorkpackID] Generation failed:', msg);
-            }
-        }
 
         if (body.equipment_type) {
             await autoAttachCertificates(workpack.id, user.organization_id, body.equipment_type).catch((e) =>
@@ -100,7 +118,7 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
         if (body.system_id !== undefined) hierarchyUpdate.system_id = body.system_id ?? null;
         if (Object.keys(hierarchyUpdate).length > 0) {
             await prisma.workpack.update({
-                where: { id: workpack.id, organization_id: user.organization_id },
+                where: { id: workpack.id },
                 data: hierarchyUpdate,
             });
             workpack = { ...workpack, ...hierarchyUpdate };
@@ -108,7 +126,7 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
 
         if (Array.isArray(body.selected_joint_master_ids) && body.selected_joint_master_ids.length > 0) {
             const masterIds = body.selected_joint_master_ids as string[];
-            const masters = await prisma.jointMaster.findMany({
+            const masters = await prisma.joint_masters.findMany({
                 where: { id: { in: masterIds }, organization_id: user.organization_id },
                 include: { nozzle: true, line: true },
             });
@@ -147,6 +165,12 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
 
         return NextResponse.json({ data: workpack }, { status: 201 });
     } catch (error: any) {
+        if (isWorkpackIdentityError(error)) {
+            return NextResponse.json(
+                { error: error.message, code: error.identityCode },
+                { status: error.statusCode }
+            );
+        }
         return NextResponse.json({ error: error.message }, { status: 400 });
     }
 });

@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const flange_type = url.searchParams.get('flange_type');
 
   if (pipe_size && pressure_class && flange_type) {
-    const row = await prisma.gasketBoltLookup.findFirst({
+    const row = await prisma.gasket_bolt_lookup.findFirst({
       where: {
         organization_id: orgId,
         pipe_size,
@@ -21,50 +21,12 @@ export async function GET(req: Request) {
         flange_type,
         is_active: true,
       },
-      include: {
-        gasket_item: {
-          select: {
-            id: true,
-            item_code: true,
-            description: true,
-            sap_material_number: true,
-          },
-        },
-        bolt_item: {
-          select: {
-            id: true,
-            item_code: true,
-            description: true,
-            sap_material_number: true,
-          },
-        },
-        nut_item: {
-          select: {
-            id: true,
-            item_code: true,
-            description: true,
-            sap_material_number: true,
-          },
-        },
-        washer_item: {
-          select: {
-            id: true,
-            item_code: true,
-            description: true,
-          },
-        },
-      },
     });
     return NextResponse.json(row ?? null);
   }
 
-  const rows = await prisma.gasketBoltLookup.findMany({
+  const rows = await prisma.gasket_bolt_lookup.findMany({
     where: { organization_id: orgId, is_active: true },
-    include: {
-      gasket_item: { select: { item_code: true, description: true } },
-      bolt_item: { select: { item_code: true, description: true } },
-      nut_item: { select: { item_code: true, description: true } },
-    },
     orderBy: [
       { pipe_size: 'asc' },
       { pressure_class: 'asc' },
@@ -95,7 +57,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const row = await prisma.gasketBoltLookup.upsert({
+  const row = await prisma.gasket_bolt_lookup.upsert({
     where: {
       organization_id_pipe_size_pressure_class_flange_type: {
         organization_id: orgId,

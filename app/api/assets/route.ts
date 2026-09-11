@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
 
+/** M8.14-R1 — Controlled criticality values (matches AssetCriticality enum) */
+const VALID_CRITICALITY = ['low', 'medium', 'high', 'critical'] as const;
+/** M8.14-R1 — Controlled status values (matches AssetStatus enum) */
+const VALID_STATUS = ['draft', 'active', 'retired'] as const;
+
 export async function GET(req: NextRequest) {
   const { session, error } = await guardApi('masterdata.view');
   if (error) return error;
@@ -47,7 +52,7 @@ export async function GET(req: NextRequest) {
     prisma.asset.findMany({
       where,
       include: {
-        site: { select: { id: true, name: true, code: true } },
+        Site: { select: { id: true, name: true, code: true } },
         system: { 
           select: { 
             id: true, 
@@ -99,6 +104,11 @@ export async function POST(req: NextRequest) {
   if (!body?.tag_number?.trim()) return NextResponse.json({ error: 'tag_number is required' }, { status: 400 });
   if (!body?.name?.trim()) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
+  // M8.14-R1: Validate criticality against controlled enum
+  if (body.criticality && !VALID_CRITICALITY.includes(body.criticality)) {
+    return NextResponse.json({ error: `criticality must be one of: ${VALID_CRITICALITY.join(', ')}` }, { status: 400 });
+  }
+
   const tag = String(body.tag_number).trim().toUpperCase();
   const site = await prisma.site.findFirst({
     where: { id: body.site_id, organization_id: orgId },
@@ -143,7 +153,7 @@ export async function POST(req: NextRequest) {
       weight_operating_kg: body.weight_operating_kg ?? null,
       service_description: body.service_description?.trim() ?? null,
       fluid_service: body.fluid_service?.trim() ?? null,
-      criticality: body.criticality?.trim() ?? null,
+      criticality: body.criticality ?? null,
       maintenance_strategy: body.maintenance_strategy?.trim() ?? null,
       inspection_interval_months: body.inspection_interval_months ?? null,
       p_and_id_numbers: Array.isArray(body.p_and_id_numbers) ? body.p_and_id_numbers : (body.p_and_id_numbers ? [body.p_and_id_numbers] : []),
@@ -154,9 +164,12 @@ export async function POST(req: NextRequest) {
       train: body.train?.trim() ?? null,
       sap_functional_location: body.sap_functional_location?.trim() ?? null,
       created_by: userId,
+      // M8.14-R1: Provenance + lifecycle
+      data_source: 'manual',
+      status: 'draft',
     },
     include: {
-      site: { select: { id: true, name: true, code: true } },
+      Site: { select: { id: true, name: true, code: true } },
       system: { select: { id: true, name: true, code: true } },
     },
   });

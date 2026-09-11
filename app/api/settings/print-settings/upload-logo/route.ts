@@ -48,10 +48,10 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
     });
 
     const id = crypto.randomUUID();
-    const settings = await prisma.workpackPrintSettings.findUnique({ where: { organization_id: orgId } });
+    const settings = await prisma.workpack_print_settings.findUnique({ where: { organization_id: orgId } });
     const library = (settings?.logo_library as { id: string; name: string; s3_path: string; url: string }[]) ?? [];
     const newItem = { id, name, s3_path, url };
-    await prisma.workpackPrintSettings.upsert({
+    await prisma.workpack_print_settings.upsert({
       where: { organization_id: orgId },
       create: { organization_id: orgId, updated_by: session.user.id!, logo_library: [...library, newItem] },
       update: { logo_library: [...library, newItem], updated_by: session.user.id! },

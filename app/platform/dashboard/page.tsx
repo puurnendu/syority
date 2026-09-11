@@ -11,6 +11,11 @@ export default async function PlatformDashboardPage() {
         totalUsers,
         activeUsers,
         totalWorkpacks,
+        totalSites,
+        totalActivities,
+        totalBackups,
+        totalDocuments,
+        totalAttachments,
         orgsForLicense,
     ] = await Promise.all([
         prisma.organization.count({
@@ -26,6 +31,11 @@ export default async function PlatformDashboardPage() {
         prisma.user.count({ where: { deleted_at: null } }),
         prisma.user.count({ where: { deleted_at: null, is_active: true } }),
         prisma.workpack.count({ where: { deleted_at: null } }),
+        prisma.site.count({ where: { deleted_at: null } }),
+        prisma.activity.count({ where: { deleted_at: null } }).catch(() => 0),
+        prisma.platform_backups.count().catch(() => 0),
+        prisma.docLibrary.count().catch(() => 0),
+        prisma.attachment.count({ where: { deleted_at: null } }).catch(() => 0),
         prisma.organization.findMany({
             where: { deleted_at: null, NOT: { tenant_type: 'platform' } },
             select: {
@@ -57,12 +67,20 @@ export default async function PlatformDashboardPage() {
 
     const cards = [
         {
-            label: 'Tenants',
+            label: 'Organizations',
             value: totalTenants,
             subtitle: `${activeTenants} active`,
             href: '/platform/tenants',
             icon: '🏢',
             accent: 'border-blue-200 bg-blue-50/60',
+        },
+        {
+            label: 'Sites',
+            value: totalSites,
+            subtitle: 'Across all tenants',
+            href: '/platform/tenants',
+            icon: '📍',
+            accent: 'border-cyan-200 bg-cyan-50/60',
         },
         {
             label: 'Users',
@@ -81,12 +99,36 @@ export default async function PlatformDashboardPage() {
             accent: 'border-violet-200 bg-violet-50/60',
         },
         {
-            label: 'Licensed seats',
+            label: 'Activities',
+            value: totalActivities,
+            subtitle: 'Total activities',
+            href: '/platform/tenants',
+            icon: '⚡',
+            accent: 'border-orange-200 bg-orange-50/60',
+        },
+        {
+            label: 'Licensed Seats',
             value: licensedSeats,
             subtitle: pastDue > 0 ? `${pastDue} past due` : `${expiringSoon} expiring in 30d`,
             href: '/platform/billing',
             icon: '💳',
             accent: 'border-amber-200 bg-amber-50/60',
+        },
+        {
+            label: 'Storage',
+            value: totalDocuments + totalAttachments,
+            subtitle: `${totalDocuments} docs · ${totalAttachments} attachments`,
+            href: '/platform/storage',
+            icon: '🗄️',
+            accent: 'border-slate-200 bg-slate-50/60',
+        },
+        {
+            label: 'Backups',
+            value: totalBackups,
+            subtitle: 'Platform backups',
+            href: '/platform/backups',
+            icon: '💾',
+            accent: 'border-teal-200 bg-teal-50/60',
         },
     ];
 
@@ -98,7 +140,7 @@ export default async function PlatformDashboardPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Platform Dashboard</h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        Cross-tenant summary of tenants, users, workpacks, and licensing.
+                        Cross-tenant summary of organizations, users, workpacks, and licensing.
                     </p>
                 </div>
                 <Link
@@ -133,7 +175,7 @@ export default async function PlatformDashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                    <h2 className="text-base font-bold text-gray-900 mb-4">License tiers</h2>
+                    <h2 className="text-base font-bold text-gray-900 mb-4">License Tiers</h2>
                     {tierEntries.length === 0 ? (
                         <p className="text-sm text-gray-400">No customer tenants yet.</p>
                     ) : (
@@ -147,20 +189,22 @@ export default async function PlatformDashboardPage() {
                         </ul>
                     )}
                     <Link href="/platform/billing" className="inline-block mt-5 text-sm text-blue-600 hover:underline">
-                        Open Licensing & Billing →
+                        Open Licensing &amp; Billing →
                     </Link>
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                    <h2 className="text-base font-bold text-gray-900 mb-4">Quick links</h2>
+                    <h2 className="text-base font-bold text-gray-900 mb-4">Quick Links</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {[
                             { href: '/platform/users', label: 'Platform Users' },
                             { href: '/platform/features', label: 'Feature Flags' },
-                            { href: '/platform/system', label: 'SMTP & System' },
+                            { href: '/platform/monitoring', label: 'Diagnostics' },
                             { href: '/platform-data', label: 'Master Data Hub' },
                             { href: '/platform/setup', label: 'Setup / Health' },
                             { href: '/platform/ai-config', label: 'AI Providers' },
+                            { href: '/platform/notifications', label: 'Notifications' },
+                            { href: '/platform/operations', label: 'Operations' },
                         ].map((link) => (
                             <Link
                                 key={link.href}

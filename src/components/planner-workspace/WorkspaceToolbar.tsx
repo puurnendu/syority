@@ -6,21 +6,29 @@
  * Top toolbar with: Event Selector, Search, View Switcher,
  * Group/Sort/Filter controls, Validate button, Layout selector.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 import type { WorkspaceView } from '@/stores/useWorkspaceStore';
+import { ColumnChooser } from './ColumnChooser';
+import { GroupingChooser } from './GroupingChooser';
+import { LayoutManager } from './LayoutManager';
 
 const VIEWS: { key: WorkspaceView; label: string; icon: string; shortcut: string }[] = [
   { key: 'hierarchy', label: 'Hierarchy', icon: '🏗️', shortcut: 'Alt+1' },
   { key: 'workpacks', label: 'Workpacks', icon: '📦', shortcut: 'Alt+2' },
   { key: 'activities', label: 'Activities', icon: '📝', shortcut: 'Alt+3' },
   { key: 'schedule', label: 'Schedule', icon: '📅', shortcut: 'Alt+4' },
+  { key: 'gantt', label: 'Gantt Chart', icon: '📊', shortcut: 'Alt+G' },
   { key: 'relationships', label: 'Logic', icon: '🔗', shortcut: 'Alt+5' },
   { key: 'resources', label: 'Resources', icon: '👥', shortcut: 'Alt+6' },
   { key: 'contractor_quantities', label: 'Contractor Qty', icon: '🔧', shortcut: 'Alt+7' },
   { key: 'documents', label: 'Documents', icon: '📄', shortcut: 'Alt+8' },
   { key: 'qaqc', label: 'QA/QC', icon: '✅', shortcut: 'Alt+9' },
   { key: 'certificates', label: 'Certificates', icon: '📜', shortcut: 'Alt+0' },
+  { key: 'scenarios', label: 'Scenarios', icon: '🧪', shortcut: 'Alt+S' },
+  { key: 'cost', label: 'Cost (EVM)', icon: '💰', shortcut: 'Alt+C' },
+  { key: 'scope_changes', label: 'Scope Changes', icon: '🔄', shortcut: 'Alt+X' },
+  { key: 'material_readiness', label: 'Materials', icon: '📦', shortcut: 'Alt+M' },
 ];
 
 export function WorkspaceToolbar({
@@ -44,10 +52,48 @@ export function WorkspaceToolbar({
     selectedEventName,
     validationIssues,
     isLoading,
+    fetchDimensions,
+    activities,
+    columns,
   } = useWorkspaceStore();
 
   const [showViewMenu, setShowViewMenu] = useState(false);
   const errorCount = validationIssues.filter((i) => i.severity === 'error').length;
+
+  useEffect(() => {
+    fetchDimensions();
+  }, [fetchDimensions]);
+
+  const handleExport = useCallback(() => {
+    const visibleCols = columns.filter((c) => c.visible && c.key !== 'select');
+    if (visibleCols.length === 0 || activities.length === 0) return;
+
+    // Header row
+    const headers = visibleCols.map((c) => `"${c.label}"`).join(',');
+    
+    // Data rows
+    const rows = activities.map((act) => {
+      return visibleCols.map((c) => {
+        let val = (act as any)[c.key];
+        if (c.key === 'predecessors') val = act.predecessors.join(';');
+        if (c.key === 'successors') val = act.successors.join(';');
+        if (val === null || val === undefined) val = '';
+        // Escape quotes
+        const strVal = String(val).replace(/"/g, '""');
+        return `"${strVal}"`;
+      }).join(',');
+    });
+
+    const csvContent = [headers, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `workspace_export_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [columns, activities]);
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white border-b border-gray-700">
@@ -120,8 +166,12 @@ export function WorkspaceToolbar({
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Panel toggles */}
+      {/* Panel toggles, Grouping, and Column Chooser */}
       <div className="flex items-center gap-1">
+        <GroupingChooser />
+        <ColumnChooser />
+        <LayoutManager />
+        <div className="w-px h-5 bg-gray-700 mx-1" />
         <ToolbarButton
           label="Tree"
           icon="🌳"
@@ -148,6 +198,14 @@ export function WorkspaceToolbar({
       <div className="w-px h-5 bg-gray-700 mx-1" />
 
       {/* Action buttons */}
+      <button
+        onClick={handleExport}
+        className="flex items-center gap-1 px-2 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 rounded font-medium"
+        title="Export to CSV"
+      >
+        📥 Export
+      </button>
+
       <button
         onClick={onValidate}
         className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-600 hover:bg-amber-500 rounded font-medium"

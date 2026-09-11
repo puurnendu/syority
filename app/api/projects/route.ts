@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
 import { prisma } from '@/lib/prisma';
+import { randomUUID } from 'crypto';
 
 export const GET = withTenantGuard(async (req: NextRequest, _ctx, session) => {
   try {
@@ -10,7 +11,7 @@ export const GET = withTenantGuard(async (req: NextRequest, _ctx, session) => {
     const { orgId } = orgScope(session!);
 
     const projects = await prisma.project.findMany({
-      where: { orgId },
+      where: { org_id: orgId },
       select: {
         id: true,
         name: true,
@@ -18,14 +19,16 @@ export const GET = withTenantGuard(async (req: NextRequest, _ctx, session) => {
         status: true,
         client: true,
         location: true,
-        plantName: true,
-        plannedSdDate: true,
-        plannedSuDate: true,
+        plant_name: true,
+        planned_sd_date: true,
+        planned_su_date: true,
+        portfolio_id: true,
+        portfolio: { select: { id: true, name: true, code: true } },
         _count: {
-          select: { workpacks: true },
+          select: { Workpack: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
     });
 
     return NextResponse.json(projects);
@@ -48,20 +51,33 @@ export const POST = withTenantGuard(async (req: NextRequest, _ctx, session) => {
       return NextResponse.json({ error: 'name and code are required' }, { status: 400 });
     }
 
-    const plannedSdDate = body.plannedSdDate ? new Date(body.plannedSdDate) : null;
-    const plannedSuDate = body.plannedSuDate ? new Date(body.plannedSuDate) : null;
+    const plannedSdDate = body.planned_sd_date ? new Date(body.planned_sd_date) : null;
+    const plannedSuDate = body.planned_su_date ? new Date(body.planned_su_date) : null;
+
+    let portfolioId: string | null = null;
+    if (body.portfolio_id) {
+      const portfolio = await prisma.portfolio.findFirst({
+        where: { id: body.portfolio_id, organization_id: orgId },
+        select: { id: true },
+      });
+      if (!portfolio) return NextResponse.json({ error: 'Portfolio not found' }, { status: 404 });
+      portfolioId = portfolio.id;
+    }
 
     const project = await prisma.project.create({
       data: {
-        orgId,
+        id: randomUUID(),
+        updated_at: new Date(),
+        org_id: orgId,
         name,
         code,
         client: body.client?.trim() || null,
         location: body.location?.trim() || null,
-        plantName: body.plantName?.trim() || null,
-        plannedSdDate: plannedSdDate && !isNaN(plannedSdDate.getTime()) ? plannedSdDate : null,
-        plannedSuDate: plannedSuDate && !isNaN(plannedSuDate.getTime()) ? plannedSuDate : null,
-        createdBy: userId,
+        plant_name: body.plant_name?.trim() || null,
+        planned_sd_date: plannedSdDate && !isNaN(plannedSdDate.getTime()) ? plannedSdDate : null,
+        planned_su_date: plannedSuDate && !isNaN(plannedSuDate.getTime()) ? plannedSuDate : null,
+        created_by: userId,
+        portfolio_id: portfolioId,
       },
       select: {
         id: true,
@@ -69,10 +85,10 @@ export const POST = withTenantGuard(async (req: NextRequest, _ctx, session) => {
         code: true,
         status: true,
         client: true,
-        plantName: true,
-        plannedSdDate: true,
-        plannedSuDate: true,
-        _count: { select: { workpacks: true } },
+        plant_name: true,
+        planned_sd_date: true,
+        planned_su_date: true,
+        _count: { select: { Workpack: true } },
       },
     });
 

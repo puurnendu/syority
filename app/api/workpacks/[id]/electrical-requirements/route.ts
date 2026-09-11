@@ -66,7 +66,7 @@ export async function GET(
   }
 
   // WorkpackMaterialLine (electrical) — no activity link
-  const lines = await prisma.workpackMaterialLine.findMany({
+  const lines = await prisma.workpack_material_lines.findMany({
     where: {
       workpack_id: workpackId,
       material_category: 'electrical',

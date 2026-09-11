@@ -15,12 +15,12 @@ export async function GET(req: NextRequest) {
   };
   if (unit_id) where.unit_id = unit_id;
   if (system_id) where.system_id = system_id;
-  const lines = await prisma.lineList.findMany({
+  const lines = await prisma.line_lists.findMany({
     where,
     include: {
-      unit: { select: { id: true, name: true, code: true } },
-      system: { select: { id: true, name: true, code: true } },
-      _count: { select: { joints: true } },
+      Unit: { select: { id: true, name: true, code: true } },
+      System: { select: { id: true, name: true, code: true } },
+      _count: { select: { joint_masters: true } },
     },
     orderBy: { line_number: 'asc' },
   });
@@ -42,13 +42,14 @@ export async function POST(req: NextRequest) {
   if (!unit) return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
   if (unit.site_id !== body.site_id) return NextResponse.json({ error: 'Unit does not belong to site' }, { status: 400 });
   const lineNumber = String(body.line_number).trim();
-  const existingLine = await prisma.lineList.findUnique({
+  const existingLine = await prisma.line_lists.findUnique({
     where: { organization_id_line_number: { organization_id: orgId, line_number: lineNumber } },
     select: { id: true },
   });
   if (existingLine) return NextResponse.json({ error: 'Line already exists' }, { status: 409 });
-  const line = await prisma.lineList.create({
+  const line = await prisma.line_lists.create({
     data: {
+      id: crypto.randomUUID(),
       organization_id: orgId,
       site_id: body.site_id,
       unit_id: body.unit_id,
@@ -79,13 +80,14 @@ export async function POST(req: NextRequest) {
   });
   const totalJointCount = line.total_joint_count ?? 0;
   if (totalJointCount > 0) {
-    const existingJoints = await prisma.jointMaster.count({ where: { line_id: line.id } });
+    const existingJoints = await prisma.joint_masters.count({ where: { line_id: line.id } });
     if (existingJoints === 0) {
       const jointNumbers = Array.from({ length: totalJointCount }, (_, i) =>
-        lineNumber + '-J' + String(i + 1).padStart(3, '0')
+          lineNumber + '-J' + String(i + 1).padStart(3, '0')
       );
-      await prisma.jointMaster.createMany({
+      await prisma.joint_masters.createMany({
         data: jointNumbers.map((joint_number, idx) => ({
+          id: crypto.randomUUID(),
           organization_id: orgId,
           site_id: body.site_id,
           line_id: line.id,

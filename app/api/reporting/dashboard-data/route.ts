@@ -6,6 +6,15 @@ import { prisma } from '@/lib/prisma';
 /**
  * GET /api/reporting/dashboard-data
  *
+ * M8.13 GOVERNANCE: ADAPTER — org-wide cross-event EVM aggregation.
+ *
+ * This endpoint aggregates EVM metrics across ALL active projects in the org.
+ * The authoritative EvmCalculationService (M8.10) requires eventId + baselineId,
+ * so org-wide aggregation uses a cost-weighted inline computation that mirrors
+ * the same BCWP/BCWS/ACWP formulas.
+ *
+ * For single-event EVM, use GET /api/events/[eventId]/evm.
+ *
  * Aggregates real-time data from the scheduling engine for the Reporting Dashboard:
  *  - EVM summary (SPI, CPI, SV, CV, EAC, BAC) across all active projects
  *  - Lookahead: activities starting/finishing within 72 hours

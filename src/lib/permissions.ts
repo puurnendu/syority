@@ -72,6 +72,17 @@ export type Permission =
   | 'workpacks.export.pdf'
   | 'workpacks.export.xml'
   | 'workpacks.export.excel'
+  // M12-R0.1: Execution permissions
+  | 'execution.view'
+  | 'execution.release'
+  | 'execution.start'
+  | 'execution.update'
+  | 'execution.hold'
+  | 'execution.complete'
+  | 'execution.verify'
+  | 'execution.close'
+  | 'execution.delay'
+  | 'execution.bulk'
   | 'nav.schedule'
   | 'nav.portfolio'
   | 'nav.billing'
@@ -210,6 +221,28 @@ const WORKPACK_CRUD: Permission[] = [
 
 const WORKPACK_FULL: Permission[] = [...WORKPACK_CRUD, 'workpacks.approve'];
 
+const EXECUTION_VIEW: Permission[] = ['execution.view'];
+const EXECUTION_FIELD: Permission[] = [
+  'execution.view',
+  'execution.start',
+  'execution.update',
+  'execution.hold',
+  'execution.complete',
+  'execution.delay',
+];
+const EXECUTION_QA: Permission[] = ['execution.view', 'execution.verify'];
+const EXECUTION_MGMT: Permission[] = [
+  'execution.view',
+  'execution.release',
+  'execution.close',
+  'execution.bulk',
+];
+const EXECUTION_FULL: Permission[] = [
+  ...EXECUTION_FIELD,
+  ...EXECUTION_QA,
+  ...EXECUTION_MGMT,
+];
+
 const TENANT_ADMIN_PERMS: Permission[] = [
   'settings.view',
   'settings.org.view',
@@ -238,6 +271,7 @@ const TENANT_ADMIN_PERMS: Permission[] = [
   'masterdata.bolts.edit',
   'masterdata.blinds.edit',
   ...WORKPACK_FULL,
+  ...EXECUTION_FULL,
   'nav.schedule',
   'nav.portfolio',
   'nav.operations',
@@ -475,6 +509,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
   project_manager: [
     ...WORKPACK_FULL,
+    ...EXECUTION_FULL,
     'nav.schedule',
     'nav.portfolio',
     'nav.operations',
@@ -508,6 +543,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   qa_qc_inspector: [
+    ...EXECUTION_QA,
     'workpacks.view',
     'workpacks.edit',
     'workpacks.approve',
@@ -604,6 +640,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'events.view',
   ],
   execution_engineer: [
+    ...EXECUTION_FULL,
     'workpacks.view',
     'workpacks.edit',
     'workpacks.export.pdf',
@@ -735,6 +772,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     ...HIERARCHY_VIEW,
   ],
   contractor: [
+    ...EXECUTION_FIELD,
     'workpacks.view',
     'workpacks.export.pdf',
     'system:view',

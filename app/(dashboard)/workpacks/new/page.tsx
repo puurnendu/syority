@@ -8,12 +8,12 @@ import { WorkpackCreateForm } from '@/components/Workpack/WorkpackCreateForm';
 export default async function NewWorkpackPage({
     searchParams,
 }: {
-    searchParams: Promise<{ project_id?: string }>;
+    searchParams: Promise<{ project_id?: string; event_id?: string }>;
 }) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) redirect('/login');
 
-    const { project_id: projectId } = await searchParams;
+    const { project_id: projectId, event_id: eventId } = await searchParams;
 
     let orgId = (session.user as { organization_id?: string })?.organization_id;
     if (!orgId) {
@@ -54,6 +54,7 @@ export default async function NewWorkpackPage({
                 sites={JSON.parse(JSON.stringify(sites))}
                 disciplines={JSON.parse(JSON.stringify(disciplines))}
                 initialProjectId={projectId}
+                initialEventId={eventId}
             />
         </div>
     );

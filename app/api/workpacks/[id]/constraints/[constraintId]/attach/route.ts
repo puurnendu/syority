@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     const filepath = join(uploadDir, filename);
     await writeFile(filepath, Buffer.from(await file.arrayBuffer()));
 
-    const attachment = await prisma.constraintAttachment.create({
+    const attachment = await prisma.constraint_attachments.create({
         data: {
             constraint_id: constraintId,
             filename: file.name,

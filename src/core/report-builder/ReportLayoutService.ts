@@ -45,7 +45,7 @@ export class ReportLayoutService {
     // Fall back to system
     return prisma.report_layouts.findFirst({
       where: { is_system: true, is_active: true },
-      orderBy: { sort_order: 'asc' },
+      orderBy: { created_at: 'asc' },
     });
   }
 

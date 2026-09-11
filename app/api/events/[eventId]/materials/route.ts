@@ -57,7 +57,7 @@ export async function GET(
     const workpackMap = new Map(workpacks.map((wp) => [wp.id, wp]));
 
     // Fetch all material lines
-    const lines = await prisma.workpackMaterialLine.findMany({
+    const lines = await prisma.workpack_material_lines.findMany({
         where: {
             workpack_id: { in: workpackIds },
             deleted_at: null,

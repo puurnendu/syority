@@ -50,7 +50,7 @@ export class ArtifactService {
         filename: opts.filename,
         content_type: CONTENT_TYPE_MAP[opts.outputFormat] ?? 'application/octet-stream',
         file_size_bytes: fileSizeBytes,
-        file_data: opts.fileData,
+        file_data: opts.fileData ? (opts.fileData as any) : null,
         file_path: opts.filePath,
         html_snapshot: opts.htmlContent,
         output_format: opts.outputFormat,
@@ -106,20 +106,25 @@ export class ArtifactService {
 
   /**
    * Get artifact for download. Increments download counter.
+   * Enforces tenant isolation when organizationId is supplied.
    */
-  static async getForDownload(id: string) {
-    const artifact = await prisma.report_artifacts.findUniqueOrThrow({
-      where: { id },
+  static async getForDownload(id: string, organizationId?: string) {
+    const where: any = { id };
+    if (organizationId) {
+      where.organization_id = organizationId;
+    }
+    const artifact = await prisma.report_artifacts.findFirstOrThrow({
+      where,
       select: {
         id: true, filename: true, content_type: true,
         file_data: true, file_path: true, html_snapshot: true,
-        output_format: true,
+        output_format: true, organization_id: true,
       },
     });
 
     // Increment download count
     await prisma.report_artifacts.update({
-      where: { id },
+      where: { id: artifact.id },
       data: {
         download_count: { increment: 1 },
         last_downloaded_at: new Date(),
@@ -177,9 +182,17 @@ export class ArtifactService {
   }
 
   /**
-   * Soft-delete (archive) an artifact.
+   * Soft-delete (archive) an artifact with tenant isolation check.
    */
-  static async archive(id: string) {
+  static async archive(id: string, organizationId?: string) {
+    if (organizationId) {
+      const existing = await prisma.report_artifacts.findFirst({
+        where: { id, organization_id: organizationId },
+      });
+      if (!existing) {
+        throw new Error(`Unauthorized or artifact not found: ${id}`);
+      }
+    }
     return prisma.report_artifacts.update({
       where: { id },
       data: { is_archived: true },
@@ -187,9 +200,17 @@ export class ArtifactService {
   }
 
   /**
-   * Hard-delete an artifact.
+   * Hard-delete an artifact with tenant isolation check.
    */
-  static async delete(id: string) {
+  static async delete(id: string, organizationId?: string) {
+    if (organizationId) {
+      const existing = await prisma.report_artifacts.findFirst({
+        where: { id, organization_id: organizationId },
+      });
+      if (!existing) {
+        throw new Error(`Unauthorized or artifact not found: ${id}`);
+      }
+    }
     return prisma.report_artifacts.delete({ where: { id } });
   }
 

@@ -37,7 +37,7 @@ export class ItemMatchingService {
     // 1. Try to find existing match
     // Note: This is an expensive scan if we don't have normalized columns, 
     // for now we'll do a basic exact match on the raw fields or filtered set.
-    const existingItems = await prisma.itemCatalog.findMany({
+    const existingItems = await prisma.item_catalog.findMany({
       where: {
         organization_id: orgId,
         item_category: data.category,
@@ -61,7 +61,7 @@ export class ItemMatchingService {
     const cleanName = data.description.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '');
     const generatedCode = `EXT-${timestamp}-${cleanName}`.toUpperCase();
 
-    const newItem = await prisma.itemCatalog.create({
+    const newItem = await prisma.item_catalog.create({
       data: {
         organization_id: orgId,
         item_code: generatedCode,

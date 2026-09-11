@@ -20,10 +20,27 @@ interface ExportItem {
   actCount: number;
 }
 
-interface Project {
+/**
+ * OD9.2 §6 — an export scope belongs to exactly ONE business domain.
+ *
+ * This page previously held a single `projects` list that was populated from
+ * `/api/projects` and, when no Projects existed, silently back-filled with STO Events
+ * mapped into a Project shape. The selected id was then always sent as `projectId`, so an
+ * Event id travelled through the export API as a Project id and was recorded that way in
+ * the export audit trail. §31 forbids fabricated Event mappings, so each option now
+ * carries its own domain and is sent under the matching parameter.
+ */
+interface ExportScope {
   id: string;
   name: string;
   code: string;
+  domain: 'project' | 'event';
+}
+
+/** Build the domain-correct query/body parameter for the selected scope. */
+function scopeParam(scope: ExportScope | undefined): Record<string, string> {
+  if (!scope) return {};
+  return scope.domain === 'project' ? { projectId: scope.id } : { eventId: scope.id };
 }
 
 const FORMATS = [
@@ -77,7 +94,7 @@ const UDF_OPTIONS = [
 ];
 
 export default function ScheduleExportPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ExportScope[]>([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -105,30 +122,42 @@ export default function ScheduleExportPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const loadProjects = async () => {
-      const r1 = await fetch('/api/projects');
-      const d1 = await r1.json();
-      const projects = Array.isArray(d1) ? d1 : (d1.projects ?? d1.data ?? []);
+    // Load BOTH domains and label each option, rather than treating Events as a
+    // stand-in for Projects when the Project list happens to be empty.
+    const loadScopes = async () => {
+      const scopes: ExportScope[] = [];
 
-      if (projects.length > 0) {
-        setProjects(projects);
-        return;
+      const r1 = await fetch('/api/projects');
+      if (r1.ok) {
+        const d1 = await r1.json();
+        const projects = Array.isArray(d1) ? d1 : (d1.projects ?? d1.data ?? []);
+        for (const p of projects as { id: string; name?: string; code?: string }[]) {
+          scopes.push({
+            id: p.id,
+            name: p.name ?? 'Project',
+            code: p.code ?? p.id.slice(0, 8),
+            domain: 'project',
+          });
+        }
       }
 
       const r2 = await fetch('/api/events');
       if (r2.ok) {
         const d2 = await r2.json();
         const events = Array.isArray(d2) ? d2 : (d2.events ?? d2.data ?? []);
-        setProjects(
-          events.map((e: { id: string; name?: string; title?: string; code?: string; reference?: string }) => ({
+        for (const e of events as { id: string; name?: string; title?: string; code?: string; reference?: string }[]) {
+          scopes.push({
             id: e.id,
             name: e.name ?? e.title ?? 'Event',
             code: e.code ?? e.reference ?? e.id.slice(0, 8),
-          }))
-        );
+            domain: 'event',
+          });
+        }
       }
+
+      setProjects(scopes);
     };
-    loadProjects();
+    loadScopes();
   }, []);
 
   useEffect(() => {
@@ -139,8 +168,10 @@ export default function ScheduleExportPage() {
     }
     const timer = setTimeout(async () => {
       setSearching(true);
-      const params = new URLSearchParams({ q: query });
-      if (selectedProject) params.set('projectId', selectedProject);
+      const params = new URLSearchParams({
+        q: query,
+        ...scopeParam(projects.find((p) => p.id === selectedProject)),
+      });
       const res = await fetch(`/api/export/search?${params}`);
       let data: { results?: SearchResult[] } = {};
       try {
@@ -154,7 +185,7 @@ export default function ScheduleExportPage() {
       setSearching(false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, selectedProject]);
+  }, [query, selectedProject, projects]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -171,8 +202,10 @@ export default function ScheduleExportPage() {
     let actCount = result.actCount;
 
     if (result.type === 'equipment_type' && result.equipTypeId) {
-      const params = new URLSearchParams({ equipTypeId: result.equipTypeId });
-      if (selectedProject) params.set('projectId', selectedProject);
+      const params = new URLSearchParams({
+        equipTypeId: result.equipTypeId,
+        ...scopeParam(projects.find((p) => p.id === selectedProject)),
+      });
       const res = await fetch(`/api/export/resolve-type?${params}`);
       const data = await res.json();
       const workpacks = data.workpacks ?? [];
@@ -228,7 +261,7 @@ export default function ScheduleExportPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          projectId: selectedProject || null,
+          ...scopeParam(projects.find((p) => p.id === selectedProject)),
           workpackIds: allWorkpackIds,
           format,
           udfConfig,
@@ -283,12 +316,31 @@ export default function ScheduleExportPage() {
           onChange={(e) => setSelectedProject(e.target.value)}
           className="w-full max-w-sm border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          <option value="">All projects</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.code})
-            </option>
-          ))}
+          <option value="">All scopes</option>
+          {/* The domain is shown explicitly so a Project and an STO Event are never
+              indistinguishable in this picker (OD9.2 §6). */}
+          {projects.filter((p) => p.domain === 'project').length > 0 && (
+            <optgroup label="Project">
+              {projects
+                .filter((p) => p.domain === 'project')
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.code})
+                  </option>
+                ))}
+            </optgroup>
+          )}
+          {projects.filter((p) => p.domain === 'event').length > 0 && (
+            <optgroup label="STO Event">
+              {projects
+                .filter((p) => p.domain === 'event')
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.code})
+                  </option>
+                ))}
+            </optgroup>
+          )}
         </select>
       </div>
 

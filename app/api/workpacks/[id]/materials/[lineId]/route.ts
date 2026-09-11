@@ -50,7 +50,7 @@ export async function PATCH(
   if (body.planner_notes !== undefined) updateData.plannerNotes = body.planner_notes;
   if (body.unit_of_measure !== undefined) updateData.unit_of_measure = body.unit_of_measure;
 
-  const count = await prisma.workpackMaterialLine.updateMany({
+  const count = await prisma.workpack_material_lines.updateMany({
     where: {
       id: lineId,
       workpack_id: id,
@@ -74,7 +74,7 @@ export async function DELETE(
   const { orgId } = orgScope(session!);
   const { id, lineId } = await context.params;
 
-  const count = await prisma.workpackMaterialLine.updateMany({
+  const count = await prisma.workpack_material_lines.updateMany({
     where: {
       id: lineId,
       workpack_id: id,

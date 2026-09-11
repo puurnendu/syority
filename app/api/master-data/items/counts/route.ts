@@ -7,8 +7,8 @@ export async function GET() {
   if (error) return error;
   const { orgId } = orgScope(session!);
 
-  const rows = await prisma.itemCatalog.groupBy({
-    by: ['item_category', 'status'],
+  const rows = await prisma.item_catalog.groupBy({
+    by: ['item_category'],
     where: {
       organization_id: orgId,
       deleted_at: null,
@@ -17,11 +17,9 @@ export async function GET() {
   });
 
   const counts: Record<string, number> = {};
-  const statusCounts: Record<string, number> = {};
   let total = 0;
   for (const row of rows) {
-    counts[row.item_category] = (counts[row.item_category] || 0) + row._count.id;
-    statusCounts[row.status] = (statusCounts[row.status] || 0) + row._count.id;
+    counts[row.item_category ?? 'uncategorized'] = (counts[row.item_category ?? 'uncategorized'] || 0) + row._count.id;
     total += row._count.id;
   }
 

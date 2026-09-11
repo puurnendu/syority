@@ -56,10 +56,28 @@ export default async function EventDetailPage({ params }: { params: Promise<{ ev
           {event.status}
         </span>
         <Link
+          href={`/events/${eventId}/management-intelligence`}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-violet-700 text-white text-sm font-semibold rounded-lg hover:bg-violet-800"
+        >
+          Management intelligence
+        </Link>
+        <Link
+          href={`/events/${eventId}/control-tower`}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-900"
+        >
+          Control Tower
+        </Link>
+        <Link
           href={`/events/${eventId}/ta-dashboard`}
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700"
         >
           📊 TA Dashboard
+        </Link>
+        <Link
+          href={`/events/${eventId}/execution-readiness`}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700"
+        >
+          🚀 Execution Readiness
         </Link>
         <Link
           href={`/events/${eventId}/safety`}
@@ -72,12 +90,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ ev
           className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50"
         >
           ✏️ Edit Details
-        </Link>
-        <Link
-          href={`/events/${eventId}/phases`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50"
-        >
-          ⏱️ Phases
         </Link>
         <EventActionsClient eventId={eventId} currentStatus={event.status} />
       </div>

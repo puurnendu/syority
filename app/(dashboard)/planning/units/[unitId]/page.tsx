@@ -55,7 +55,7 @@ export default async function UnitDetailPage({
         })
       : 0,
     systemIds.length
-      ? prisma.systemBlind.count({
+      ? prisma.system_blinds.count({
           where: { system_id: { in: systemIds } },
         })
       : 0,

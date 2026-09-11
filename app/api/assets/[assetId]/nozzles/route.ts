@@ -15,7 +15,7 @@ export async function GET(
     select: { id: true },
   });
   if (!asset) return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
-  const nozzles = await prisma.nozzle.findMany({
+  const nozzles = await prisma.nozzles.findMany({
     where: { asset_id: assetId, deleted_at: null },
     orderBy: [{ sequence_number: 'asc' }, { designation: 'asc' }],
     include: { joint_master: { select: { id: true, joint_number: true } } },
@@ -38,7 +38,7 @@ export async function POST(
   if (!asset) return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
   const body = await req.json().catch(() => null);
   if (!body?.designation?.trim()) return NextResponse.json({ error: 'designation is required' }, { status: 400 });
-  const nozzle = await prisma.nozzle.create({
+  const nozzle = await prisma.nozzles.create({
     data: {
       organization_id: orgId,
       asset_id: assetId,

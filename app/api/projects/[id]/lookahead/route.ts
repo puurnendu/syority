@@ -1,42 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { guardApi } from '@/lib/apiGuard';
+import { guardApi, orgScope } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
-import { SchedulingService } from '@/modules/Scheduling/Services/SchedulingService';
+import { ProjectReportError, ProjectReportService } from '@/core/project/ProjectReportService';
 
 export const GET = withTenantGuard(async (req: NextRequest, { params }, session) => {
   const { error } = await guardApi('workpacks.view');
   if (error) return error;
-
+  const { orgId } = orgScope(session!);
   const { id: projectId } = await params;
-  const orgId = session.user.organization_id;
-  const { searchParams } = new URL(req.url);
-  const windowDays = parseInt(searchParams.get('days') || searchParams.get('window') || '7');
-
+  const days = parseInt(new URL(req.url).searchParams.get('days') || '7', 10);
   try {
-    const raw = await SchedulingService.getLookaheadActivities(projectId, orgId, windowDays);
-    const now = new Date();
-    const activities = raw
-      .filter((a: { status?: string | null }) => String(a.status ?? '').toLowerCase() !== 'complete')
-      .map((a: any) => ({
-        ...a,
-        workpackTitle: a.workpack?.title,
-        workpackNumber: a.workpack?.workpack_id_code ?? a.workpack?.workpack_number,
-      }));
-    const overdue = activities.filter(
-      (a: any) => (a.planned_end || a.early_finish) && new Date(a.planned_end || a.early_finish) < now
-    );
-    const byWindow: Record<string, typeof activities> = {};
-    for (const a of activities) {
-      const key = a.window ?? 'Unassigned';
-      if (!byWindow[key]) byWindow[key] = [];
-      byWindow[key].push(a);
-    }
-    return NextResponse.json({ activities, byWindow, overdue, days: windowDays });
-  } catch (err: any) {
-    console.error('Lookahead Fetch Error:', err);
-    return NextResponse.json(
-      { error: 'Failed to fetch lookahead activities' },
-      { status: 500 }
-    );
+    const data = await ProjectReportService.lookahead(orgId, projectId, Number.isFinite(days) ? days : 7);
+    return NextResponse.json(data);
+  } catch (err) {
+    if (err instanceof ProjectReportError) return NextResponse.json({ error: err.message }, { status: 404 });
+    throw err;
   }
 });

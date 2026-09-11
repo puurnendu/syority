@@ -10,7 +10,7 @@ export async function PATCH(
   if (error) return error;
   const { orgId } = orgScope(session!);
   const { unitId, respId } = await params;
-  const resp = await prisma.unitResponsibility.findFirst({
+  const resp = await prisma.unit_responsibilities.findFirst({
     where: { id: respId, unit_id: unitId, unit: { organization_id: orgId } },
     select: { id: true },
   });
@@ -23,7 +23,7 @@ export async function PATCH(
   if (body.receives_daily_briefing !== undefined) data.receives_daily_briefing = Boolean(body.receives_daily_briefing);
   if (body.receives_overdue_alerts !== undefined) data.receives_overdue_alerts = Boolean(body.receives_overdue_alerts);
   if (body.valid_to !== undefined) data.valid_to = body.valid_to ? new Date(body.valid_to) : null;
-  const updated = await prisma.unitResponsibility.update({
+  const updated = await prisma.unit_responsibilities.update({
     where: { id: respId },
     data: data as any,
     include: { user: { select: { id: true, name: true, email: true } } },
@@ -39,12 +39,12 @@ export async function DELETE(
   if (error) return error;
   const { orgId } = orgScope(session!);
   const { unitId, respId } = await params;
-  const resp = await prisma.unitResponsibility.findFirst({
+  const resp = await prisma.unit_responsibilities.findFirst({
     where: { id: respId, unit_id: unitId, unit: { organization_id: orgId } },
     select: { id: true },
   });
   if (!resp) return NextResponse.json({ error: 'Responsibility not found' }, { status: 404 });
-  await prisma.unitResponsibility.update({
+  await prisma.unit_responsibilities.update({
     where: { id: respId },
     data: { is_active: false },
   });

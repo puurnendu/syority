@@ -49,8 +49,9 @@ export async function POST(
     const category = VALID_CATEGORIES.includes(t.category) ? t.category : 'General';
     const toolType = ['Standard', 'Special', 'Hired', 'Consumable'].includes(t.toolType ?? '') ? t.toolType : 'Standard';
 
-    const tool = await prisma.workpackTool.create({
+    const tool = await prisma.workpack_tools.create({
       data: {
+        id: crypto.randomUUID(),
         organization_id: orgId,
         workpack_id: workpackId,
         category: category as any,
@@ -64,6 +65,7 @@ export async function POST(
         notes: (t.notes ?? '').toString().trim() || null,
         status: 'Required',
         ai_generated: true,
+        updated_at: new Date(),
       },
     });
     created.push(tool.id);

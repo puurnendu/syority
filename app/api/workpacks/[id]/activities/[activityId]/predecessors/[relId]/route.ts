@@ -4,9 +4,10 @@ import { prisma } from '@/lib/prisma';
 
 type RelationshipType = 'FS' | 'SS' | 'FF' | 'SF';
 
-function lagHoursToDays(hours: number | null | undefined): number {
+/** Sprint 1a — canonical lag is working minutes (lag_minutes); no /8 divisor. */
+function lagHoursToMinutes(hours: number | null | undefined): number {
     if (hours == null || Number.isNaN(hours)) return 0;
-    return Math.round((Number(hours) / 8) * 100) / 100;
+    return Math.round(Number(hours) * 60);
 }
 
 export async function PATCH(
@@ -24,9 +25,9 @@ export async function PATCH(
         });
         if (!rel) return NextResponse.json({ error: 'Relationship not found' }, { status: 404 });
 
-        const updateData: { relationship_type?: RelationshipType; lag_days?: number } = {};
+        const updateData: { relationship_type?: RelationshipType; lag_minutes?: number } = {};
         if (body.type != null) updateData.relationship_type = body.type as RelationshipType;
-        if (body.lagHours != null) updateData.lag_days = lagHoursToDays(body.lagHours);
+        if (body.lagHours != null) updateData.lag_minutes = lagHoursToMinutes(body.lagHours);
 
         const updated = await prisma.activityRelationship.update({
             where: { id: relId },

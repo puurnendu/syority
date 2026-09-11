@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { getStandardJointsForType } from '@/lib/ai/jointExtraction';
 import { loadProviderForJob, callTextAi } from '@/services/ai/ProviderLoader';
 import { generateSyorityAI, SyorityAiConfig } from './universalAiClient';
+const crypto = globalThis.crypto;
 
 type AutoFillOptions = {
   joints?: boolean;
@@ -80,7 +81,7 @@ async function generateMaterialsAutoFill(
   },
   settings: { model: string; apiKey: string; maxTokens: number; temperature: number }
 ) {
-  const existing = await prisma.workpackMaterialLine.count({
+  const existing = await prisma.workpack_material_lines.count({
     where: { workpack_id: workpackId, deleted_at: null },
   });
   if (existing > 0) return;
@@ -130,7 +131,7 @@ Generate gaskets (1 per joint), bolts/nuts per joint, blind gaskets, welding/cle
 
   for (const m of materials) {
     if (!m.description?.trim()) continue;
-    await prisma.workpackMaterialLine.create({
+    await prisma.workpack_material_lines.create({
       data: {
         organization_id: orgId,
         workpack_id: workpackId,
@@ -162,7 +163,7 @@ async function generateToolsAutoFill(
   },
   settings: { model: string; apiKey: string; maxTokens: number; temperature: number }
 ) {
-  const existing = await prisma.workpackTool.count({
+  const existing = await prisma.workpack_tools.count({
     where: { workpack_id: workpackId },
   });
   if (existing > 0) return;
@@ -200,8 +201,9 @@ Include: Rigging (crane, slings, chain blocks), Mechanical (torque wrench, flang
     if (!name) continue;
     const category = validCategories.includes(String(o.category)) ? (o.category as string) : 'General';
     const toolType = validToolTypes.includes(String(o.toolType)) ? (o.toolType as string) : 'Standard';
-    await prisma.workpackTool.create({
+    await prisma.workpack_tools.create({
       data: {
+        id: crypto.randomUUID(),
         workpack_id: workpackId,
         organization_id: orgId,
         category: category as 'Rigging' | 'Lifting' | 'Mechanical' | 'Electrical' | 'Hydraulic' | 'Measurement' | 'Safety' | 'Cleaning' | 'Welding' | 'Scaffolding' | 'General',
@@ -214,6 +216,7 @@ Include: Rigging (crane, slings, chain blocks), Mechanical (torque wrench, flang
         notes: (o.notes != null ? String(o.notes) : null) || null,
         source: 'ai',
         ai_generated: true,
+        updated_at: new Date(),
       },
     });
   }

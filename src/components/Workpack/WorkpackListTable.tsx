@@ -24,10 +24,14 @@ export function WorkpackListTable({
     workpacks,
     userRole,
     children,
+    selected,
+    onToggle,
 }: {
     workpacks: WorkpackListItem[];
     userRole: string | undefined;
     children: React.ReactNode;
+    selected?: Set<string>;
+    onToggle?: (id: string) => void;
 }) {
     const router = useRouter();
     const [deleteTarget, setDeleteTarget] = useState<WorkpackListItem | null>(null);
@@ -63,6 +67,8 @@ export function WorkpackListTable({
                         workpacks={workpacks}
                         userRole={userRole}
                         onRequestDelete={setDeleteTarget}
+                        selected={selected}
+                        onToggle={onToggle}
                     />
                 </table>
             </div>

@@ -47,7 +47,7 @@ export async function processInboundMessage(payload: unknown): Promise<void> {
 async function processSingleMessage(msg: MetaMessage): Promise<void> {
   const phone = msg.from.startsWith('+') ? msg.from : `+${msg.from}`;
 
-  const existing = await prisma.whatsappUpdate.findFirst({
+  const existing = await prisma.whatsapp_updates.findFirst({
     where: { meta_message_id: msg.id },
   });
   if (existing) return;
@@ -65,7 +65,7 @@ async function processSingleMessage(msg: MetaMessage): Promise<void> {
 
   if (!user) {
     await sendWhatsAppMessage(phone, buildReply('unregistered', 'en'));
-    await prisma.whatsappUpdate.create({
+    await prisma.whatsapp_updates.create({
       data: {
         phone_number: phone,
         meta_message_id: msg.id,
@@ -80,7 +80,7 @@ async function processSingleMessage(msg: MetaMessage): Promise<void> {
   const orgId = user.organization_id!;
   const lang = user.preferred_language ?? 'en';
 
-  const session = await prisma.whatsappSession.findFirst({
+  const session = await prisma.whatsapp_sessions.findFirst({
     where: { phone_number: phone },
   });
   const isSessionReply =
@@ -133,7 +133,7 @@ async function processSingleMessage(msg: MetaMessage): Promise<void> {
   if (extracted.is_query || extracted.detected_intent === 'query') {
     const reply = await handleQuery(extracted, user, orgId, detectedLang);
     await sendWhatsAppMessage(phone, reply);
-    await prisma.whatsappUpdate.create({
+    await prisma.whatsapp_updates.create({
       data: {
         organization_id: orgId,
         user_id: user.id,
@@ -237,22 +237,13 @@ async function processSingleMessage(msg: MetaMessage): Promise<void> {
       detected_language: detectedLang,
     });
   } else if (finalConfidence >= 0.9) {
-    await applyProgressUpdate(
-      match.best_match,
-      extracted.progress_percent ?? 0,
-      user.id,
-      'whatsapp'
-    );
-    status = 'auto_updated';
-    replySent = buildReply('confirmed', detectedLang, {
+    // M16-R5 P0-1: conversational WhatsApp MUST NOT auto-execute via EWS.
+    // High-confidence matches are parked for governed pipeline / planner review.
+    status = 'parked_review';
+    replySent = buildReply('parked', detectedLang, {
       workpack: match.best_match.workpack_code,
       activity: match.best_match.activity_desc ?? 'workpack',
       progress: extracted.progress_percent ?? 0,
-      time: new Date().toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Kolkata',
-      }),
     });
   } else if (finalConfidence >= 0.75) {
     status = 'parked_review';
@@ -268,7 +259,7 @@ async function processSingleMessage(msg: MetaMessage): Promise<void> {
 
   await sendWhatsAppMessage(phone, replySent);
 
-  await prisma.whatsappUpdate.create({
+  await prisma.whatsapp_updates.create({
     data: {
       organization_id: orgId,
       user_id: user.id,
@@ -300,34 +291,16 @@ async function processSingleMessage(msg: MetaMessage): Promise<void> {
 }
 
 async function applyProgressUpdate(
-  match: { workpack_id: string; activity_id: string | null },
-  progress: number,
-  userId: string,
-  _source: string
-): Promise<void> {
-  if (match.activity_id) {
-    await prisma.activity.update({
-      where: { id: match.activity_id },
-      data: {
-        progress_percent: progress,
-        status: progress >= 100 ? 'completed' : 'in_progress',
-        updated_by: userId,
-      },
-    });
-  }
-  const activities = await prisma.activity.findMany({
-    where: { workpack_id: match.workpack_id, deleted_at: null },
-    select: { progress_percent: true },
-  });
-  if (activities.length > 0) {
-    const avg =
-      activities.reduce((s, a) => s + (a.progress_percent ?? 0), 0) /
-      activities.length;
-    await prisma.workpack.update({
-      where: { id: match.workpack_id },
-      data: { overall_progress: Math.round(avg), updated_by: userId },
-    });
-  }
+  _match: { workpack_id: string; activity_id: string | null; organization_id?: string },
+  _progress: number,
+  _userId: string,
+  _orgId: string
+): Promise<{ success: boolean; error?: string }> {
+  // Conversational auto-apply is disabled. Governed path is the M16 pipeline only.
+  return {
+    success: false,
+    error: 'WhatsApp auto-execution is disabled. Use the governed M16 WhatsApp pipeline.',
+  };
 }
 
 async function upsertSession(
@@ -341,7 +314,7 @@ async function upsertSession(
   }
 ): Promise<void> {
   const expires = new Date(Date.now() + 10 * 60 * 1000);
-  await prisma.whatsappSession.upsert({
+  await prisma.whatsapp_sessions.upsert({
     where: { phone_number: phone },
     create: {
       phone_number: phone,
@@ -391,21 +364,30 @@ async function handleSessionReply(
     }
 
     const progress = pending?.progress ?? 0;
-    await applyProgressUpdate(selected, progress, user.id, 'whatsapp');
+    const result = await applyProgressUpdate(selected, progress, user.id, orgId);
 
-    const reply = buildReply('confirmed', dl, {
-      workpack: selected.workpack_code,
-      activity: selected.activity_desc ?? '',
-      progress,
-      time: new Date().toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Kolkata',
-      }),
-    });
+    let reply: string;
+    if (result.success) {
+      reply = buildReply('confirmed', dl, {
+        workpack: selected.workpack_code,
+        activity: selected.activity_desc ?? '',
+        progress,
+        time: new Date().toLocaleTimeString('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Asia/Kolkata',
+        }),
+      });
+    } else {
+      reply = buildReply('parked', dl, {
+        workpack: selected.workpack_code,
+        activity: selected.activity_desc ?? '',
+        progress,
+      });
+    }
     await sendWhatsAppMessage(phone, reply);
 
-    await prisma.whatsappUpdate.create({
+    await prisma.whatsapp_updates.create({
       data: {
         organization_id: orgId,
         user_id: user.id,
@@ -437,31 +419,40 @@ async function handleSessionReply(
       job_description: extracted.job_description ?? null,
     }, user.id);
 
-    await prisma.whatsappSession.update({
+    await prisma.whatsapp_sessions.update({
       where: { phone_number: phone },
       data: { state: 'idle', pending_data: undefined },
     });
 
     if (match.best_match) {
       const prog = extracted.progress_percent ?? 0;
-      await applyProgressUpdate(match.best_match, prog, user.id, 'whatsapp');
-      const reply = buildReply('confirmed', dl, {
-        workpack: match.best_match.workpack_code,
-        activity: match.best_match.activity_desc ?? '',
-        progress: prog,
-        time: new Date().toLocaleTimeString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'Asia/Kolkata',
-        }),
-      });
+      const result = await applyProgressUpdate(match.best_match, prog, user.id, orgId);
+      let reply: string;
+      if (result.success) {
+        reply = buildReply('confirmed', dl, {
+          workpack: match.best_match.workpack_code,
+          activity: match.best_match.activity_desc ?? '',
+          progress: prog,
+          time: new Date().toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Asia/Kolkata',
+          }),
+        });
+      } else {
+        reply = buildReply('parked', dl, {
+          workpack: match.best_match.workpack_code,
+          activity: match.best_match.activity_desc ?? '',
+          progress: prog,
+        });
+      }
       await sendWhatsAppMessage(phone, reply);
     } else {
       await sendWhatsAppMessage(phone, buildReply('ask_resend', dl));
     }
   }
 
-  await prisma.whatsappSession.update({
+  await prisma.whatsapp_sessions.update({
     where: { phone_number: phone },
     data: {
       state: 'idle',

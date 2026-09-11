@@ -24,10 +24,10 @@ export class JobCompletionService {
         ]);
 
         // ClearanceForBoxup has no @relation to ClearanceSignOff — use separate query
-        const clearance = await prisma.clearanceForBoxup.findUnique({ where: { workpack_id: workpackId } });
+        const clearance = await prisma.clearance_for_boxup.findUnique({ where: { workpack_id: workpackId } });
         let pendingSignOffs = 0;
         if (clearance) {
-            pendingSignOffs = await prisma.clearanceSignOff.count({
+            pendingSignOffs = await prisma.clearance_sign_offs.count({
                 where: { clearance_id: clearance.id, signed_at: null },
             });
         }
@@ -43,7 +43,7 @@ export class JobCompletionService {
     }
 
     static async getCertificate(workpackId: string, _orgId: string) {
-        return prisma.jobCompletionCertificate.findUnique({ where: { workpack_id: workpackId } });
+        return prisma.job_completion_certificates.findUnique({ where: { workpack_id: workpackId } });
     }
 
     static async createCertificate(workpackId: string, orgId: string, userId: string) {
@@ -58,7 +58,7 @@ export class JobCompletionService {
 
         const workpack = await prisma.workpack.findUnique({ where: { id: workpackId }, select: { workpack_number: true } });
 
-        const cert = await prisma.jobCompletionCertificate.create({
+        const cert = await prisma.job_completion_certificates.create({
             data: {
                 organization_id: orgId,
                 workpack_id: workpackId,
@@ -89,10 +89,10 @@ export class JobCompletionService {
         lessons_learnt_summary?: string | null;
         client_name?: string | null;
     }) {
-        const cert = await prisma.jobCompletionCertificate.findUnique({ where: { workpack_id: workpackId } });
+        const cert = await prisma.job_completion_certificates.findUnique({ where: { workpack_id: workpackId } });
         if (!cert || cert.organization_id !== orgId) throw new Error('Not found');
 
-        const updated = await prisma.jobCompletionCertificate.update({
+        const updated = await prisma.job_completion_certificates.update({
             where: { id: cert.id },
             data: {
                 ...(data.scope_summary !== undefined ? { scope_summary: data.scope_summary } : {}),
@@ -112,7 +112,7 @@ export class JobCompletionService {
      * role: 'maint_engineer' | 'operations' | 'qa' | 'client'
      */
     static async signCertificate(workpackId: string, orgId: string, userId: string, role: 'maint_engineer' | 'operations' | 'qa' | 'client') {
-        const cert = await prisma.jobCompletionCertificate.findUnique({ where: { workpack_id: workpackId } });
+        const cert = await prisma.job_completion_certificates.findUnique({ where: { workpack_id: workpackId } });
         if (!cert || cert.organization_id !== orgId) throw new Error('JCC not found');
 
         const fieldMap: Record<string, { idField: string; atField: string }> = {
@@ -130,7 +130,7 @@ export class JobCompletionService {
             [atField]: new Date(),
         };
 
-        const updated = await prisma.jobCompletionCertificate.update({ where: { id: cert.id }, data: updateData });
+        const updated = await prisma.job_completion_certificates.update({ where: { id: cert.id }, data: updateData });
         await AuditService.log({ organization_id: orgId, user_id: userId, action: 'updated', model_name: 'JobCompletionCertificate', model_id: cert.id, new_values: { role, signed_at: new Date().toISOString() } });
         return updated;
     }

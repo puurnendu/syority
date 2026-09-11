@@ -1,6 +1,18 @@
 import { prisma } from '@/lib/prisma';
 import { CalendarEngine } from '@/lib/CalendarEngine';
 
+/**
+ * PROJECT-domain CPM authority (OD9.3).
+ *
+ * @deprecated For STO use — M11 (`ScheduleOrchestrationService` +
+ * `src/lib/scheduleEngine.ts`) is the sole STO Event CPM authority. This class
+ * is retained as the PROJECT-domain CPM: it must not call `prisma.event` and
+ * must not be used as STO scheduling authority.
+ *
+ * `calculateProjectSchedule` walks Project → Workpack → Activity, supports
+ * FS/SS/FF/SF + lag, and persists ES/EF/LS/LF/total float/free float/critical.
+ * Calendars are organisation-scoped.
+ */
 export class SchedulingService {
   /**
    * Builds a CalendarEngine for the given org — uses the org's default
@@ -32,17 +44,16 @@ export class SchedulingService {
    * All dates are computed by CalendarEngine.addWorkingDays() from a determined
    * project start date.
    */
-  static async calculateProjectSchedule(projectId: string, orgId: string) {
+  static async calculateProjectSchedule(projectId: string, orgId: string, db: typeof prisma = prisma) {
     const calendar = await this.buildCalendar(orgId);
 
-    // 1. Fetch activities via workpacks linked to this project
-    const activities = await prisma.activity.findMany({
+    // 1. Fetch activities via workpacks linked to this project.
+    //    OD9.1: Activity.project_id was retired (it never existed as a database column),
+    //    so the association is reached through the Workpack only.
+    const activities = await db.activity.findMany({
       where: {
         organization_id: orgId,
-        OR: [
-          { project_id: projectId },
-          { workpack: { project_id: projectId } }
-        ],
+        workpack: { project_id: projectId },
       },
       include: {
         predecessors: true,
@@ -53,12 +64,14 @@ export class SchedulingService {
     if (activities.length === 0) return { success: true, count: 0, activities: [] };
 
     // Resolve project start date: use the earliest planned_start or today
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { plannedSdDate: true },
+    // OD9.2 §15: the field is `planned_sd_date`. This previously used the pre-OD9
+    // camelCase alias, which made every Project CPM run throw at the Prisma layer.
+    const project = await db.project.findFirst({
+      where: { id: projectId, org_id: orgId },
+      select: { planned_sd_date: true },
     });
-    const projectStart: Date = project?.plannedSdDate
-      ? new Date(project.plannedSdDate)
+    const projectStart: Date = project?.planned_sd_date
+      ? new Date(project.planned_sd_date)
       : (() => {
           const d = new Date();
           d.setHours(8, 0, 0, 0);
@@ -95,6 +108,12 @@ export class SchedulingService {
     // 3. Topological sort
     const sorted = this.topologicalSort(activities);
 
+    // Sprint 1a — canonical lag is working minutes; lag_days is the legacy fallback.
+    const lagOf = (rel: { lag_minutes?: number | null; lag_days?: number | null }): number =>
+      rel.lag_minutes != null
+        ? Number(rel.lag_minutes) / (calendar.getHoursPerDay() * 60)
+        : (rel.lag_days ?? 0);
+
     // 4. Forward pass (ES / EF)
     let maxEF = 0;
     for (const id of sorted) {
@@ -103,9 +122,12 @@ export class SchedulingService {
       for (const rel of node.predecessors) {
         const pred = nodeMap.get(rel.predecessor_id);
         if (!pred) continue;
-        const lag = rel.lag_days ?? 0;
-        // FS (default): successor ES = predecessor EF + lag
-        es = Math.max(es, pred.ef + lag);
+        const lag = lagOf(rel);
+        const type = rel.relationship_type ?? 'FS';
+        if (type === 'SS') es = Math.max(es, pred.es + lag);
+        else if (type === 'FF') es = Math.max(es, pred.ef + lag - node.duration_days);
+        else if (type === 'SF') es = Math.max(es, pred.es + lag - node.duration_days);
+        else es = Math.max(es, pred.ef + lag);
       }
       node.es = es;
       node.ef = es + node.duration_days;
@@ -121,8 +143,12 @@ export class SchedulingService {
         for (const rel of node.successors) {
           const succ = nodeMap.get(rel.successor_id);
           if (!succ) continue;
-          const lag = rel.lag_days ?? 0;
-          lf = Math.min(lf, succ.ls - lag);
+          const lag = lagOf(rel);
+          const type = rel.relationship_type ?? 'FS';
+          if (type === 'SS') lf = Math.min(lf, succ.ls - lag + node.duration_days);
+          else if (type === 'FF') lf = Math.min(lf, succ.lf - lag);
+          else if (type === 'SF') lf = Math.min(lf, succ.lf - lag + node.duration_days);
+          else lf = Math.min(lf, succ.ls - lag);
         }
         if (!isFinite(lf)) lf = maxEF;
       }
@@ -142,7 +168,7 @@ export class SchedulingService {
         for (const rel of node.successors) {
           const succ = nodeMap.get(rel.successor_id);
           if (!succ) continue;
-          const lag = rel.lag_days ?? 0;
+          const lag = lagOf(rel);
           minSuccES = Math.min(minSuccES, succ.es - lag);
         }
         node.ff = isFinite(minSuccES) ? minSuccES - node.ef : node.tf;
@@ -156,32 +182,27 @@ export class SchedulingService {
     // 8. Persist CPM results via a single $transaction
     const computedActivities = Array.from(nodeMap.values());
 
-    await prisma.$transaction(
-      computedActivities.map(a =>
-        prisma.activity.update({
-          where: { id: a.id },
-          data: {
-            early_start:  daysToDate(a.es),
-            early_finish: daysToDate(a.ef),
-            late_start:   daysToDate(a.ls),
-            late_finish:  daysToDate(a.lf),
-            total_float:  a.tf,
-            free_float:   a.ff,
-            is_critical:  a.is_critical,
-          },
-        })
-      )
-    );
+    for (const a of computedActivities) {
+      await db.activity.update({
+        where: { id: a.id },
+        data: {
+          early_start:  daysToDate(a.es),
+          early_finish: daysToDate(a.ef),
+          late_start:   daysToDate(a.ls),
+          late_finish:  daysToDate(a.lf),
+          total_float:  a.tf,
+          free_float:   a.ff,
+          is_critical:  a.is_critical,
+        },
+      });
+    }
 
     // 9. Return enriched activity list so the caller can push it straight to the
     //    frontend without a follow-up fetch (enables auto-refresh on the Gantt).
-    const updatedActivities = await prisma.activity.findMany({
+    const updatedActivities = await db.activity.findMany({
       where: {
         organization_id: orgId,
-        OR: [
-          { project_id: projectId },
-          { workpack: { project_id: projectId } },
-        ],
+        workpack: { project_id: projectId },
       },
       include: {
         predecessors: true,
@@ -202,22 +223,19 @@ export class SchedulingService {
    * Generates data for the S-Curve chart.
    */
   static async generateSCurveData(projectId: string, orgId: string) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { plannedSdDate: true, plannedSuDate: true },
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, org_id: orgId },
+      select: { planned_sd_date: true, planned_su_date: true },
     });
 
-    if (!project || !project.plannedSdDate || !project.plannedSuDate) {
+    if (!project || !project.planned_sd_date || !project.planned_su_date) {
       return [];
     }
 
     const activities = await prisma.activity.findMany({
       where: {
         organization_id: orgId,
-        OR: [
-          { project_id: projectId },
-          { workpack: { project_id: projectId } }
-        ],
+        workpack: { project_id: projectId },
       },
       select: {
         duration_hours: true,
@@ -229,8 +247,8 @@ export class SchedulingService {
 
     if (activities.length === 0) return [];
 
-    const startDate = new Date(project.plannedSdDate);
-    const endDate   = new Date(project.plannedSuDate);
+    const startDate = new Date(project.planned_sd_date);
+    const endDate   = new Date(project.planned_su_date);
     const totalDuration = activities.reduce(
       (sum, a) => sum + Number(a.duration_hours || 0),
       0
@@ -290,10 +308,7 @@ export class SchedulingService {
     return prisma.activity.findMany({
       where: {
         organization_id: orgId,
-        OR: [
-            { project_id: projectId },
-            { workpack: { project_id: projectId } }
-        ],
+        workpack: { project_id: projectId },
         AND: [
           {
             OR: [

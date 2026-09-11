@@ -21,9 +21,16 @@ import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 import { HierarchyTreePanel } from '@/components/planner-workspace/HierarchyTreePanel';
 import { WorkpackGrid } from '@/components/planner-workspace/WorkpackGrid';
 import { ActivityGrid } from '@/components/planner-workspace/ActivityGrid';
-import { InspectorPanel } from '@/components/planner-workspace/InspectorPanel';
+import { WorkspaceDetailPane } from '@/components/planner-workspace/WorkspaceDetailPane';
 import { BottomPanel } from '@/components/planner-workspace/BottomPanel';
 import { WorkspaceToolbar } from '@/components/planner-workspace/WorkspaceToolbar';
+import { ResourcePlanningDashboard } from '@/components/planner-workspace/resources/ResourcePlanningDashboard';
+import { ScheduleControlDashboard } from '@/components/planner-workspace/resources/ScheduleControlDashboard';
+import { ScenarioControlDashboard } from '@/components/planner-workspace';
+import { CostControlDashboard } from '@/components/planner-workspace/evm/CostControlDashboard';
+import { ScopeChangeDashboard } from '@/components/planner-workspace/ScopeChangeDashboard';
+import { MaterialReadinessDashboard } from '@/components/planner-workspace/MaterialReadinessDashboard';
+import { WorkspaceGantt } from '@/components/planner-workspace/WorkspaceGantt';
 
 export default function PlannerWorkspacePage() {
   const {
@@ -44,6 +51,7 @@ export default function PlannerWorkspacePage() {
     toggleTree,
     toggleInspector,
     toggleBottomPanel,
+    activeView,
     setActiveView,
   } = useWorkspaceStore();
 
@@ -269,10 +277,10 @@ export default function PlannerWorkspacePage() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden flex flex-col relative">
         {/* Upper section: Tree + Grids + Inspector */}
         <div
-          className="flex-1 overflow-hidden"
+          className="flex-1 min-w-[1024px] lg:min-w-0 overflow-hidden h-full"
           style={{
             display: 'grid',
             ...gridTemplate,
@@ -295,15 +303,32 @@ export default function PlannerWorkspacePage() {
 
           {/* Center: Workpack Grid + Activity Grid (stacked) */}
           <div className="flex flex-col overflow-hidden">
-            {/* Workpack Grid — upper half */}
-            <div className="flex-1 min-h-0 overflow-auto border-b border-gray-300">
-              <WorkpackGrid />
-            </div>
-
-            {/* Activity Grid — lower half */}
-            <div className="flex-1 min-h-0 overflow-auto">
-              <ActivityGrid />
-            </div>
+            {activeView === 'resources' ? (
+              <ResourcePlanningDashboard />
+            ) : activeView === 'schedule' ? (
+              <ScheduleControlDashboard />
+            ) : activeView === 'scenarios' ? (
+              <ScenarioControlDashboard eventId={selectedEventId!} />
+            ) : activeView === 'cost' ? (
+              <CostControlDashboard />
+            ) : activeView === 'scope_changes' ? (
+              <ScopeChangeDashboard />
+            ) : activeView === 'material_readiness' ? (
+              <MaterialReadinessDashboard />
+            ) : activeView === 'gantt' ? (
+              <WorkspaceGantt />
+            ) : (
+              <>
+                {/* Workpack Grid — upper half */}
+                <div className="flex-1 min-h-0 overflow-auto border-b border-gray-300">
+                  <WorkpackGrid />
+                </div>
+                {/* Activity Grid — lower half */}
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <ActivityGrid />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Inspector Panel */}
@@ -315,7 +340,7 @@ export default function PlannerWorkspacePage() {
                 onMouseDown={handleInspectorResize}
               />
               <div className="overflow-hidden">
-                <InspectorPanel />
+                <WorkspaceDetailPane />
               </div>
             </>
           )}

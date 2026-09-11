@@ -1,6 +1,9 @@
 /**
  * Extracts 4 structured fields from text (message or Whisper transcript).
  * Uses GPT-4o Mini. Returns per-field confidence for routing.
+ *
+ * @deprecated M16-R4 will replace this with M16 IntentClassifier + EntityResolver.
+ * This module calls OpenAI directly (bypassing ProviderLoader) and lacks event context.
  */
 
 export type ExtractedFields = {

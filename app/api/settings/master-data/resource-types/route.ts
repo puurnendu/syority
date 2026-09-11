@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     try {
         const types = await prisma.resourceType.findMany({
             where: { organization_id: orgId },
-            include: { discipline: true },
+            include: { Discipline: true },
             orderBy: { name: 'asc' }
         });
         return NextResponse.json(types);

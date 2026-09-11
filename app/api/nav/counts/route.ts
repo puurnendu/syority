@@ -29,7 +29,7 @@ export async function GET() {
                 },
             })
             .catch(() => 0),
-        prisma.whatsappUpdate
+        prisma.whatsapp_updates
             .count({
                 where: { organization_id: orgId, status: 'parked_review' },
             })

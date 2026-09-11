@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
+import { assertSameOrg } from '@/lib/tenantGuard';
+
+/** M8.14-R1 — Controlled criticality values (matches AssetCriticality enum) */
+const VALID_CRITICALITY = ['low', 'medium', 'high', 'critical'] as const;
+/** M8.14-R1 — Controlled status values (matches AssetStatus enum) */
+const VALID_STATUS = ['draft', 'active', 'retired'] as const;
 
 export async function GET(
   req: NextRequest,
@@ -17,6 +23,10 @@ export async function GET(
       system: { select: { id: true, name: true, code: true }, include: { unit: { select: { id: true, name: true, code: true }, include: { plant: { select: { id: true, name: true, code: true } } } } } },
       nozzles: { where: { deleted_at: null }, orderBy: { sequence_number: 'asc' } },
       line_connections: { include: { line: { select: { id: true, line_number: true, total_joint_count: true } } } },
+      attribute_values: {
+        include: { definition: { select: { code: true, name: true, unit: true, group_name: true, data_type: true } } },
+        orderBy: [{ definition: { group_sort_order: 'asc' } }, { definition: { sort_order: 'asc' } }],
+      },
       _count: { select: { joint_masters: true } },
     },
   });
@@ -36,7 +46,7 @@ export async function PATCH(
 ) {
   const { session, error } = await guardApi('masterdata.edit');
   if (error) return error;
-  const { orgId } = orgScope(session!);
+  const { orgId, userId } = orgScope(session!);
   const { assetId } = await params;
   const existing = await prisma.asset.findFirst({
     where: { id: assetId, organization_id: orgId, deleted_at: null },
@@ -44,12 +54,25 @@ export async function PATCH(
   });
   if (!existing) return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
   const body = await req.json().catch(() => ({}));
+
+  // M8.14-R1: Validate controlled enums
+  if (body.criticality !== undefined && body.criticality !== null && !VALID_CRITICALITY.includes(body.criticality)) {
+    return NextResponse.json({ error: `criticality must be one of: ${VALID_CRITICALITY.join(', ')}` }, { status: 400 });
+  }
+  if (body.status !== undefined && !VALID_STATUS.includes(body.status)) {
+    return NextResponse.json({ error: `status must be one of: ${VALID_STATUS.join(', ')}` }, { status: 400 });
+  }
+
   const data: Record<string, unknown> = {};
   const str = (v: unknown) => (v != null && typeof v === 'string' ? v.trim() : null);
   const num = (v: unknown) => (v != null && (typeof v === 'number' || !Number.isNaN(Number(v))) ? Number(v) : undefined);
   if (body.name !== undefined) data.name = str(body.name) ?? undefined;
   if (body.asset_type !== undefined) data.asset_type = str(body.asset_type) ?? null;
-  if (body.system_id !== undefined) data.system_id = body.system_id ?? null;
+  if (body.system_id !== undefined) {
+    // M8.14-R1: Validate system_id belongs to this org before updating FK
+    if (body.system_id) await assertSameOrg(prisma, orgId, 'system', body.system_id);
+    data.system_id = body.system_id ?? null;
+  }
   if (body.sap_equipment_number !== undefined) data.sap_equipment_number = str(body.sap_equipment_number) ?? null;
   if (body.description !== undefined) data.description = str(body.description) ?? null;
   if (body.manufacturer !== undefined) data.manufacturer = str(body.manufacturer) ?? null;
@@ -65,7 +88,9 @@ export async function PATCH(
   if (body.weight_operating_kg !== undefined) data.weight_operating_kg = num(body.weight_operating_kg) ?? null;
   if (body.service_description !== undefined) data.service_description = str(body.service_description) ?? null;
   if (body.fluid_service !== undefined) data.fluid_service = str(body.fluid_service) ?? null;
-  if (body.criticality !== undefined) data.criticality = str(body.criticality) ?? null;
+  if (body.criticality !== undefined) data.criticality = body.criticality ?? null;
+  // M8.14-R1: status transitions
+  if (body.status !== undefined) data.status = body.status;
   if (body.maintenance_strategy !== undefined) data.maintenance_strategy = str(body.maintenance_strategy) ?? null;
   if (body.inspection_interval_months !== undefined) data.inspection_interval_months = num(body.inspection_interval_months) ?? null;
   if (body.p_and_id_numbers !== undefined) data.p_and_id_numbers = Array.isArray(body.p_and_id_numbers) ? body.p_and_id_numbers : [];
@@ -75,6 +100,8 @@ export async function PATCH(
   if (body.elevation !== undefined) data.elevation = str(body.elevation) ?? null;
   if (body.train !== undefined) data.train = str(body.train) ?? null;
   if (body.sap_functional_location !== undefined) data.sap_functional_location = str(body.sap_functional_location) ?? null;
+  // M8.14-R1: Track who modified this equipment record
+  data.updated_by = userId;
   const asset = await prisma.asset.update({
     where: { id: assetId },
     data: data as any,

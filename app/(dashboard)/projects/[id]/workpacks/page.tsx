@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { WorkpackDashboard, WorkpackListItemDTO } from '@/components/Workpack/WorkpackDashboard';
+import { isLegacyProjectChainEnabled } from '@/lib/legacyProjectChain';
 
 /** Session user shape with organization_id (set by auth callbacks) */
 interface SessionUserWithOrg {
@@ -33,9 +34,17 @@ export default async function ProjectWorkpacksPage({
     const orgId = (session.user as SessionUserWithOrg)?.organization_id;
     if (!orgId) redirect('/login');
 
+    // Phase 0 item 5 — legacy Project workpacks view (STO Workpack model filtered
+    // by project_id), quarantined behind the LEGACY_PROJECT_CHAIN feature flag
+    // (default off). Project work is planned on the Project Schedule/WBS tabs;
+    // the STO workpack register is /workpacks.
+    if (!(await isLegacyProjectChainEnabled(orgId))) {
+        redirect(`/projects/${projectId}`);
+    }
+
     // Verify project exists and belongs to org
-    const project = await prisma.project.findUnique({
-        where: { id: projectId, orgId: orgId },
+    const project = await prisma.project.findFirst({
+        where: { id: projectId, org_id: orgId },
         select: { name: true }
     });
     if (!project) notFound();

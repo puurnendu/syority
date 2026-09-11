@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (status) where.status = status;
 
   const [updates, total, pendingCount, todayCount] = await Promise.all([
-    prisma.whatsappUpdate.findMany({
+    prisma.whatsapp_updates.findMany({
       where,
       select: {
         id: true,
@@ -38,18 +38,18 @@ export async function GET(req: NextRequest) {
         status: true,
         audio_storage_path: true,
         audio_duration_secs: true,
-        user: { select: { name: true } },
+        user_id: true,
         created_at: true,
       },
       orderBy: { created_at: 'desc' },
       skip,
       take: pageSize,
     }),
-    prisma.whatsappUpdate.count({ where }),
-    prisma.whatsappUpdate.count({
+    prisma.whatsapp_updates.count({ where }),
+    prisma.whatsapp_updates.count({
       where: { organization_id: orgId, status: 'parked_review' },
     }),
-    prisma.whatsappUpdate.count({
+    prisma.whatsapp_updates.count({
       where: {
         organization_id: orgId,
         created_at: {

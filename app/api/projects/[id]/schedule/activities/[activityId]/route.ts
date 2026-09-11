@@ -2,39 +2,51 @@ import { NextRequest, NextResponse } from 'next/server';
 import { guardApi } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
 import { prisma } from '@/lib/prisma';
-import { SchedulingService } from '@/modules/Scheduling/Services/SchedulingService';
+import { enqueueEventScheduleRecalculate } from '@/core/schedule/enqueueEventScheduleRecalculate';
+import { listedExecutionFields, EXECUTION_FIELD_REJECT_MESSAGE } from '@/core/execution/executionFieldGuard';
+import { listedPlannedDateFields, PLANNED_DATE_REJECT_MESSAGE } from '@/core/schedule/plannedDateGuard';
 
-// Fields that accept a Date value from the DB
-const DATE_FIELDS = ['planned_start', 'planned_end', 'actual_start', 'actual_end'] as const;
-
-// All fields the schedule grid is allowed to update
+// Planned schedule / configuration fields the schedule grid may update.
+// Execution status/progress/actuals are M12 EWS only.
+// Sprint 1b: planned_start/planned_end are CPM-derived — not in this list.
 const ALLOWED_FIELDS = [
   'activity_number', 'description', 'responsible', 'discipline',
   'notes', 'crew_size', 'duration_hours', 'remaining_duration',
-  'status', 'progress_percent', 'wbs_code', 'sequence_number',
-  'planned_start', 'planned_end', 'actual_start', 'actual_end',
+  'wbs_code', 'sequence_number',
 ] as const;
 
 export const PUT = withTenantGuard(async (req: NextRequest, { params }, session) => {
-  const { error } = await guardApi('projects.edit');
+  const { error } = await guardApi('nav.schedule');
   if (error) return error;
 
-  const { id: projectId, activityId } = await params;
+  const { activityId } = await params;
   const orgId = session.user.organization_id;
 
   try {
     const body = await req.json();
+
+    const executionFields = listedExecutionFields(body);
+    if (executionFields.length > 0) {
+      return NextResponse.json(
+        { error: EXECUTION_FIELD_REJECT_MESSAGE, rejectedFields: executionFields },
+        { status: 409 }
+      );
+    }
+
+    const plannedFields = listedPlannedDateFields(body);
+    if (plannedFields.length > 0) {
+      return NextResponse.json(
+        { error: PLANNED_DATE_REJECT_MESSAGE, rejectedFields: plannedFields },
+        { status: 409 }
+      );
+    }
 
     const dataToUpdate: Record<string, any> = {};
 
     for (const field of ALLOWED_FIELDS) {
       if (body[field] === undefined) continue;
 
-      if ((DATE_FIELDS as readonly string[]).includes(field)) {
-        // Accept ISO strings or null; store as Date for Prisma
-        const raw = body[field];
-        dataToUpdate[field] = raw ? new Date(raw) : null;
-      } else if (field === 'progress_percent' || field === 'crew_size' ||
+      if (field === 'crew_size' ||
                  field === 'duration_hours' || field === 'remaining_duration' ||
                  field === 'sequence_number') {
         dataToUpdate[field] = Number(body[field]);
@@ -51,7 +63,6 @@ export const PUT = withTenantGuard(async (req: NextRequest, { params }, session)
       where: {
         id: activityId,
         organization_id: orgId,
-        workpack: { project_id: projectId },
       },
       data: dataToUpdate,
     });
@@ -60,10 +71,17 @@ export const PUT = withTenantGuard(async (req: NextRequest, { params }, session)
       return NextResponse.json({ error: 'Activity not found or access denied' }, { status: 404 });
     }
 
-    // Trigger CPM recalculation when schedule-affecting fields change
-    const scheduleFields: string[] = ['planned_start', 'planned_end', 'actual_start', 'actual_end', 'duration_hours'];
+    const scheduleFields: string[] = ['duration_hours'];
     if (scheduleFields.some(f => dataToUpdate[f] !== undefined)) {
-      try { await SchedulingService.calculateProjectSchedule(projectId, orgId); } catch { /* non-fatal */ }
+      const activity = await prisma.activity.findFirst({
+        where: { id: activityId, organization_id: orgId },
+        select: { event_id: true, workpack_id: true },
+      });
+      await enqueueEventScheduleRecalculate({
+        organizationId: orgId,
+        eventId: activity?.event_id,
+        workpackId: activity?.workpack_id,
+      });
     }
 
     return NextResponse.json({ success: true });

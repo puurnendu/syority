@@ -37,13 +37,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id: templateId } = await params;
 
     const data = await req.json();
-    const lastSeq = await prisma.workpackTemplateActivity.aggregate({
+    const lastSeq = await prisma.workpack_template_activities.aggregate({
         where: { template_id: templateId },
         _max: { sequence_number: true }
     });
     const seq = (lastSeq._max.sequence_number || 0) + 1;
 
-    const activity = await prisma.workpackTemplateActivity.create({
+    const activity = await prisma.workpack_template_activities.create({
         data: {
             ...data,
             template_id: templateId,

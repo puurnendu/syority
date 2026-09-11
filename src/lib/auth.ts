@@ -154,3 +154,16 @@ export async function getUserIdFromRequest(req: NextRequest): Promise<string> {
     const id = token?.sub ?? token?.id;
     return typeof id === 'string' ? id : 'system';
 }
+
+export async function getAuthUser(): Promise<{ id: string; organization_id: string; email?: string; name?: string } | null> {
+    const { getServerSession } = await import('next-auth');
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return null;
+    return {
+        id: ((session.user as any).id || (session.user as any).sub) as string,
+        organization_id: (session.user as any).organization_id as string,
+        email: session.user.email || undefined,
+        name: session.user.name || undefined,
+    };
+}
+

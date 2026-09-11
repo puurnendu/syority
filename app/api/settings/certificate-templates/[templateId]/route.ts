@@ -12,7 +12,7 @@ export async function PATCH(
     const { orgId } = orgScope(session!);
     const { templateId } = await params;
 
-    const existing = await prisma.certificateTemplate.findFirst({
+    const existing = await prisma.certificate_templates.findFirst({
         where: { id: templateId },
         select: { is_platform: true, organization_id: true },
     });
@@ -40,7 +40,7 @@ export async function PATCH(
     if (body.fields != null) data.fields = body.fields;
     if (body.is_active != null) data.is_active = body.is_active;
 
-    const updated = await prisma.certificateTemplate.update({
+    const updated = await prisma.certificate_templates.update({
         where: { id: templateId },
         data: data,
     });
@@ -63,7 +63,7 @@ export async function DELETE(
     const { orgId } = orgScope(session!);
     const { templateId } = await params;
 
-    const existing = await prisma.certificateTemplate.findFirst({
+    const existing = await prisma.certificate_templates.findFirst({
         where: { id: templateId },
         select: { is_platform: true, organization_id: true },
     });
@@ -71,6 +71,6 @@ export async function DELETE(
     if (existing.is_platform) return NextResponse.json({ error: 'Platform templates cannot be deleted' }, { status: 403 });
     if (existing.organization_id !== orgId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    await prisma.certificateTemplate.delete({ where: { id: templateId } });
+    await prisma.certificate_templates.delete({ where: { id: templateId } });
     return NextResponse.json({ success: true });
 }

@@ -55,7 +55,7 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
         if (!workpack) return NextResponse.json({ error: 'Workpack not found' }, { status: 404 });
 
         // Get existing material lines from joints (for dedup)
-        const existingLines = await prisma.workpackMaterialLine.findMany({
+        const existingLines = await prisma.workpack_material_lines.findMany({
             where: {
                 workpack_id: workpackId,
                 source_type: 'joint',
@@ -112,7 +112,7 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
 
             // Strategy B: GasketBoltLookup fallback when joint has flange_size + rating + flange_type
             if (candidates.length === 0 && joint.flange_size && joint.rating && joint.flange_type) {
-                const lookup = await prisma.gasketBoltLookup.findFirst({
+                const lookup = await prisma.gasket_bolt_lookup.findFirst({
                     where: {
                         organization_id: orgId,
                         pipe_size: joint.flange_size,
@@ -158,7 +158,7 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
                 let sapNumber: string | null = null;
 
                 if (cand.item_catalog_id) {
-                    const catalog = await prisma.itemCatalog.findUnique({
+                    const catalog = await prisma.item_catalog.findUnique({
                         where: { id: cand.item_catalog_id },
                         select: { description: true, item_code: true, sap_material_number: true },
                     });
@@ -169,7 +169,7 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
                     }
                 }
 
-                const line = await prisma.workpackMaterialLine.create({
+                const line = await prisma.workpack_material_lines.create({
                     data: {
                         organization_id: orgId,
                         workpack_id: workpackId,

@@ -76,7 +76,7 @@ export class UDFQuantitySummaryProvider extends BaseProvider {
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
     // Get all workpack UDF values
-    const workpacks = await prisma.workpack.findMany({
+    const workpacks = await (prisma.workpack as any).findMany({
       where: {
         organization_id: ctx.organizationId,
         event_id: params.event,
@@ -151,7 +151,7 @@ export class UDFComparisonProvider extends BaseProvider {
   readonly optionalParams = ['udfCode'];
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
-    const workpacks = await prisma.workpack.findMany({
+    const workpacks = await (prisma.workpack as any).findMany({
       where: {
         organization_id: ctx.organizationId,
         event_id: params.event,

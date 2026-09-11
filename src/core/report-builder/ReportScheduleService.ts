@@ -28,10 +28,10 @@ export class ReportScheduleService {
   }
 
   /**
-   * Get a single schedule.
+   * Get a single schedule, with optional tenant ownership verification.
    */
-  static async getById(id: string) {
-    return prisma.report_schedules.findUnique({
+  static async getById(id: string, organizationId?: string) {
+    const schedule = await prisma.report_schedules.findUnique({
       where: { id },
       include: {
         definition: {
@@ -40,10 +40,16 @@ export class ReportScheduleService {
         recipients: true,
       },
     });
+
+    if (!schedule) return null;
+    if (organizationId && schedule.organization_id !== organizationId) {
+      return null;
+    }
+    return schedule;
   }
 
   /**
-   * Create a new schedule.
+   * Create a new schedule with tenant and event validation.
    */
   static async create(data: {
     organization_id: string;
@@ -65,6 +71,17 @@ export class ReportScheduleService {
     created_by: string;
     recipients?: Array<{ recipient_type: string; recipient_value: string; delivery_type?: string }>;
   }) {
+    // Event boundary verification
+    const eventId = data.parameters?.event ?? data.parameters?.eventId;
+    if (eventId) {
+      const event = await prisma.event.findFirst({
+        where: { id: eventId, organization_id: data.organization_id, deleted_at: null },
+      });
+      if (!event) {
+        throw new Error(`Unauthorized or invalid event: Event ${eventId} does not belong to organization ${data.organization_id}`);
+      }
+    }
+
     const { recipients, ...scheduleData } = data;
 
     const schedule = await prisma.report_schedules.create({
@@ -92,10 +109,27 @@ export class ReportScheduleService {
   }
 
   /**
-   * Update a schedule.
+   * Update a schedule with tenant isolation check.
    */
-  static async update(id: string, data: Record<string, any>, updatedBy?: string) {
+  static async update(id: string, data: Record<string, any>, updatedBy?: string, organizationId?: string) {
+    const current = await prisma.report_schedules.findUnique({ where: { id } });
+    if (!current) throw new Error(`Schedule not found: ${id}`);
+    if (organizationId && current.organization_id !== organizationId) {
+      throw new Error(`Unauthorized: Tenant ${organizationId} cannot update schedule ${id}`);
+    }
+
     const { recipients, ...rest } = data;
+
+    // Verify event ownership if parameters updated
+    const eventId = rest.parameters?.event ?? rest.parameters?.eventId;
+    if (eventId) {
+      const event = await prisma.event.findFirst({
+        where: { id: eventId, organization_id: current.organization_id, deleted_at: null },
+      });
+      if (!event) {
+        throw new Error(`Unauthorized or invalid event: Event ${eventId} does not belong to organization ${current.organization_id}`);
+      }
+    }
 
     // If recipients are provided, replace them
     if (recipients && Array.isArray(recipients)) {
@@ -112,7 +146,6 @@ export class ReportScheduleService {
 
     // Recompute next_run_at if frequency changed
     if (rest.frequency || rest.delivery_time || rest.day_of_week || rest.day_of_month) {
-      const current = await prisma.report_schedules.findUnique({ where: { id } });
       rest.next_run_at = ReportScheduleService.computeNextRun(
         rest.frequency ?? current?.frequency ?? 'manual',
         rest.delivery_time ?? current?.delivery_time ?? '06:00',
@@ -130,23 +163,34 @@ export class ReportScheduleService {
   }
 
   /**
-   * Delete a schedule and its recipients.
+   * Delete a schedule with tenant isolation check.
    */
-  static async delete(id: string) {
+  static async delete(id: string, organizationId?: string) {
+    const current = await prisma.report_schedules.findUnique({ where: { id } });
+    if (!current) throw new Error(`Schedule not found: ${id}`);
+    if (organizationId && current.organization_id !== organizationId) {
+      throw new Error(`Unauthorized: Tenant ${organizationId} cannot delete schedule ${id}`);
+    }
+
     await prisma.report_schedule_recipients.deleteMany({ where: { schedule_id: id } });
     return prisma.report_schedules.delete({ where: { id } });
   }
 
   /**
    * Trigger a schedule immediately — generates the report and enqueues for delivery.
+   * Strictly isolated to the owning organization.
    */
-  static async trigger(scheduleId: string): Promise<{ generationId: string; queued: number }> {
+  static async trigger(scheduleId: string, organizationId?: string): Promise<{ generationId: string; queued: number }> {
     const schedule = await prisma.report_schedules.findUniqueOrThrow({
       where: { id: scheduleId },
       include: { recipients: true, definition: true },
     });
 
-    // 1. Generate the report
+    if (organizationId && schedule.organization_id !== organizationId) {
+      throw new Error(`Unauthorized: Tenant ${organizationId} cannot trigger schedule ${scheduleId}`);
+    }
+
+    // 1. Generate the report strictly using the standard ReportGenerationService pipeline
     const genOpts: GenerateOptions = {
       definitionId: schedule.definition_id,
       organizationId: schedule.organization_id,

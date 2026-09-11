@@ -26,7 +26,7 @@ export async function GET(
             where: { workpack_id: workpackId, organization_id: orgId, deleted_at: null, include_in_pdf: true },
             orderBy: { created_at: 'asc' },
         }),
-        prisma.jobCompletionCertificate.findUnique({ where: { workpack_id: workpackId } }),
+        prisma.job_completion_certificates.findUnique({ where: { workpack_id: workpackId } }),
     ]);
 
     if (!workpack) return NextResponse.json({ error: 'Workpack not found' }, { status: 404 });
@@ -34,7 +34,7 @@ export async function GET(
     // Fetch templates separately (no @relation on CertificateInstance)
     const templateIds = [...new Set(certs.map((c) => c.template_id))];
     const templates = templateIds.length > 0
-        ? await prisma.certificateTemplate.findMany({
+        ? await prisma.certificate_templates.findMany({
             where: { id: { in: templateIds } },
             select: { id: true, cert_name: true, cert_type: true, fields: true },
         })

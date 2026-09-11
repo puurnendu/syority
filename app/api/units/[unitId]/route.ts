@@ -41,7 +41,7 @@ export async function GET(
     prisma.asset.count({
       where: { system_id: { in: systemIds }, deleted_at: null },
     }),
-    prisma.systemBlind.count({
+    prisma.system_blinds.count({
       where: { system_id: { in: systemIds } },
     }),
     prisma.constraint.count({

@@ -244,9 +244,9 @@ export class LicenseService {
       case 'max_shutdowns':
         return prisma.event.count({ where: { organization_id: organizationId, deleted_at: null } });
       case 'max_projects':
-        return prisma.project.count({ where: { organization_id: organizationId, deleted_at: null } });
+        return prisma.project.count({ where: { organization_id: organizationId } });
       case 'max_documents':
-        return prisma.docLibrary.count({ where: { organization_id: organizationId, deleted_at: null } });
+        return prisma.docLibrary.count({ where: { org_id: organizationId } });
       case 'max_reports':
         return prisma.report_templates.count({ where: { organization_id: organizationId } });
       case 'max_dashboards':

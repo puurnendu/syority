@@ -83,11 +83,11 @@ export class SavedViewService {
     });
 
     await AuditService.log({
-      userId: data.userId,
-      organizationId: data.organizationId,
+      user_id: data.userId,
+      organization_id: data.organizationId,
       action: 'CREATE',
-      modelName: 'report_saved_views',
-      modelId: view.id,
+      model_name: 'report_saved_views',
+      model_id: view.id,
     }).catch(() => {});
 
     return view;
@@ -111,11 +111,11 @@ export class SavedViewService {
     });
 
     await AuditService.log({
-      userId,
-      organizationId: existing.organization_id,
+      user_id: userId,
+      organization_id: existing.organization_id,
       action: 'UPDATE',
-      modelName: 'report_saved_views',
-      modelId: id,
+      model_name: 'report_saved_views',
+      model_id: id,
     }).catch(() => {});
 
     return updated;
@@ -139,11 +139,11 @@ export class SavedViewService {
     const deleted = await prisma.report_saved_views.delete({ where: { id } });
 
     await AuditService.log({
-      userId,
-      organizationId: existing.organization_id,
+      user_id: userId,
+      organization_id: existing.organization_id,
       action: 'DELETE',
-      modelName: 'report_saved_views',
-      modelId: id,
+      model_name: 'report_saved_views',
+      model_id: id,
     }).catch(() => {});
 
     return deleted;
@@ -167,5 +167,124 @@ export class SavedViewService {
       layoutId: view.layout_id,
       includeAi: view.include_ai,
     };
+  }
+
+  /**
+   * Duplicate an existing saved view.
+   */
+  static async duplicate(id: string, userId: string, newName?: string) {
+    const existing = await prisma.report_saved_views.findUniqueOrThrow({ where: { id } });
+    const name = newName || `${existing.name} (Copy)`;
+
+    return SavedViewService.create({
+      organizationId: existing.organization_id,
+      definitionId: existing.definition_id,
+      userId,
+      name,
+      description: existing.description ?? undefined,
+      parameters: (existing.parameters as Record<string, any>) ?? {},
+      selectedSections: (existing.selected_sections as string[]) ?? [],
+      outputFormat: existing.output_format,
+      layoutId: existing.layout_id ?? undefined,
+      includeAi: existing.include_ai,
+      isShared: false,
+    });
+  }
+
+  /**
+   * Save As a new template with optional overrides.
+   */
+  static async saveAs(
+    id: string,
+    userId: string,
+    newName: string,
+    overrides?: {
+      parameters?: Record<string, any>;
+      selectedSections?: string[];
+      outputFormat?: string;
+      layoutId?: string;
+      isShared?: boolean;
+    }
+  ) {
+    const existing = await prisma.report_saved_views.findUniqueOrThrow({ where: { id } });
+
+    return SavedViewService.create({
+      organizationId: existing.organization_id,
+      definitionId: existing.definition_id,
+      userId,
+      name: newName,
+      description: existing.description ?? undefined,
+      parameters: overrides?.parameters ?? ((existing.parameters as Record<string, any>) || {}),
+      selectedSections: overrides?.selectedSections ?? ((existing.selected_sections as string[]) || []),
+      outputFormat: overrides?.outputFormat ?? existing.output_format,
+      layoutId: overrides?.layoutId ?? existing.layout_id ?? undefined,
+      includeAi: existing.include_ai,
+      isShared: overrides?.isShared ?? false,
+    });
+  }
+
+  /**
+   * Resolve precedence hierarchy:
+   * PLATFORM DEFAULT -> TENANT CONFIGURATION -> EVENT CONFIGURATION -> USER PERSONAL VIEW
+   */
+  static async resolveHierarchy(opts: {
+    definitionId: string;
+    organizationId: string;
+    userId: string;
+    eventId?: string;
+    savedViewId?: string;
+  }) {
+    // 1. Platform Default (from Definition)
+    const definition = await prisma.report_definitions.findUniqueOrThrow({
+      where: { id: opts.definitionId },
+      include: { default_layout: true },
+    });
+
+    let effective = {
+      parameters: {} as Record<string, any>,
+      selectedSections: (definition.default_sections as string[]) || [],
+      outputFormat: definition.default_output || 'pdf',
+      layoutId: definition.default_layout_id,
+      precedenceLevel: 'PLATFORM_DEFAULT',
+    };
+
+    // 2. Tenant Configuration (Organization default layout)
+    const orgLayout = await prisma.report_layouts.findFirst({
+      where: { organization_id: opts.organizationId, is_active: true },
+      orderBy: { created_at: 'asc' },
+    });
+    if (orgLayout) {
+      effective.layoutId = orgLayout.id;
+      effective.precedenceLevel = 'TENANT_CONFIGURATION';
+    }
+
+    // 3. Event Configuration (if event has default filter)
+    if (opts.eventId) {
+      effective.parameters.event = opts.eventId;
+      effective.precedenceLevel = 'EVENT_CONFIGURATION';
+    }
+
+    // 4. User Personal View / Selected Saved View
+    if (opts.savedViewId) {
+      const view = await prisma.report_saved_views.findFirst({
+        where: {
+          id: opts.savedViewId,
+          organization_id: opts.organizationId,
+          is_active: true,
+          OR: [{ user_id: opts.userId }, { is_shared: true }],
+        },
+      });
+      if (view) {
+        effective.parameters = { ...effective.parameters, ...(view.parameters as Record<string, any>) };
+        if (view.selected_sections && (view.selected_sections as string[]).length > 0) {
+          effective.selectedSections = view.selected_sections as string[];
+        }
+        if (view.layout_id) effective.layoutId = view.layout_id;
+        if (view.output_format) effective.outputFormat = view.output_format;
+        effective.precedenceLevel = 'USER_PERSONAL_VIEW';
+      }
+    }
+
+    return effective;
   }
 }

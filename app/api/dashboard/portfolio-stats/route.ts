@@ -3,6 +3,7 @@ import { guardApi, orgScope } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
 import { computePlanningProgressForSystems } from '@/lib/planningProgress';
 import { withTenantGuard } from '@/lib/withTenantGuard';
+import { ProgressAggregationService } from '@/core/progress/ProgressAggregationService';
 
 export const GET = withTenantGuard(async (req, { params }, session) => {
     const { error } = await guardApi('workpacks.view');
@@ -104,15 +105,8 @@ export const GET = withTenantGuard(async (req, { params }, session) => {
                 },
                 _count: { _all: true },
             }).catch(e => { console.error('Error in workpack.groupBy status:', e); return []; }),
-            prisma.activity.groupBy({
-                by: ['workpack_id'],
-                where: {
-                    workpack_id: { not: null },
-                    organization_id: orgId,
-                    deleted_at: null,
-                },
-                _avg: { progress_percent: true },
-            }).catch(e => { console.error('Error in activity.groupBy workpack_id:', e); return []; }),
+            // M8.13 Phase 2 — Replaced inline simple-average with authoritative progress
+            Promise.resolve([]).catch(() => []),
             prisma.workpack_material_lines.count({
                 where: { organization_id: orgId, deleted_at: null },
             }).catch(e => { console.error('Error in workpackMaterialLine.count total:', e); return 0; }),
@@ -160,18 +154,17 @@ export const GET = withTenantGuard(async (req, { params }, session) => {
         blindsTotal,
     ] = results;
 
-    const progressMap: Record<string, number> = {};
-    for (const row of activityProgressByWorkpack) {
-        if (row.workpack_id)
-            progressMap[row.workpack_id] = Math.round(row._avg.progress_percent ?? 0);
-    }
-
+    // M8.13 Phase 2 — Use authoritative progress from ProgressAggregationService
+    let avgProgress = 0;
     const total = workpacks.length;
-    const avgProgress = total > 0
-        ? Math.round(
-            workpacks.reduce((s, w) => s + (progressMap[w.id] ?? 0), 0) / total
-        )
-        : 0;
+    if (eventId) {
+        try {
+            const progressSummary = await ProgressAggregationService.getDashboardSummary(orgId, eventId);
+            avgProgress = progressSummary.overallProgress;
+        } catch (e) {
+            console.error('[PortfolioStats] Authoritative progress error, falling back:', e);
+        }
+    }
 
     const now = new Date();
     const overdue = workpacks.filter(w =>
@@ -217,50 +210,27 @@ export const GET = withTenantGuard(async (req, { params }, session) => {
             workpack_id_code: w.workpack_id_code,
             title: w.title,
             planned_end_date: w.planned_end_date,
-            overall_progress: progressMap[w.id] ?? 0,
+            overall_progress: 0, // M8.13: individual workpack progress via recalculate sync
             days_overdue: Math.floor(
                 (now.getTime() - new Date(w.planned_end_date!).getTime()) / 86_400_000
             ),
         }));
 
-    // SPI/CPI Calculation if eventId is present
+    // M8.13 Phase 2 — SPI/CPI: Use EVM service if available, else use authoritative progress
     let spi = 0;
     let cpi = 0;
     if (eventId) {
-        const activities = await prisma.activity.findMany({
-            where: { workpack: { project_id: eventId }, deleted_at: null },
-            include: { ProgressLog: true }
-        });
-
-        let ev = 0; // Earned Value
-        let pv = 0; // Planned Value
-        let ac = 0; // Actual Cost
-
-        const now = new Date();
-        activities.forEach(a => {
-            const duration = Number(a.duration_hours || 0);
-            const progress = Number(a.progress_percent || 0);
-            ev += (duration * progress) / 100;
-
-            if (a.planned_start && a.planned_end) {
-                const start = new Date(a.planned_start);
-                const end = new Date(a.planned_end);
-                if (now > end) {
-                    pv += duration;
-                } else if (now > start) {
-                    const total = end.getTime() - start.getTime();
-                    const passed = now.getTime() - start.getTime();
-                    pv += (duration * passed) / total;
-                }
-            }
-
-            a.ProgressLog.forEach(log => {
-                ac += Number(log.manhours_actual || 0);
-            });
-        });
-
-        spi = pv > 0 ? ev / pv : 1;
-        cpi = ac > 0 ? ev / ac : 1;
+        try {
+            // Try to get EVM data from the protected EVM service
+            const { calculateEvmSummary } = await import('@/core/evm/EvmCalculationService');
+            const evmSummary = await calculateEvmSummary(eventId, orgId);
+            spi = evmSummary.spi ?? 1;
+            cpi = evmSummary.cpi ?? 1;
+        } catch {
+            // Fallback: derive simple SPI from authoritative progress
+            spi = avgProgress > 0 ? Number((avgProgress / 100).toFixed(2)) : 1;
+            cpi = 1; // Cannot calculate CPI without EVM data
+        }
     }
 
     return NextResponse.json({

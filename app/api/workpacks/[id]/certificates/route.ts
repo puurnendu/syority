@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const templateIds = [...new Set(certs.map((c) => c.template_id))];
     const templates = templateIds.length > 0
-        ? await prisma.certificateTemplate.findMany({
+        ? await prisma.certificate_templates.findMany({
             where: { id: { in: templateIds } },
             select: { id: true, cert_name: true, cert_type: true, fields: true },
         })
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json().catch(() => null);
 
     if (body?.template_id) {
-        const template = await prisma.certificateTemplate.findFirst({
+        const template = await prisma.certificate_templates.findFirst({
             where: { id: body.template_id, is_active: true },
         });
         if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (body?.equipment_type) {
         const workpack = await prisma.workpack.findFirst({ where: { id: workpackId, organization_id: orgId }, select: { id: true } });
         if (!workpack) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-        const templates = await prisma.certificateTemplate.findMany({
+        const templates = await prisma.certificate_templates.findMany({
             where: { is_active: true, equipment_types: { has: body.equipment_type } },
         });
         if (templates.length === 0) return NextResponse.json({ attached: 0, message: 'No templates found for this equipment type' });

@@ -5,7 +5,7 @@ export async function autoAttachCertificates(
     organizationId: string,
     equipmentType: string
 ): Promise<number> {
-    const templates = await prisma.certificateTemplate.findMany({
+    const templates = await prisma.certificate_templates.findMany({
         where: {
             is_active: true,
             equipment_types: { has: equipmentType },

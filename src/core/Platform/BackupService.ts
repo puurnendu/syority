@@ -162,7 +162,7 @@ export class BackupService {
         data.assets = await prisma.asset.findMany({ where: { deleted_at: null } });
       }
       if (scope.events) {
-        data.events = await prisma.shutdownEvent.findMany({ where: { deleted_at: null } });
+        data.events = await prisma.event.findMany({ where: { deleted_at: null } });
       }
       if (scope.workpacks) {
         data.workpacks = await prisma.workpack.findMany({ where: { deleted_at: null } });
@@ -189,7 +189,7 @@ export class BackupService {
         data.reportTemplates = await prisma.report_templates.findMany();
       }
       if (scope.dashboards) {
-        data.dashboards = await prisma.ois_dashboards.findMany();
+        data.dashboards = await prisma.ois_dashboard_definitions.findMany();
       }
       if (scope.feedback) {
         data.feedback = await prisma.platform_feedback.findMany();

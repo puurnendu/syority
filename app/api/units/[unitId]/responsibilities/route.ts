@@ -15,7 +15,7 @@ export async function GET(
     select: { id: true },
   });
   if (!unit) return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
-  const list = await prisma.unitResponsibility.findMany({
+  const list = await prisma.unit_responsibilities.findMany({
     where: { unit_id: unitId, is_active: true },
     include: { user: { select: { id: true, name: true, email: true } } },
     orderBy: { role: 'asc' },
@@ -45,12 +45,12 @@ export async function POST(
   });
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
   const role = String(body.role).trim();
-  const existing = await prisma.unitResponsibility.findUnique({
+  const existing = await prisma.unit_responsibilities.findUnique({
     where: { unit_id_user_id_role: { unit_id: unitId, user_id: body.user_id, role } },
   });
   if (existing) {
     if (existing.is_active) return NextResponse.json({ error: 'This user already has this role on the unit' }, { status: 409 });
-    const updated = await prisma.unitResponsibility.update({
+    const updated = await prisma.unit_responsibilities.update({
       where: { id: existing.id },
       data: {
         is_active: true,
@@ -65,7 +65,7 @@ export async function POST(
     });
     return NextResponse.json({ data: updated }, { status: 201 });
   }
-  const resp = await prisma.unitResponsibility.create({
+  const resp = await prisma.unit_responsibilities.create({
     data: {
       organization_id: orgId,
       unit_id: unitId,

@@ -1,6 +1,9 @@
 /**
  * Matches extracted fields to DB records.
  * Returns match candidates with confidence. Combined = (ai × 0.6) + (db × 0.4)
+ *
+ * @deprecated M16-R4 will replace this with M16EntityResolver + DimensionRegistry.
+ * This module uses ad-hoc string matching without event scoping.
  */
 
 import { prisma } from '@/lib/prisma';

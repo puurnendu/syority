@@ -9,10 +9,14 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const equipTypeId = url.searchParams.get('equipTypeId') ?? '';
+  // OD9.2 §6: PROJECT and STO scope are separate parameters. This previously accepted a
+  // single `projectId` and matched it against BOTH `project_id` and `event_id`, treating
+  // one identifier as ambiguously owned by both domains.
   const projectId = url.searchParams.get('projectId') ?? undefined;
+  const eventId = url.searchParams.get('eventId') ?? undefined;
 
   const equipType = await prisma.equipmentType.findFirst({
-    where: { id: equipTypeId, orgId },
+    where: { id: equipTypeId, org_id: orgId },
     select: { name: true },
   });
   if (!equipType) return NextResponse.json({ workpacks: [] });
@@ -21,14 +25,8 @@ export async function GET(req: NextRequest) {
     where: {
       organization_id: orgId,
       deleted_at: null,
-      ...(projectId
-        ? {
-            OR: [
-              { project_id: projectId },
-              { event_id: projectId },
-            ],
-          }
-        : {}),
+      ...(projectId ? { project_id: projectId } : {}),
+      ...(eventId ? { event_id: eventId } : {}),
       equipment_type: { contains: equipType.name, mode: 'insensitive' },
     },
     select: {

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         );
     }
 
-    const existing = await prisma.itemCatalog.findFirst({
+    const existing = await prisma.item_catalog.findFirst({
         where: {
             organization_id: orgId,
             description: {
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
     const draftCode = `DRAFT-${Date.now().toString(36).toUpperCase()}`;
 
-    const item = await prisma.itemCatalog.create({
+    const item = await prisma.item_catalog.create({
         data: {
             organization_id: orgId,
             item_code: draftCode,

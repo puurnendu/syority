@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { guardApi } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
 import { prisma } from '@/lib/prisma';
+import { ActivityService } from '@/modules/Activity/Services/ActivityService';
+import { handleApiError } from '@/lib/apiErrorHandler';
+import { ControlledValidationError } from '@/core/governance/ControlledValueResolver';
+
+/**
+ * GET /api/activities
+ * Lists activities for the tenant, optionally filtered by event_id or workpack_id.
+ */
+export const GET = withTenantGuard(async (req, { params }, session) => {
+    try {
+        const { error } = await guardApi('nav.schedule');
+        if (error) return error;
+
+        const orgId = session.user.organization_id;
+        const { searchParams } = new URL(req.url);
+        const eventId = searchParams.get('event_id') ?? undefined;
+        const workpackId = searchParams.get('workpack_id') ?? undefined;
+
+        const activities = await prisma.activity.findMany({
+            where: {
+                organization_id: orgId,
+                deleted_at: null,
+                ...(eventId && { event_id: eventId }),
+                ...(workpackId && { workpack_id: workpackId }),
+            },
+            include: {
+                discipline: { select: { id: true, name: true, code: true, color: true } },
+                workpack: { select: { id: true, workpack_id_code: true, title: true } },
+            },
+            orderBy: [{ sequence_number: 'asc' }, { created_at: 'asc' }],
+        });
+
+        return NextResponse.json({ data: activities });
+    } catch (error: any) {
+        console.error('[GetActivities] Error:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+});
 
 /**
  * POST /api/activities
@@ -16,43 +54,33 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
         const user = session.user as any;
         const body = await req.json();
 
-        // 1. Resolve Site ID
-        let siteId = body.site_id || user.site_id;
-        if (!siteId) {
-            const firstSite = await prisma.site.findFirst({
-                where: { organization_id: orgId, is_active: true },
-                select: { id: true }
-            });
-            siteId = firstSite?.id;
-        }
-
-        if (!siteId) {
-            return NextResponse.json({ error: 'No active site found.' }, { status: 400 });
-        }
-
-        // 2. Create activity
-        const activity = await prisma.activity.create({
-            data: {
-                organization_id: orgId,
-                site_id: siteId,
-                project_id: body.project_id || null,
-                workpack_id: body.workpack_id || null,
-                description: body.description || 'New Activity',
-                planned_start: body.planned_start ? new Date(body.planned_start) : null,
-                duration_hours: body.duration_hours || 8,
-                status: body.status || 'not_started',
-                progress_percent: body.progress_percent || 0,
-                responsible: body.responsible || null,
-                discipline_id: body.discipline_id || null,
-                notes: body.notes || null,
-                wbs_code: body.wbs_code || null,
-                created_by: user.id,
-            }
+        const activity = await ActivityService.createActivity({
+            organization_id: orgId,
+            created_by: user.id,
+            description: body.description,
+            workpack_id: body.workpack_id || undefined,
+            event_id: body.event_id || undefined,
+            site_id: body.site_id || user.site_id || undefined,
+            duration_hours: body.duration_hours,
+            hold_point_type: body.hold_point_type,
+            hold_point_description: body.hold_point_description,
+            responsible: body.responsible,
+            discipline_id: body.discipline_id,
+            discipline: body.discipline,
+            notes: body.notes,
+            wbs_code: body.wbs_code,
+            activity_code: body.activity_code,
+            standard_activity_type_id: body.standard_activity_type_id,
+            standard_activity_type: body.standard_activity_type,
+            allow_loose: !body.workpack_id,
+            source_channel: 'api',
         });
 
         return NextResponse.json({ data: activity }, { status: 201 });
     } catch (error: any) {
-        console.error('[CreateActivity] Error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error instanceof ControlledValidationError) {
+            return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
+        }
+        return handleApiError(error);
     }
 });

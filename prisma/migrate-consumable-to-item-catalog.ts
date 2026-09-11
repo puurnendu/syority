@@ -47,7 +47,7 @@ async function main() {
     orgCodes.add(itemCodeFinal);
     seenCodes.set(c.organization_id, orgCodes);
 
-    const existing = await prisma.itemCatalog.findUnique({
+    const existing = await prisma.item_catalog.findUnique({
       where: {
         organization_id_item_code: {
           organization_id: c.organization_id,
@@ -61,7 +61,7 @@ async function main() {
     if (existing) {
       itemCatalogId = existing.id;
     } else {
-      const created = await prisma.itemCatalog.create({
+      const created = await prisma.item_catalog.create({
         data: {
           organization_id: c.organization_id,
           item_code: itemCodeFinal,

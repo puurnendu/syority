@@ -1,5 +1,10 @@
 import { prisma } from '@/lib/prisma';
 
+/**
+ * @deprecated M16-R4 will replace this with M16InteractionPipeline.
+ * This handler queries Prisma directly without event context or M16 entity resolution.
+ * It will be migrated to use governed tools via the M16 pipeline.
+ */
 export async function handleQuery(
   extracted: { query_type: string | null; query_target: string | null },
   user: { id: string; name: string },

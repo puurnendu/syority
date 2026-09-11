@@ -45,7 +45,7 @@ export async function seedWorkTypes(prisma: PrismaClient, organizationId?: strin
 
   for (let i = 0; i < WORK_TYPES.length; i++) {
     const wt = WORK_TYPES[i];
-    const existing = await (prisma as any).workType.findFirst({
+    const existing = await prisma.workType.findFirst({
       where: {
         organization_id: organizationId ?? null,
         code: wt.code,
@@ -56,7 +56,7 @@ export async function seedWorkTypes(prisma: PrismaClient, organizationId?: strin
       continue;
     }
 
-    await (prisma as any).workType.create({
+    await prisma.workType.create({
       data: {
         id: randomUUID(),
         organization_id: organizationId ?? null,

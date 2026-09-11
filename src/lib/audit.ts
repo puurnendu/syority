@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
+import type { PrismaTransactionClient } from './prismaTypes';
 
 /**
  * Helper to handle BigInt serialization in JSON.
@@ -45,6 +46,7 @@ export interface AuditLogInput {
 export class AuditService {
     /**
      * Log an audit event. This is append-only — no updates or deletes.
+     * Accepts an optional `db` parameter for transaction support.
      */
     static async log(input: {
         organization_id: string;
@@ -57,9 +59,9 @@ export class AuditService {
         site_id?: string;
         ip_address?: string | null;
         user_agent?: string | null;
-    }): Promise<void> {
+    }, db: PrismaTransactionClient = prisma): Promise<void> {
         try {
-            await (prisma.auditLog as any).create({
+            await (db as any).auditLog.create({
                 data: {
                     id: crypto.randomUUID(),
                     organization_id: input.organization_id,
@@ -75,8 +77,12 @@ export class AuditService {
                 },
             });
         } catch (error) {
-            // Log audit failures to console but don't throw — audit should never break the app
             console.error('[AuditService] Failed to write audit log:', error);
+            // If called inside an active transaction, the audit failure must propagate
+            // to ensure atomic rollback of all operations in the transaction.
+            if (db !== prisma) {
+                throw error;
+            }
         }
     }
 

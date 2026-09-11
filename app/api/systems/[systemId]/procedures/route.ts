@@ -26,7 +26,7 @@ export async function GET(
     select: { id: true },
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
-  const procedures = await prisma.systemProcedure.findMany({
+  const procedures = await prisma.system_procedures.findMany({
     where: { system_id: systemId },
     orderBy: [{ procedure_no: 'asc' }],
   });
@@ -52,7 +52,7 @@ export async function POST(
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
   const data = parsed.data;
-  const procedure = await prisma.systemProcedure.create({
+  const procedure = await prisma.system_procedures.create({
     data: {
       system_id: systemId,
       procedure_no: data.procedure_no.trim(),

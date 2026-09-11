@@ -2,6 +2,11 @@ import { requireDataAdminContext } from '@/lib/server-context';
 import NavBar from '@/components/NavBar';
 import { prisma } from '@/lib/prisma';
 import GlobalBreadcrumb from '@/components/GlobalBreadcrumb';
+import {
+    buildPlatformDropdownItems,
+    buildPlatformDataItems,
+    buildTenantsItems,
+} from '@/config/platform-navigation';
 
 export default async function PlatformDataLayout({ children }: { children: React.ReactNode }) {
     const session = await requireDataAdminContext();
@@ -11,33 +16,13 @@ export default async function PlatformDataLayout({ children }: { children: React
         where: { id: session.user_id },
         select: { name: true, email: true }
     });
-    
-    const platformDataItems = [
-        { href: '/platform-data/master-data/equipment-types', label: 'Equipment Types' },
-        { href: '/platform-data/master-data/activity-codes', label: 'Activity Codes' },
-        { href: '/platform-data/master-data/disciplines', label: 'Disciplines' },
-        { href: '/platform-data/master-data/resources', label: 'Resources' },
-        { href: '/platform-data/master-data/item-catalog', label: 'Item Catalog' },
-        { href: '/platform-data/workpack-templates', label: 'Workpack Templates' },
-        { href: '/platform-data/udf-definitions', label: 'UDF Definitions' },
-        { href: '/platform-data/certificate-templates', label: 'Certificate Templates' },
-        { href: '/platform-data/print-settings', label: 'Print Settings' },
-    ];
 
-    // Some items might be visible conditionally to platform admin if they wander here
     const isPlatformAdmin = session.role === 'platform_super_admin' || session.role === 'platform_admin';
+    const role = session.role ?? '';
 
-    const platformItems = isPlatformAdmin ? [
-        { href: '/platform/billing', label: 'Platform Billing' },
-        { href: '/platform/users', label: 'Platform Users' },
-        { href: '/platform/system', label: 'System Health' },
-        { href: '/platform/features', label: 'Feature Flags' }
-    ] : [];
-
-    const tenantsItems = isPlatformAdmin ? [
-        { href: '/platform/tenants', label: 'Manage Tenants' },
-        { href: '/platform/onboarding', label: 'Onboarding Requests' }
-    ] : [];
+    const platformDataItems = buildPlatformDataItems();
+    const platformItems = isPlatformAdmin ? buildPlatformDropdownItems(role) : [];
+    const tenantsItems = isPlatformAdmin ? buildTenantsItems(role) : [];
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -47,12 +32,6 @@ export default async function PlatformDataLayout({ children }: { children: React
             >
                 <div className="h-14 flex items-center">
                     <NavBar
-                        planningItems={[]}
-                        executionItems={[]}
-                        intelligenceItems={[]}
-                        importExportItems={[]}
-                        safetyItem={null}
-                        documentItem={null}
                         adminItems={[]}
                         platformItems={platformItems}
                         tenantsItems={tenantsItems}

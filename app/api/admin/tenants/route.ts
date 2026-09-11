@@ -11,8 +11,8 @@ export async function GET() {
         include: {
             _count: {
                 select: {
-                    users: { where: { deleted_at: null } },
-                    workpacks: { where: { deleted_at: null } },
+                    User: { where: { deleted_at: null } },
+                    Workpack: { where: { deleted_at: null } },
                 },
             },
         },

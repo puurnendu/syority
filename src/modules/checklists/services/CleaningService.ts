@@ -13,14 +13,14 @@ type CreateCleaningInput = {
 
 export class CleaningService {
     static async getRecords(workpackId: string, orgId: string) {
-        return prisma.cleaningRecord.findMany({
+        return prisma.cleaning_records.findMany({
             where: { workpack_id: workpackId, organization_id: orgId },
             orderBy: { created_at: 'desc' }
         });
     }
 
     static async createRecord(data: CreateCleaningInput, orgId: string, userId: string) {
-        return prisma.cleaningRecord.create({
+        return prisma.cleaning_records.create({
             data: {
                 organization_id: orgId,
                 created_by: userId,
@@ -36,7 +36,7 @@ export class CleaningService {
     }
 
     static async signOff(recordId: string, orgId: string, userId: string, acceptance: boolean) {
-        return prisma.cleaningRecord.update({
+        return prisma.cleaning_records.update({
             where: { id: recordId, organization_id: orgId },
             data: {
                 inspector_acceptance: acceptance,

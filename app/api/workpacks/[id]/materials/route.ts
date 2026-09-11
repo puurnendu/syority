@@ -29,7 +29,7 @@ export async function GET(
   if (discipline) where.material_category = discipline;
   if (includedOnly) where.includedInPdf = true;
 
-  const lines = await prisma.workpackMaterialLine.findMany({
+  const lines = await prisma.workpack_material_lines.findMany({
     where,
     orderBy: [
       { material_category: 'asc' },
@@ -179,8 +179,9 @@ export async function POST(
   const sourceType = body.source_type === 'activity' && body.source_id ? 'activity' : 'direct';
   const sourceId = sourceType === 'activity' ? body.source_id : null;
 
-  const line = await prisma.workpackMaterialLine.create({
+  const line = await prisma.workpack_material_lines.create({
     data: {
+      id: crypto.randomUUID(),
       organization_id: orgId,
       workpack_id: id,
       source_type: sourceType,
@@ -196,11 +197,15 @@ export async function POST(
         body.quantity_required != null
           ? parseFloat(body.quantity_required)
           : 1,
+      quantity_issued: body.quantity_issued != null ? parseFloat(body.quantity_issued) : 0,
+      quantity_used: body.quantity_used != null ? parseFloat(body.quantity_used) : 0,
+      quantity_returned: body.quantity_returned != null ? parseFloat(body.quantity_returned) : 0,
       procurement_status: body.procurement_status ?? 'not_requested',
       is_critical: body.is_critical ?? false,
       notes: body.notes ?? null,
       unit_cost:
         body.unit_cost != null ? parseFloat(body.unit_cost) : null,
+      updated_at: new Date(),
     },
   });
 

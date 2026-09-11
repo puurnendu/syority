@@ -19,13 +19,13 @@ export async function GET(req: NextRequest) {
   if (asset_id) where.asset_id = asset_id;
   if (line_id) where.line_id = line_id;
   if (site_id) where.site_id = site_id;
-  if (unit_id) where.OR = [{ line: { unit_id } }, { asset: { system: { unit_id } } }];
-  const joints = await prisma.jointMaster.findMany({
+  if (unit_id) where.OR = [{ line_lists: { unit_id } }, { Asset: { system: { unit_id } } }];
+  const joints = await prisma.joint_masters.findMany({
     where,
     include: {
-      asset: { select: { id: true, tag_number: true, name: true } },
-      line: { select: { id: true, line_number: true } },
-      nozzle: { select: { id: true, designation: true } },
+      Asset: { select: { id: true, tag_number: true, name: true } },
+      line_lists: { select: { id: true, line_number: true } },
+      nozzles: { select: { id: true, designation: true } },
     },
     orderBy: [{ joint_number: 'asc' }],
   });

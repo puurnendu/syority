@@ -17,11 +17,6 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
 
   const activityFilter: any = {
     deleted_at: null,
-    OR: [
-      { schedule_source: 'workpack' },
-      { schedule_source: null },
-      { schedule_source: 'imported' }
-    ]
   };
 
   if (contractorName) {
@@ -44,11 +39,6 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
     workpack_id: null,
     organization_id: orgId,
     deleted_at: null,
-    OR: [
-      { schedule_source: 'workpack' },
-      { schedule_source: null },
-      { schedule_source: 'imported' }
-    ]
   };
 
   if (contractorName) {

@@ -11,7 +11,7 @@ export const GET = withTenantGuard(async (_req: NextRequest, _ctx, session) => {
   const { error } = await guardApi('reporting:view');
   if (error) return error;
 
-  const templateList = await prisma.reportTemplate.findMany({
+  const templateList = await prisma.report_templates.findMany({
     where: { organization_id: session.user.organization_id, deleted_at: null },
     orderBy: { updated_at: 'desc' },
     select: {
@@ -21,7 +21,7 @@ export const GET = withTenantGuard(async (_req: NextRequest, _ctx, session) => {
       created_by: true,
       created_at: true,
       updated_at: true,
-      _count: { select: { deliveries: true } },
+      _count: { select: { scheduled_deliveries: true } },
     },
   });
 
@@ -36,7 +36,7 @@ export const POST = withTenantGuard(async (req: NextRequest, _ctx, session) => {
   const { name, pages } = body ?? {};
   if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
-  const template = await prisma.reportTemplate.create({
+  const template = await prisma.report_templates.create({
     data: {
       organization_id: session.user.organization_id,
       name,

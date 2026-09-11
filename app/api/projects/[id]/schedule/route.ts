@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { guardApi } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
-import { SchedulingService } from '@/modules/Scheduling/Services/SchedulingService';
 import { prisma } from '@/lib/prisma';
 
 export const GET = withTenantGuard(async (req: NextRequest, { params }, session) => {
@@ -52,32 +51,18 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
     },
   });
 
-  const looseActivityWhere: any = {
-    project_id: projectId,
-    workpack_id: null,
-    organization_id: orgId,
-    deleted_at: null,
-    OR: [
-      { schedule_source: 'workpack' },
-      { schedule_source: null },
-      { schedule_source: 'imported' }
-    ]
-  };
-
-  if (contractorName) {
-    looseActivityWhere.udf_values = {
-      some: {
-        value_string: contractorName
-      }
-    };
-  }
-
-  const looseActivities = await prisma.activity.findMany({
-    where: looseActivityWhere,
-    orderBy: { sequence_number: 'asc' },
-    include: { udf_values: true }
-  });
-
+  // OD9.2 §8/§15: "loose" activities (no workpack) can no longer be scoped to a Project.
+  //
+  // This queried `prisma.activity.findMany({ where: { project_id, workpack_id: null, ... } })`.
+  // `Activity.project_id` was retired in OD9.1 and §8 forbids reintroducing it, so there is
+  // no representable link between a workpack-less Activity and a Project. Because the filter
+  // object was typed `any`, TypeScript did not flag it — but Prisma rejects the unknown field
+  // at runtime, so this GET threw on every call and the Project Schedule view was dead.
+  //
+  // A Project's activities are reached only through the sanctioned path
+  // Project -> Workpack -> Activity. The response key is retained as an empty array so the
+  // shared ScheduleContainer client contract is unchanged.
+  const looseActivities: { id: string }[] = [];
 
   const allActivityIds = [
     ...workpacks.flatMap(wp => wp.activities.map(a => a.id)),
@@ -102,8 +87,8 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
     }
   }
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId, organization_id: orgId },
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, org_id: orgId },
     select: { id: true, name: true }
   });
 
@@ -133,27 +118,16 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
 export const POST = withTenantGuard(async (req: NextRequest, { params }, session) => {
   const { error } = await guardApi('nav.schedule');
   if (error) return error;
+  void params;
+  void session;
 
-  const { id: projectId } = await params;
-  const orgId = session.user.organization_id;
-
-  try {
-    // calculateProjectSchedule now returns { success, count, activities }
-    // where `activities` is the full set of recalculated activities with all
-    // CPM fields populated — the frontend can use this directly to refresh the
-    // Gantt without a separate GET request.
-    const result = await SchedulingService.calculateProjectSchedule(projectId, orgId);
-
-    return NextResponse.json({
-      success:    result.success,
-      count:      result.count,
-      activities: result.activities,  // ← Gantt can consume this immediately
-    });
-  } catch (err: any) {
-    console.error('CPM Calculation Error:', err);
-    return NextResponse.json(
-      { error: 'Failed to calculate CPM', details: err.message },
-      { status: 500 }
-    );
-  }
+  // R0.4-E: STO CPM is Event-authoritative. This Project route no longer
+  // infers Event from Project. Use POST /api/schedule/calculate with event_id.
+  return NextResponse.json(
+    {
+      error: 'STO campaign CPM is Event-authoritative. Use POST /api/schedule/calculate with event_id.',
+      code: 'EVENT_REQUIRED',
+    },
+    { status: 409 }
+  );
 });

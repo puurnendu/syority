@@ -1,12 +1,15 @@
-export default function ProjectPermitsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold text-gray-900 mb-2">Permits / PTW</h1>
-      <p className="text-sm text-gray-400">Phase 6 feature — coming soon</p>
-    </div>
-  );
+import { redirect } from 'next/navigation';
+
+/**
+ * OD9.2 §22 — Permit Management is STO-only.
+ *
+ * This was a placeholder stub ("Phase 6 feature — coming soon"): a generic Permits/PTW
+ * surface under the Project domain with no implementation behind it. §22 requires that
+ * Safety and Permit Management appear only under STO → Safety & Permits.
+ *
+ * Retained as a redirect rather than deleted (§27). No STO Permit functionality is
+ * affected: the STO surface is /permits.
+ */
+export default function ProjectPermitsPage() {
+  redirect('/permits');
 }

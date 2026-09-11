@@ -7,7 +7,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ jointId: st
   if (error) return error;
   const { orgId } = orgScope(session!);
   const { jointId } = await ctx.params;
-  const joint = await prisma.jointMaster.findFirst({
+  const joint = await prisma.joint_masters.findFirst({
     where: { id: jointId, organization_id: orgId },
     include: {
       asset: { select: { id: true, tag_number: true, name: true } },
@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ jointId: 
   if (error) return error;
   const { orgId } = orgScope(session!);
   const { jointId } = await ctx.params;
-  const existing = await prisma.jointMaster.findFirst({
+  const existing = await prisma.joint_masters.findFirst({
     where: { id: jointId, organization_id: orgId },
     select: { id: true },
   });
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ jointId: 
   if (body.default_bolt_count !== undefined) data.default_bolt_count = num(body.default_bolt_count) ?? null;
   if (body.default_torque_nm !== undefined) data.default_torque_nm = num(body.default_torque_nm) ?? null;
   if (body.notes !== undefined) data.notes = str(body.notes) ?? null;
-  const joint = await prisma.jointMaster.update({
+  const joint = await prisma.joint_masters.update({
     where: { id: jointId },
     data: data as any,
     include: { asset: { select: { id: true, tag_number: true } }, line: { select: { id: true, line_number: true } } },

@@ -2,8 +2,11 @@ import { requirePlatformContext } from '@/lib/server-context';
 import NavBar from '@/components/NavBar';
 import GlobalBreadcrumb from '@/components/GlobalBreadcrumb';
 import { prisma } from '@/lib/prisma';
-import { PLATFORM_NAV } from '@/security/navigation';
-import { hasPermission } from '@/lib/permissions';
+import {
+    buildPlatformDropdownItems,
+    buildPlatformDataItems,
+    buildTenantsItems,
+} from '@/config/platform-navigation';
 
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
     const session = await requirePlatformContext();
@@ -13,29 +16,10 @@ export default async function PlatformLayout({ children }: { children: React.Rea
         select: { name: true, email: true },
     });
 
-    const role = session.role;
-    const can = (perm?: string) => !perm || hasPermission(role, perm as any);
-
-    const tenantsGroup = PLATFORM_NAV.find((g) => g.id === 'platform-home');
-    const dataGroup = PLATFORM_NAV.find((g) => g.id === 'platform-data');
-
-    const tenantsItems = (tenantsGroup?.items || [])
-        .filter((i) => ['/platform/tenants', '/platform/onboarding'].includes(i.href) && can(i.permission))
-        .map((i) => ({ href: i.href, label: i.label }));
-
-    // Dashboard is rendered as a top-level nav link; keep it out of the Platform dropdown.
-    const platformItems = (tenantsGroup?.items || [])
-        .filter(
-            (i) =>
-                !['/platform/dashboard', '/platform/tenants', '/platform/onboarding'].includes(i.href) &&
-                can(i.permission)
-        )
-        .map((i) => ({ href: i.href, label: i.label }));
-
-    const platformDataItems = (dataGroup?.items || []).map((i) => ({
-        href: i.href,
-        label: i.label,
-    }));
+    const role = session.role ?? '';
+    const tenantsItems = buildTenantsItems(role);
+    const platformItems = buildPlatformDropdownItems(role);
+    const platformDataItems = buildPlatformDataItems();
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -45,12 +29,6 @@ export default async function PlatformLayout({ children }: { children: React.Rea
             >
                 <div className="h-14 flex items-center">
                     <NavBar
-                        planningItems={[]}
-                        executionItems={[]}
-                        intelligenceItems={[]}
-                        importExportItems={[]}
-                        safetyItem={null}
-                        documentItem={null}
                         adminItems={[]}
                         platformItems={platformItems}
                         tenantsItems={tenantsItems}

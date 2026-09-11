@@ -11,7 +11,7 @@ export async function PATCH(
   const { orgId } = orgScope(session!);
 
   const { assetId, nozzleId } = await params;
-  const nozzle = await prisma.nozzle.findFirst({
+  const nozzle = await prisma.nozzles.findFirst({
     where: { id: nozzleId, asset_id: assetId, organization_id: orgId, deleted_at: null },
     select: { id: true },
   });
@@ -35,7 +35,7 @@ export async function PATCH(
   if (body.sequence_number !== undefined) data.sequence_number = num(body.sequence_number) ?? null;
   if (body.notes !== undefined) data.notes = str(body.notes) ?? null;
 
-  const updated = await prisma.nozzle.update({
+  const updated = await prisma.nozzles.update({
     where: { id: nozzleId },
     data: data as any,
   });
@@ -51,13 +51,13 @@ export async function DELETE(
   const { orgId } = orgScope(session!);
 
   const { assetId, nozzleId } = await params;
-  const nozzle = await prisma.nozzle.findFirst({
+  const nozzle = await prisma.nozzles.findFirst({
     where: { id: nozzleId, asset_id: assetId, organization_id: orgId, deleted_at: null },
     select: { id: true },
   });
   if (!nozzle) return NextResponse.json({ error: 'Nozzle not found' }, { status: 404 });
 
-  await prisma.nozzle.update({
+  await prisma.nozzles.update({
     where: { id: nozzleId },
     data: { deleted_at: new Date() },
   });

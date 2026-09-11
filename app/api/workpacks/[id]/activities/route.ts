@@ -6,6 +6,9 @@ import {
     generateNextActivityId,
     checkActivityIdAvailability,
 } from '@/lib/activityIdGenerator';
+import { listedExecutionFields, EXECUTION_FIELD_REJECT_MESSAGE } from '@/core/execution/executionFieldGuard';
+import { handleApiError } from '@/lib/apiErrorHandler';
+import { ControlledValidationError } from '@/core/governance/ControlledValueResolver';
 
 export async function GET(
     req: NextRequest,
@@ -36,6 +39,13 @@ export async function POST(
         const orgId = await getOrgIdFromRequest(req);
         if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         const body = await req.json();
+        const executionFields = listedExecutionFields(body);
+        if (executionFields.length > 0) {
+            return NextResponse.json(
+                { error: `${EXECUTION_FIELD_REJECT_MESSAGE} Rejected fields: ${executionFields.join(', ')}` },
+                { status: 409 }
+            );
+        }
         const userId = await getUserIdFromRequest(req);
         const wp = await prisma.workpack.findFirst({
             where: { id, organization_id: orgId },
@@ -62,17 +72,34 @@ export async function POST(
         }
 
         const activity = await ActivityService.createActivity({
-            ...body,
-            workpack_id: id,
             organization_id: wp.organization_id,
             site_id: wp.site_id,
+            workpack_id: id,
+            description: body.description,
             created_by: userId,
+            duration_hours: body.duration_hours,
+            discipline_id: body.discipline_id,
+            discipline: body.discipline,
+            work_category: body.work_category,
+            notes: body.notes,
+            activity_number: body.activity_number,
             activity_id: finalActivityId,
             event_id: wp.event_id ?? undefined,
+            activity_library_id: body.activity_library_id,
+            activity_code: body.activity_code,
+            standard_activity_type_id: body.standard_activity_type_id,
+            standard_activity_type: body.standard_activity_type,
+            hold_point_type: body.hold_point_type,
+            hold_point_description: body.hold_point_description,
+            wbs_code: body.wbs_code,
+            window: body.window,
+            source_channel: 'web',
         });
         return NextResponse.json({ data: activity }, { status: 201 });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        return NextResponse.json({ error: message }, { status: 400 });
+        if (error instanceof ControlledValidationError) {
+            return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
+        }
+        return handleApiError(error);
     }
 }

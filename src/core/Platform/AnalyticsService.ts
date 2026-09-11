@@ -25,7 +25,7 @@ export class AnalyticsService {
       where: {
         deleted_at: null,
         is_active: true,
-        last_login: { gte: today },
+        last_login_at: { gte: today },
       },
     });
   }
@@ -42,7 +42,7 @@ export class AnalyticsService {
       where: {
         deleted_at: null,
         is_active: true,
-        last_login: { gte: startOfMonth },
+        last_login_at: { gte: startOfMonth },
       },
     });
   }
@@ -160,8 +160,8 @@ export class AnalyticsService {
         slug: true,
         User: {
           where: { deleted_at: null, is_active: true },
-          select: { last_login: true },
-          orderBy: { last_login: 'desc' },
+          select: { last_login_at: true },
+          orderBy: { last_login_at: 'desc' },
           take: 1,
         },
       },

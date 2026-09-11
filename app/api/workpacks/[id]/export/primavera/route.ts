@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getOrgIdFromRequest } from '@/lib/apiAuth';
 import { prisma } from '@/lib/prisma';
 import { PrimaveraXmlFormatter, type P6Activity, type P6Relationship } from '@/modules/Scheduling/formatters/PrimaveraXmlFormatter';
+import { isMilestoneActivity } from '@/core/activity/milestoneDerivation';
 
 /**
  * GET /api/workpacks/[id]/export/primavera
@@ -30,7 +31,9 @@ export async function GET(
         orderBy: { sequence_number: 'asc' },
       },
       project: {
-        select: { id: true, title: true, plannedSdDate: true, plannedSuDate: true },
+        // OD9.2 §11/§15: Project fields are snake_case, and Project has `name`, not
+        // `title`. The previous camelCase/`title` select made this P6 export throw.
+        select: { id: true, name: true, planned_sd_date: true, planned_su_date: true },
       },
     },
   });
@@ -49,7 +52,10 @@ export async function GET(
     duration_hours:   Number(a.duration_hours ?? 0),
     percent_complete: a.progress_percent ?? 0,
     wbs_code:         a.wbs_code ?? null,
-    is_milestone:     false,
+    // OD9.1: was hardcoded false, so every milestone exported to P6 as a normal
+    // activity. Derived from the EVM work-category/zero-duration rule instead; there is
+    // no Activity.is_milestone column to read.
+    is_milestone:     isMilestoneActivity(a),
   }));
 
   // Build activity_code lookup for relationships
@@ -62,15 +68,16 @@ export async function GET(
       predecessor_activity_code: idToCode.get(a.id) ?? a.id,
       successor_activity_code:   idToCode.get(rel.successor_id) ?? rel.successor_id,
       relationship_type:         (rel.relationship_type as 'FS' | 'SS' | 'FF' | 'SF') ?? 'FS',
-      lag_days:                  Number(rel.lag_days ?? 0),
+      // Sprint 1a — canonical lag_minutes → 8h-day units; legacy lag_days fallback.
+      lag_days:                  rel.lag_minutes != null ? Number(rel.lag_minutes) / 480 : Number(rel.lag_days ?? 0),
     }))
   );
 
   const p6Project = {
     id:          workpack.project?.id ?? workpackId,
     name:        workpack.title,
-    start_date:  workpack.project?.plannedSdDate ?? null,
-    finish_date: workpack.project?.plannedSuDate ?? null,
+    start_date:  workpack.project?.planned_sd_date ?? null,
+    finish_date: workpack.project?.planned_su_date ?? null,
   };
 
   const xerContent = PrimaveraXmlFormatter.format(p6Project, p6Activities, p6Relationships);

@@ -35,9 +35,6 @@ export async function GET(req: NextRequest) {
                         title: true,
                     },
                 },
-                attachments: {
-                    select: { id: true, filename: true },
-                },
             },
             orderBy: [{ severity: 'desc' }, { raised_date: 'desc' }],
             skip: (page - 1) * limit,

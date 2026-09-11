@@ -15,6 +15,7 @@ import type { Priority } from '@prisma/client';
 import { extractRequestMeta } from '@/lib/requestMeta';
 
 import { uploadFile } from '@/lib/storage/storageClient';
+import { createActivity } from '@/core/activity/ActivityCreationCommand';
 
 const UPLOAD_DIR = 'workpacks'; // Relative to storage root
 
@@ -85,8 +86,15 @@ export async function POST(req: NextRequest) {
 
         const title = formPayload.title?.trim();
         const site_id = formPayload.site_id?.trim();
+        const event_id = formPayload.event_id?.trim();
         if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
         if (!site_id) return NextResponse.json({ error: 'Site is required' }, { status: 400 });
+        if (!event_id) {
+            return NextResponse.json(
+                { error: 'STO Workpack create requires Event context', code: 'EVENT_REQUIRED' },
+                { status: 400 }
+            );
+        }
 
         // Ensure site belongs to organization (multi-tenant)
         const site = await prisma.site.findFirst({
@@ -126,6 +134,7 @@ export async function POST(req: NextRequest) {
             site_id,
             title,
             created_by: userId,
+            event_id,
             sap_work_order: formPayload.sap_work_order || undefined,
             sap_notification: formPayload.sap_notification || undefined,
             discipline_id: formPayload.discipline_id || undefined,
@@ -138,37 +147,32 @@ export async function POST(req: NextRequest) {
             status: 'draft',
         });
 
-        const disciplines = await prisma.discipline.findMany({
-            where: { organization_id: orgId },
-            select: { id: true, name: true, code: true },
-        });
-        const disciplineByName = (name: string): string | null => {
-            const n = (name || '').trim().toLowerCase();
-            const byName = disciplines.find(d => d.name?.toLowerCase() === n || d.code?.toLowerCase() === n);
-            return byName?.id ?? disciplines[0]?.id ?? null;
-        };
-
         if (aiData.activities.length > 0) {
-            await prisma.activity.createMany({
-                data: aiData.activities.map((a, i) => {
-                    const toolsNote = a.tools_required?.length ? `Tools: ${a.tools_required.join(', ')}` : '';
-                    const safetyNote = a.safety_requirements?.length ? `Safety: ${a.safety_requirements.join(', ')}` : '';
-                    const noteParts = [toolsNote, safetyNote].filter(Boolean);
-                    
-                    return {
-                        organization_id: orgId,
-                        site_id,
-                        workpack_id: workpack.id,
-                        activity_id: a.activity_id || `A-${String(i + 1).padStart(3, '0')}`,
-                        sequence_number: a.sequence ?? (i + 1),
+            for (let i = 0; i < aiData.activities.length; i++) {
+                const a = aiData.activities[i];
+                const toolsNote = a.tools_required?.length ? `Tools: ${a.tools_required.join(', ')}` : '';
+                const safetyNote = a.safety_requirements?.length ? `Safety: ${a.safety_requirements.join(', ')}` : '';
+                const noteParts = [toolsNote, safetyNote].filter(Boolean);
+
+                await createActivity(
+                    {
+                        organizationId: orgId,
+                        userId,
+                        sourceChannel: 'ai',
+                        eventId: workpack.event_id,
+                    },
+                    {
+                        workpackId: workpack.id,
                         description: a.description || a.title,
-                        discipline_id: disciplineByName(a.discipline),
-                        duration_hours: a.estimated_manhours,
+                        activityId: a.activity_id || `A-${String(i + 1).padStart(3, '0')}`,
+                        sequenceNumber: a.sequence ?? (i + 1),
+                        discipline: a.discipline || undefined,
+                        durationHours: a.estimated_manhours,
                         notes: noteParts.length > 0 ? noteParts.join('\n') : null,
-                        created_by: userId,
-                    };
-                }),
-            });
+                        siteId: site_id,
+                    }
+                );
+            }
         }
 
         if (aiData.materials.length > 0) {
@@ -179,7 +183,7 @@ export async function POST(req: NextRequest) {
                     category: 'consumable' // Default for generic materials
                 });
 
-                await prisma.workpackMaterialLine.create({
+                await prisma.workpack_material_lines.create({
                     data: {
                         organization_id: orgId,
                         workpack_id: workpack.id,

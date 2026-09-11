@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ syst
     select: { id: true },
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
-  const drawings = await prisma.systemDrawing.findMany({
+  const drawings = await prisma.system_drawings.findMany({
     where: { system_id: systemId },
     orderBy: [{ drawing_no: 'asc' }],
   });
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ sys
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
   const data = parsed.data;
-  const drawing = await prisma.systemDrawing.create({
+  const drawing = await prisma.system_drawings.create({
     data: {
       system_id: systemId,
       drawing_no: data.drawing_no.trim(),

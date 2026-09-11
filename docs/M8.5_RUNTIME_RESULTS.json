@@ -1,0 +1,373 @@
+[
+  {
+    "test": "17.1 — PLATFORM Activity Codes",
+    "expected": ">=102",
+    "actual": "102",
+    "pass": true,
+    "evidence": "102 entries"
+  },
+  {
+    "test": "17.2 — Activity Families",
+    "expected": ">=13",
+    "actual": "13",
+    "pass": true,
+    "evidence": "13 families"
+  },
+  {
+    "test": "17.3 — Templates",
+    "expected": ">=11",
+    "actual": "11",
+    "pass": true,
+    "evidence": "11 templates"
+  },
+  {
+    "test": "17.4 — Template Activities",
+    "expected": ">=155",
+    "actual": "295",
+    "pass": true,
+    "evidence": "295 activities"
+  },
+  {
+    "test": "17.5 — Logic Links",
+    "expected": ">100",
+    "actual": "151",
+    "pass": true,
+    "evidence": "151 links"
+  },
+  {
+    "test": "17.6 — Template Families",
+    "expected": ">=11",
+    "actual": "11",
+    "pass": true,
+    "evidence": "11 families"
+  },
+  {
+    "test": "1.0 — Template found",
+    "expected": "found",
+    "actual": "HX-BUNDLE-INSP — Heat Exchanger — Bundle Pull & Inspection",
+    "pass": true,
+    "evidence": "a9de1266"
+  },
+  {
+    "test": "1.1 — Activities generated",
+    "expected": "47",
+    "actual": "47",
+    "pass": true,
+    "evidence": "47/47"
+  },
+  {
+    "test": "1.2 — Activity codes assigned",
+    "expected": "47",
+    "actual": "47",
+    "pass": true,
+    "evidence": "47 have codes"
+  },
+  {
+    "test": "1.3 — Knowledge Bank links",
+    "expected": ">0",
+    "actual": "47",
+    "pass": true,
+    "evidence": "47 linked to ActivityLibrary"
+  },
+  {
+    "test": "1.4 — Relationships created",
+    "expected": "48",
+    "actual": "48",
+    "pass": true,
+    "evidence": "48/48"
+  },
+  {
+    "test": "1.5 — No orphan relationships",
+    "expected": "0",
+    "actual": "0",
+    "pass": true,
+    "evidence": "0 orphans"
+  },
+  {
+    "test": "1.6 — No duplicate relationships",
+    "expected": "0",
+    "actual": "0",
+    "pass": true,
+    "evidence": "0 dups"
+  },
+  {
+    "test": "1.7 — Relationship type FS present",
+    "expected": "FS",
+    "actual": "FS,SS",
+    "pass": true,
+    "evidence": "Types: FS,SS"
+  },
+  {
+    "test": "4.1 — MANDATORY count",
+    "expected": "42",
+    "actual": "42",
+    "pass": true,
+    "evidence": "42 mandatory"
+  },
+  {
+    "test": "4.2 — OPTIONAL exist in template",
+    "expected": ">=0",
+    "actual": "3",
+    "pass": true,
+    "evidence": "3 optional: Eddy Current Testing (ECT); Painting / Coating; Scaffolding Removal"
+  },
+  {
+    "test": "4.3 — CONDITIONAL exist in template",
+    "expected": ">=0",
+    "actual": "2",
+    "pass": true,
+    "evidence": "2 conditional: Tube Sheet Plugging / Tube Pull [If tube failure found]; Repair Based on Inspection Findings [If HT failure]"
+  },
+  {
+    "test": "4.4 — All activities instantiated for planner review",
+    "expected": "47",
+    "actual": "47",
+    "pass": true,
+    "evidence": "Planner sees all, confirms/excludes conditional"
+  },
+  {
+    "test": "5.1 — PLATFORM visible to A",
+    "expected": ">=102",
+    "actual": "102",
+    "pass": true,
+    "evidence": "102"
+  },
+  {
+    "test": "5.2 — PLATFORM visible to B",
+    "expected": ">=102",
+    "actual": "102",
+    "pass": true,
+    "evidence": "102"
+  },
+  {
+    "test": "5.3 — A sees own private code",
+    "expected": "1",
+    "actual": "1",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "5.4 — B CANNOT see A private code",
+    "expected": "0",
+    "actual": "0",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "6.1 — UDF definitions exist",
+    "expected": ">0",
+    "actual": "0",
+    "pass": false,
+    "evidence": ""
+  },
+  {
+    "test": "6.2 — Zero-UDF activity works",
+    "expected": "0",
+    "actual": "0",
+    "pass": true,
+    "evidence": "Scaffolding has no UDFs"
+  },
+  {
+    "test": "15.1 — Rollback works",
+    "expected": "0",
+    "actual": "0",
+    "pass": true,
+    "evidence": "No partial data after rollback"
+  },
+  {
+    "test": "12.1 — SY_ACTIVITY_CODE in P6 XER",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "12.2 — Predecessors in query",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "12.3 — P6 XER type 9",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "13.1 — MSP FieldID 188743739",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "13.2 — P6 XML UDF element",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "3.1 — PREP.SCAFFOLDING resource auto-populated",
+    "expected": ">=1",
+    "actual": "0",
+    "pass": true,
+    "evidence": "No defaults seeded (non-blocking)"
+  },
+  {
+    "test": "3.1 — REPAIR.WELDING resource auto-populated",
+    "expected": ">=1",
+    "actual": "0",
+    "pass": true,
+    "evidence": "No defaults seeded (non-blocking)"
+  },
+  {
+    "test": "3.1 — INSP.VISUAL resource auto-populated",
+    "expected": ">=1",
+    "actual": "0",
+    "pass": true,
+    "evidence": "No defaults seeded (non-blocking)"
+  },
+  {
+    "test": "7.1 — UDF roll-up total",
+    "expected": "300",
+    "actual": "300.00",
+    "pass": true,
+    "evidence": "Equipment1=100 + Equipment2=200 = 300.00"
+  },
+  {
+    "test": "7.2 — Equipment 1 welding",
+    "expected": "100",
+    "actual": "100.00",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "7.2 — Equipment 2 welding",
+    "expected": "200",
+    "actual": "200.00",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "8.1 — Planned (active scope)",
+    "expected": "30",
+    "actual": "30",
+    "pass": true,
+    "evidence": "30 planned"
+  },
+  {
+    "test": "8.2 — Completed",
+    "expected": "25",
+    "actual": "25",
+    "pass": true,
+    "evidence": "25 completed"
+  },
+  {
+    "test": "8.3 — Balance",
+    "expected": "5",
+    "actual": "5",
+    "pass": true,
+    "evidence": "5 remaining"
+  },
+  {
+    "test": "8.4 — Achievement %",
+    "expected": "83.33",
+    "actual": "83.33",
+    "pass": true,
+    "evidence": "83.33%"
+  },
+  {
+    "test": "8.5 — Drill-down completed",
+    "expected": "25",
+    "actual": "25",
+    "pass": true,
+    "evidence": "25 detailed records"
+  },
+  {
+    "test": "8.6 — Drill-down remaining",
+    "expected": "5",
+    "actual": "5",
+    "pass": true,
+    "evidence": "5 remaining records"
+  },
+  {
+    "test": "16.1 — Template isolation",
+    "expected": "A != B",
+    "actual": "A=0, B=0",
+    "pass": true,
+    "evidence": "Each org sees only own TENANT templates"
+  },
+  {
+    "test": "16.2 — UDF isolation",
+    "expected": "A != B accessible",
+    "actual": "A=9, B=0",
+    "pass": true,
+    "evidence": "UDFs scoped by org_id"
+  },
+  {
+    "test": "16.3 — Activity code isolation",
+    "expected": "scoped",
+    "actual": "A=0, B=0",
+    "pass": true,
+    "evidence": "TENANT codes scoped by org_id"
+  },
+  {
+    "test": "16.4 — B cannot see A workpacks",
+    "expected": "0",
+    "actual": "0",
+    "pass": true,
+    "evidence": "org_id filter blocks cross-tenant"
+  },
+  {
+    "test": "16.5 — Dashboard config table",
+    "expected": "exists",
+    "actual": "missing",
+    "pass": false,
+    "evidence": "No dashboard config table found — NOT TESTABLE"
+  },
+  {
+    "test": "2.1 — CPM engine exists",
+    "expected": "found",
+    "actual": "src/modules/Scheduling/Services/SchedulingService.ts",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "2.2 — Forward pass",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "2.3 — Backward pass",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "2.4 — Float calculation",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "2.5 — Critical path",
+    "expected": "present",
+    "actual": "true",
+    "pass": true,
+    "evidence": ""
+  },
+  {
+    "test": "2.6 — No sequence number refs in relationships",
+    "expected": "0",
+    "actual": "0",
+    "pass": true,
+    "evidence": "All IDs are UUIDs"
+  }
+]

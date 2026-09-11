@@ -12,12 +12,12 @@ export const GET = withTenantGuard(async (_req: NextRequest, _ctx, session) => {
   const { error } = await guardApi('reporting:view');
   if (error) return error;
 
-  const deliveries = await prisma.scheduledDelivery.findMany({
+  const deliveries = await prisma.scheduled_deliveries.findMany({
     where: { organization_id: session.user.organization_id },
     orderBy: { created_at: 'desc' },
     include: {
-      template: { select: { id: true, name: true } },
-      logs: { orderBy: { sent_at: 'desc' }, take: 1 },
+      report_templates: { select: { id: true, name: true } },
+      delivery_logs: { orderBy: { sent_at: 'desc' }, take: 1 },
     },
   });
 
@@ -36,14 +36,14 @@ export const POST = withTenantGuard(async (req: NextRequest, _ctx, session) => {
   }
 
   // Verify template belongs to org
-  const template = await prisma.reportTemplate.findFirst({
+  const template = await prisma.report_templates.findFirst({
     where: { id: template_id, organization_id: session.user.organization_id, deleted_at: null },
   });
   if (!template) {
     return NextResponse.json({ error: 'Template not found' }, { status: 404 });
   }
 
-  const delivery = await prisma.scheduledDelivery.create({
+  const delivery = await prisma.scheduled_deliveries.create({
     data: {
       organization_id: session.user.organization_id,
       name,

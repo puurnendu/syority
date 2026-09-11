@@ -46,32 +46,32 @@ export class SafetyDailyLogProvider extends BaseProvider {
 
     return {
       kpis: [
-        { label: 'Manpower Actual', value: log.manpowerActual, unit: 'pax' },
-        { label: 'Manhours Worked', value: Number(log.manhoursWorked), unit: 'hrs' },
+        { label: 'Manpower Actual', value: log.manpower_actual, unit: 'pax' },
+        { label: 'Manhours Worked', value: Number(log.manhours_worked), unit: 'hrs' },
         { label: 'LTI', value: log.lti, color: log.lti > 0 ? '#DC2626' : '#10B981' },
-        { label: 'Near Miss', value: log.nearMiss, color: log.nearMiss > 0 ? '#F59E0B' : '#10B981' },
-        { label: 'First Aid', value: log.firstAid },
-        { label: 'Medical Treatment', value: log.medicalTreatment, color: log.medicalTreatment > 0 ? '#DC2626' : '#10B981' },
-        { label: 'PTW Issued', value: log.ptwIssued },
-        { label: 'PTW Closed', value: log.ptwClosed },
-        { label: 'Toolbox Talks', value: log.toolboxTalks },
+        { label: 'Near Miss', value: log.near_miss, color: log.near_miss > 0 ? '#F59E0B' : '#10B981' },
+        { label: 'First Aid', value: log.first_aid },
+        { label: 'Medical Treatment', value: log.medical_treatment, color: log.medical_treatment > 0 ? '#DC2626' : '#10B981' },
+        { label: 'PTW Issued', value: log.ptw_issued },
+        { label: 'PTW Closed', value: log.ptw_closed },
+        { label: 'Toolbox Talks', value: log.toolbox_talks },
       ],
-      rows: log.SafetyIncident.map((inc) => ({
+      rows: (log.SafetyIncident ?? []).map((inc: any) => ({
         id: inc.id,
-        type: inc.incidentType,
+        type: inc.incident_type,
         severity: inc.severity,
         title: inc.title,
         location: inc.location ?? '—',
         contractor: inc.contractor ?? '—',
         status: inc.status,
-        reportedBy: inc.reportedBy ?? '—',
-        date: inc.incidentDate.toISOString().split('T')[0],
+        reportedBy: inc.reported_by ?? '—',
+        date: inc.incident_date ? new Date(inc.incident_date).toISOString().split('T')[0] : '—',
       })),
       metadata: {
         logId: log.id,
-        logDate: log.logDate.toISOString().split('T')[0],
+        logDate: log.log_date ? new Date(log.log_date).toISOString().split('T')[0] : null,
         shift: log.shift,
-        photoCount: log.SafetyPhoto.length,
+        photoCount: (log.SafetyPhoto ?? []).length,
       },
     };
   }
@@ -103,23 +103,23 @@ export class SafetyIncidentRegisterProvider extends BaseProvider {
     const closed = result.incidents.filter((i) => i.status === 'Closed').length;
 
     return {
-      rows: result.incidents.map((inc) => ({
+      rows: result.incidents.map((inc: any) => ({
         id: inc.id,
-        date: inc.incidentDate.toISOString().split('T')[0],
-        time: inc.incidentTime ?? '—',
-        type: inc.incidentType,
+        date: inc.incident_date ? new Date(inc.incident_date).toISOString().split('T')[0] : '—',
+        time: inc.incident_time ?? '—',
+        type: inc.incident_type,
         severity: inc.severity,
         title: inc.title,
         description: inc.description,
         location: inc.location ?? '—',
-        unitArea: inc.unitArea ?? '—',
+        unitArea: inc.unit_area ?? '—',
         contractor: inc.contractor ?? '—',
-        reportedBy: inc.reportedBy ?? '—',
-        actionOwner: inc.actionOwner ?? '—',
-        actionDueDate: inc.actionDueDate?.toISOString().split('T')[0] ?? '—',
+        reportedBy: inc.reported_by ?? '—',
+        actionOwner: inc.action_owner ?? '—',
+        actionDueDate: inc.action_due_date ? new Date(inc.action_due_date).toISOString().split('T')[0] : '—',
         status: inc.status,
-        rootCause: inc.rootCause ?? '—',
-        correctiveActions: inc.correctiveActions ?? '—',
+        rootCause: inc.root_cause ?? '—',
+        correctiveActions: inc.corrective_actions ?? '—',
       })),
       kpis: [
         { label: 'Total Incidents', value: result.total },

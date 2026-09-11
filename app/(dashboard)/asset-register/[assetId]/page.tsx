@@ -15,8 +15,8 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
   const asset = await prisma.asset.findFirst({
     where: { id: assetId, organization_id: orgId, deleted_at: null },
     include: {
-      site: { select: { id: true, name: true } },
-      system: { select: { id: true, name: true, code: true }, include: { unit: { select: { name: true, code: true } } } },
+      Site: { select: { id: true, name: true } },
+      system: { include: { unit: { select: { name: true, code: true } } } },
       nozzles: { where: { deleted_at: null }, orderBy: { sequence_number: 'asc' } },
       _count: { select: { joint_masters: true } },
     },
@@ -30,7 +30,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
     take: 5,
   });
 
-  const lines = await prisma.lineList.findMany({
+  const lines = await prisma.line_lists.findMany({
     where: { 
       organization_id: orgId, 
       OR: [
@@ -44,7 +44,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
     }
   });
 
-  const joints = await prisma.jointMaster.findMany({
+  const joints = await prisma.joint_masters.findMany({
     where: { 
       organization_id: orgId, 
       asset_id: assetId
@@ -59,10 +59,10 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
   let procedures: any[] = [];
   
   if (asset.system_id) {
-    drawings = await prisma.systemDrawing.findMany({
+    drawings = await prisma.system_drawings.findMany({
       where: { system_id: asset.system_id }
     });
-    procedures = await prisma.systemProcedure.findMany({
+    procedures = await prisma.system_procedures.findMany({
       where: { system_id: asset.system_id }
     });
   }
@@ -73,6 +73,30 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
         <Link href="/asset-register" className="text-gray-500 hover:text-gray-700 text-sm">← Asset Register</Link>
         <h1 className="text-2xl font-bold text-gray-900">{asset.tag_number} — {asset.name}</h1>
         {asset.asset_type && <span className="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">{asset.asset_type}</span>}
+        {/* M8.14-R1: Equipment lifecycle status badge */}
+        {asset.status && (
+          <span className={`px-2 py-0.5 text-xs font-bold rounded uppercase tracking-wider ${
+            asset.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
+            asset.status === 'draft' ? 'bg-amber-100 text-amber-800' :
+            'bg-gray-100 text-gray-500'
+          }`}>{asset.status}</span>
+        )}
+        {/* M8.14-R1: Criticality badge */}
+        {asset.criticality && (
+          <span className={`px-2 py-0.5 text-xs font-bold rounded uppercase tracking-wider ${
+            asset.criticality === 'critical' ? 'bg-red-100 text-red-800' :
+            asset.criticality === 'high' ? 'bg-orange-100 text-orange-800' :
+            asset.criticality === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+            'bg-green-100 text-green-700'
+          }`}>{asset.criticality}</span>
+        )}
+        {/* M8.15: Equipment 360 navigation */}
+        <Link
+          href={`/asset-register/${assetId}/360`}
+          className="ml-auto px-3 py-1.5 text-xs font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+        >
+          🔄 Equipment 360
+        </Link>
       </div>
       
       <div className="flex-1 min-h-0">

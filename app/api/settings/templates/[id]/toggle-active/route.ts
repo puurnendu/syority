@@ -20,7 +20,7 @@ export async function POST(
 
     const { id } = await params;
 
-    const existing = await prisma.workpackTemplate.findFirst({
+    const existing = await prisma.workpack_templates.findFirst({
         where: { id, organization_id: orgId, deleted_at: null },
     });
     if (!existing) {
@@ -30,7 +30,7 @@ export async function POST(
         return NextResponse.json({ error: 'Cannot toggle system template' }, { status: 403 });
     }
 
-    const updated = await prisma.workpackTemplate.update({
+    const updated = await prisma.workpack_templates.update({
         where: { id },
         data: { is_active: !existing.is_active },
         include: {

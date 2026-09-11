@@ -11,14 +11,15 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
   const { id: projectId } = await params;
   const orgId = session.user.organization_id;
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId, organization_id: orgId }
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, org_id: orgId }
   });
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
-  // Get all activities for the project
+  // Get all activities for the project.
+  // OD9.1: reached through the Workpack — Activity.project_id was retired.
   const activities = await prisma.activity.findMany({
-    where: { project_id: projectId, organization_id: orgId, deleted_at: null },
+    where: { workpack: { project_id: projectId }, organization_id: orgId, deleted_at: null },
     select: {
       id: true,
       activity_number: true,
@@ -99,7 +100,8 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
         rel.predecessor_id,
         rel.successor_id,
         predType,
-        (rel.lag_days || 0) * 8 // Assuming 8h/day for lag calculation back to hours
+        // Sprint 1a — canonical lag_minutes → hours; legacy lag_days × 8 fallback.
+        rel.lag_minutes != null ? Number(rel.lag_minutes) / 60 : (rel.lag_days || 0) * 8
       ];
       lines.push(row.join('\t'));
     });

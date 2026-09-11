@@ -12,9 +12,9 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
   const orgId = session.user.organization_id;
 
   try {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId, organization_id: orgId },
-      select: { name: true, projectCode: true }
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, org_id: orgId },
+      select: { name: true, code: true }
     });
 
     if (!project) {
@@ -73,7 +73,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { params }, session)
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="Schedule_${project.projectCode || project.name}.xlsx"`,
+        'Content-Disposition': `attachment; filename="Schedule_${project.code || project.name}.xlsx"`,
       },
     });
 

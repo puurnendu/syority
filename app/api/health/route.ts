@@ -39,12 +39,17 @@ export async function GET() {
     };
   }
 
-  // 2. Redis check
+  // 2. Redis check (with timeout to prevent hanging when Redis is down)
   try {
     const { getRedis } = await import('@/lib/redis');
     const redis = getRedis();
     const redisStart = Date.now();
-    const pong = await redis.ping();
+    const pong = await Promise.race([
+      redis.ping(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Redis ping timeout (3s)')), 3000)
+      ),
+    ]);
     components.redis = {
       status: pong === 'PONG' ? 'up' : 'degraded',
       latencyMs: Date.now() - redisStart,

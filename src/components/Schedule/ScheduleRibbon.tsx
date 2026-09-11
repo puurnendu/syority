@@ -6,7 +6,6 @@ import {
   FiClock, 
   FiUsers, 
   FiDownload, 
-  FiUpload, 
   FiCalendar, 
   FiGrid, 
   FiFilter,
@@ -20,14 +19,16 @@ interface ScheduleRibbonProps {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   onExport: () => void;
-  onImport: () => void;
+  /** @deprecated M11-R0 — Import pathway retired. Kept for interface compat. */
+  onImport?: () => void;
+  onLevelingClick: () => void;
 }
 
 export const ScheduleRibbon: React.FC<ScheduleRibbonProps> = ({
   viewMode,
   setViewMode,
   onExport,
-  onImport,
+  onLevelingClick,
 }) => {
   return (
     <div className="bg-[#2b7344] text-white select-none">
@@ -48,18 +49,18 @@ export const ScheduleRibbon: React.FC<ScheduleRibbonProps> = ({
         <div className="px-2 border-r border-[#dadada] flex flex-col items-center">
             <div className="flex space-x-3 flex-1 items-center pb-1">
                 <button 
-                  onClick={onImport}
-                  className="flex flex-col items-center justify-center hover:bg-[#eaeaea] p-1 rounded transition-colors group"
-                >
-                    <FiUpload className="text-[#2b7344] text-lg mb-1" />
-                    <span className="text-[10px] leading-tight text-center">Import<br/>Schedule</span>
-                </button>
-                <button 
                   onClick={onExport}
                   className="flex flex-col items-center justify-center hover:bg-[#eaeaea] p-1 rounded transition-colors group"
                 >
                     <FiDownload className="text-[#2b7344] text-lg mb-1" />
                     <span className="text-[10px] leading-tight text-center">Export<br/>Excel</span>
+                </button>
+                <button 
+                  onClick={onLevelingClick}
+                  className="flex flex-col items-center justify-center hover:bg-[#eaeaea] p-1 rounded transition-colors group ml-2 border-l border-[#dadada] pl-3"
+                >
+                    <FiCalendar className="text-[#2b7344] text-lg mb-1" />
+                    <span className="text-[10px] leading-tight text-center">Level<br/>Resources</span>
                 </button>
             </div>
             <div className="text-[9px] text-[#605e5c] font-medium uppercase tracking-wider mt-auto">Actions</div>

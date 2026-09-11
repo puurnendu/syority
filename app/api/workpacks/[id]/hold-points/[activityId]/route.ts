@@ -32,8 +32,9 @@ export async function PATCH(
 
     // Case 1: Record clearance
     if (body.clear === true) {
-        const clearance = await prisma.qaClearanceRecord.create({
+        const clearance = await prisma.qa_clearance_records.create({
             data: {
+                id: crypto.randomUUID(),
                 organization_id: orgId,
                 activity_id: activityId,
                 workpack_id: workpackId,

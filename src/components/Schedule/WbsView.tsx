@@ -84,7 +84,8 @@ function processTree(nodes: WbsNode[], activities: Activity[], prefix = ''): Wbs
         ] as string[];
         const actualFinish = allActualFinishes.length > 0 && compActs === totalActs ? allActualFinishes.sort().reverse()[0] : null;
 
-        // Progress Weighted Average
+        // M8.13 GOVERNANCE: PRESENTATION-ONLY — WBS tree rollup for schedule view display
+        // Uses simple count average across WBS hierarchy — NOT the authoritative execution progress.
         const totalProgress = myActivities.reduce((s, a) => s + (a.progress_percent || 0), 0) + children.reduce((s, c) => s + ((c._progress ?? 0) * (c._totalActivities ?? 0)), 0);
         const progress = totalActs > 0 ? Math.round(totalProgress / totalActs) : 0;
 

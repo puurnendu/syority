@@ -7,7 +7,7 @@ export async function GET() {
   if (error) return error;
   const { orgId } = orgScope(session!);
 
-  const pending = await prisma.whatsappUpdate.count({
+  const pending = await prisma.whatsapp_updates.count({
     where: { organization_id: orgId, status: 'parked_review' },
   });
 

@@ -46,7 +46,7 @@ export async function seedTemplateFamilies(prisma: PrismaClient, organizationId?
 
   for (let i = 0; i < TEMPLATE_FAMILIES.length; i++) {
     const tf = TEMPLATE_FAMILIES[i];
-    const existing = await (prisma as any).templateFamily.findFirst({
+    const existing = await prisma.templateFamily.findFirst({
       where: {
         organization_id: organizationId ?? null,
         code: tf.code,
@@ -57,7 +57,7 @@ export async function seedTemplateFamilies(prisma: PrismaClient, organizationId?
       continue;
     }
 
-    await (prisma as any).templateFamily.create({
+    await prisma.templateFamily.create({
       data: {
         id: randomUUID(),
         organization_id: organizationId ?? null,

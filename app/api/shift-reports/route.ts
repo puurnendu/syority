@@ -27,11 +27,8 @@ export async function GET(req: NextRequest) {
     if (dateTo) where.shift_start.lte = new Date(dateTo);
   }
 
-  const data = await prisma.shiftReport.findMany({
+  const data = await prisma.shift_reports.findMany({
     where,
-    include: {
-      unit: { select: { name: true, code: true } },
-    },
     orderBy: { shift_start: 'desc' },
     skip,
     take: pageSize,

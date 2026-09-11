@@ -33,7 +33,7 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
       file.type
     );
 
-    await prisma.workpackPrintSettings.upsert({
+    await prisma.workpack_print_settings.upsert({
       where: { organization_id: orgId },
       create: { organization_id: orgId, updated_by: session.user.id!, cover_image_path: s3_path },
       update: { cover_image_path: s3_path, updated_by: session.user.id! },

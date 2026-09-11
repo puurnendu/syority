@@ -20,7 +20,7 @@ export default async function SystemsPage() {
       include: {
         site: { select: { id: true, name: true, code: true } },
         unit: { select: { id: true, name: true, code: true } },
-        _count: { select: { blinds: true, gaskets: true, workpacks: true } },
+        _count: { select: { system_blinds: true, system_gaskets: true, workpacks: true } },
       },
       orderBy: [{ unit: { name: 'asc' } }, { code: 'asc' }],
     }),

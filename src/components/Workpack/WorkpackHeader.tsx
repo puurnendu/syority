@@ -4,7 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApprovalStatusBar } from './ApprovalStatusBar';
 
-type WorkpackStatus = 'pending_ai_review' | 'draft' | 'under_review' | 'approved' | 'issued' | 'closed' | 'cancelled';
+type WorkpackStatus = 'pending_ai_review' | 'draft' | 'under_review' | 'approved' | 'issued' | 'in_execution' | 'completed' | 'closed' | 'cancelled';
 
 const STATUS_CONFIG: Record<WorkpackStatus, { label: string; color: string; bg: string; border: string }> = {
     pending_ai_review: { label: 'AI Review', color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
@@ -12,6 +12,8 @@ const STATUS_CONFIG: Record<WorkpackStatus, { label: string; color: string; bg: 
     under_review: { label: 'Under Review', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
     approved: { label: 'Approved', color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
     issued: { label: 'Issued', color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' },
+    in_execution: { label: 'In Execution', color: '#EA580C', bg: '#FFF7ED', border: '#FDBA74' },
+    completed: { label: 'Completed', color: '#0D9488', bg: '#F0FDFA', border: '#99F6E4' },
     closed: { label: 'Closed', color: '#047857', bg: '#D1FAE5', border: '#6EE7B7' },
     cancelled: { label: 'Cancelled', color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA' },
 };

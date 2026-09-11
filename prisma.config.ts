@@ -18,5 +18,9 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["DATABASE_URL"],
+    // Disposable scratch database used only by `migrate dev` and
+    // `migrate diff --from-migrations`. Must never point at a real database:
+    // Prisma resets it on every use.
+    shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });

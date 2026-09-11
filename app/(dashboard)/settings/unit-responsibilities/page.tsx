@@ -17,11 +17,8 @@ export default async function ResponsibilityMatrixPage() {
 
   const units = await prisma.unit.findMany({
     where: { organization_id: orgId, deleted_at: null },
-    select: {
-      id: true,
-      name: true,
-      code: true,
-      Plant: { select: { name: true, code: true } },
+    include: {
+      plant: { select: { name: true, code: true } },
       unit_responsibilities: {
         where: { is_active: true },
         include: {
@@ -65,8 +62,8 @@ export default async function ResponsibilityMatrixPage() {
                   {unit.name} {unit.code ? `(${unit.code})` : ''}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Plant: {unit.Plant?.name || '—'}
-                  {unit.Plant?.code ? ` (${unit.Plant.code})` : ''}
+                  Plant: {unit.plant?.name || '—'}
+                  {unit.plant?.code ? ` (${unit.plant.code})` : ''}
                 </p>
               </div>
 

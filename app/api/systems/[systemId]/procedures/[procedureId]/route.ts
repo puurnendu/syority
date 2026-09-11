@@ -28,7 +28,7 @@ export async function PATCH(
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
 
-  const procedure = await prisma.systemProcedure.findFirst({
+  const procedure = await prisma.system_procedures.findFirst({
     where: { id: procedureId, system_id: systemId },
     select: { id: true },
   });
@@ -53,7 +53,7 @@ export async function PATCH(
   if (data.owner !== undefined) updateData.owner = data.owner;
   if (data.file_url !== undefined) updateData.file_url = data.file_url;
 
-  const updated = await prisma.systemProcedure.update({
+  const updated = await prisma.system_procedures.update({
     where: { id: procedureId },
     data: updateData as any,
   });
@@ -75,12 +75,12 @@ export async function DELETE(
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
 
-  const procedure = await prisma.systemProcedure.findFirst({
+  const procedure = await prisma.system_procedures.findFirst({
     where: { id: procedureId, system_id: systemId },
     select: { id: true },
   });
   if (!procedure) return NextResponse.json({ error: 'Procedure not found' }, { status: 404 });
 
-  await prisma.systemProcedure.delete({ where: { id: procedureId } });
+  await prisma.system_procedures.delete({ where: { id: procedureId } });
   return NextResponse.json({ ok: true });
 }

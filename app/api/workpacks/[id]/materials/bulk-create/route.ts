@@ -50,8 +50,9 @@ export async function POST(
       skipped!.add(key);
     }
 
-    const line = await prisma.workpackMaterialLine.create({
+    const line = await prisma.workpack_material_lines.create({
       data: {
+        id: crypto.randomUUID(),
         organization_id: orgId,
         workpack_id: workpackId,
         source_type: 'ai',
@@ -65,6 +66,7 @@ export async function POST(
         quantity_required: typeof m.quantity === 'number' ? m.quantity : parseFloat(String(m.quantity)) || 1,
         procurement_status: 'not_requested',
         notes: (m.notes ?? '').toString().trim() || null,
+        updated_at: new Date(),
       },
     });
     created.push(line.id);

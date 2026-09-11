@@ -12,6 +12,7 @@
  */
 import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/lib/audit';
+import { formatLag } from '@/lib/lagFormat';
 import type { Prisma } from '@prisma/client';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -82,6 +83,10 @@ export interface ActivityGridRow {
   manpower_type: string | null;
   priority: string | null;
   status: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  progress: number;
+  remarks: string | null;
   hold_point_type: string | null;
   notes: string | null;
   sequence_number: number | null;
@@ -112,8 +117,6 @@ export interface BatchUpdateResult {
 
 const ACTIVITY_EDITABLE_FIELDS = new Set([
   'duration_hours',
-  'planned_start',
-  'planned_end',
   'manpower_count',
   'manpower_type',
   'priority',
@@ -397,15 +400,13 @@ export class PlannerWorkspaceService {
       const predecessors = act.predecessors.map((rel) => {
         const predId = rel.predecessor.activity_id ?? rel.predecessor_id.slice(0, 8);
         const type = rel.relationship_type ?? 'FS';
-        const lag = rel.lag_days && rel.lag_days > 0 ? `+${rel.lag_days}d` : '';
-        return `${predId}${type}${lag}`;
+        return `${predId}${type}${formatLag(rel)}`;
       });
 
       const successors = act.successors.map((rel) => {
         const succId = rel.successor.activity_id ?? rel.successor_id.slice(0, 8);
         const type = rel.relationship_type ?? 'FS';
-        const lag = rel.lag_days && rel.lag_days > 0 ? `+${rel.lag_days}d` : '';
-        return `${succId}${type}${lag}`;
+        return `${succId}${type}${formatLag(rel)}`;
       });
 
       // Build UDF map

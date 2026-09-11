@@ -17,7 +17,7 @@ export async function GET(
 
     const { id } = await params;
 
-    const template = await prisma.workpackTemplate.findFirst({
+    const template = await prisma.workpack_templates.findFirst({
         where: {
             id,
             deleted_at: null,
@@ -58,7 +58,7 @@ export async function PUT(
 
     const { id } = await params;
 
-    const existing = await prisma.workpackTemplate.findFirst({
+    const existing = await prisma.workpack_templates.findFirst({
         where: { id, organization_id: orgId, deleted_at: null },
     });
     if (!existing) {
@@ -82,7 +82,7 @@ export async function PUT(
     const doReplace = data.activities !== undefined || data.droppingItems !== undefined || data.boxupItems !== undefined;
 
     await prisma.$transaction(async (tx) => {
-        await tx.workpackTemplate.update({
+        await tx.workpack_templates.update({
             where: { id },
             data: {
                 ...(data.name != null && { name: data.name }),
@@ -93,11 +93,11 @@ export async function PUT(
         });
 
         if (doReplace) {
-            await tx.workpackTemplateActivity.deleteMany({ where: { template_id: id } });
+            await tx.workpack_template_activities.deleteMany({ where: { template_id: id } });
             await tx.templateChecklistItem.deleteMany({ where: { template_id: id } });
 
             if (activities.length > 0) {
-                await tx.workpackTemplateActivity.createMany({
+                await tx.workpack_template_activities.createMany({
                     data: activities.map((a, i) => ({
                         organization_id: orgId,
                         template_id: id,
@@ -138,7 +138,7 @@ export async function PUT(
         }
     });
 
-    const template = await prisma.workpackTemplate.findUnique({
+    const template = await prisma.workpack_templates.findUnique({
         where: { id },
         include: {
             activities: { orderBy: { sequence_number: 'asc' } },
@@ -162,7 +162,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const existing = await prisma.workpackTemplate.findFirst({
+    const existing = await prisma.workpack_templates.findFirst({
         where: { id, organization_id: orgId, deleted_at: null },
     });
     if (!existing) {
@@ -172,7 +172,7 @@ export async function DELETE(
         return NextResponse.json({ error: 'Cannot delete system template' }, { status: 403 });
     }
 
-    await prisma.workpackTemplate.update({
+    await prisma.workpack_templates.update({
         where: { id },
         data: { deleted_at: new Date() },
     });

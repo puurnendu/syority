@@ -25,7 +25,7 @@ export async function POST(
   const value = body.value === true;
 
   if (body.discipline) {
-    const count = await prisma.workpackMaterialLine.updateMany({
+    const count = await prisma.workpack_material_lines.updateMany({
       where: {
         workpack_id: id,
         organization_id: orgId,
@@ -38,7 +38,7 @@ export async function POST(
   }
 
   if (Array.isArray(body.ids) && body.ids.length > 0) {
-    const count = await prisma.workpackMaterialLine.updateMany({
+    const count = await prisma.workpack_material_lines.updateMany({
       where: {
         id: { in: body.ids },
         workpack_id: id,
@@ -70,7 +70,7 @@ export async function PATCH(
     );
   }
 
-  const validLines = await prisma.workpackMaterialLine.findMany({
+  const validLines = await prisma.workpack_material_lines.findMany({
     where: {
       id: { in: body.ids as string[] },
       workpack_id: id,
@@ -89,7 +89,7 @@ export async function PATCH(
   if (body.updates.procurement_status !== undefined) data.procurement_status = body.updates.procurement_status;
   if (body.updates.includedInPdf !== undefined) data.includedInPdf = body.updates.includedInPdf;
 
-  await prisma.workpackMaterialLine.updateMany({
+  await prisma.workpack_material_lines.updateMany({
     where: { id: { in: validIds } },
     data,
   });

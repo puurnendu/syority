@@ -33,7 +33,7 @@ export async function GET(
             hold_point_type: { not: null },
         },
         include: {
-            qa_clearances: {
+            qa_clearance_records: {
                 orderBy: { cleared_at: 'desc' },
                 take: 1,
                 select: {
@@ -63,8 +63,8 @@ export async function GET(
                         hold_point_type: a.hold_point_type,
                         hold_point_description: a.hold_point_description,
                         status: a.status,
-                        is_cleared: a.qa_clearances.length > 0,
-                        clearance: a.qa_clearances[0] ?? null,
+                        is_cleared: a.qa_clearance_records.length > 0,
+                        clearance: a.qa_clearance_records[0] ?? null,
                         sequence_number: a.sequence_number,
                     })),
             },
@@ -72,7 +72,7 @@ export async function GET(
     );
 
     const total = activities.length;
-    const cleared = activities.filter((a) => a.qa_clearances.length > 0).length;
+    const cleared = activities.filter((a) => a.qa_clearance_records.length > 0).length;
 
     return NextResponse.json({
         total,

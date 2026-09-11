@@ -43,7 +43,6 @@ const SEGMENT_LABELS: Record<string, string> = {
     // Tenant dashboard namespace
     'workpacks': 'Workpacks',
     'schedule': 'Schedule',
-    'imported-schedule': 'Baseline Schedule',
     'projects': 'Projects',
     'settings': 'Settings',
     'organization': 'Organisation',

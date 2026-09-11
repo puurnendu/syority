@@ -37,7 +37,7 @@ function normaliseDisc(discipline: string): string {
 async function generateCode(orgId: string, unitCode: string, disciplineCode: string): Promise<string> {
     const unit = normaliseUnit(unitCode);
     const disc = normaliseDisc(disciplineCode);
-    const counter = await prisma.workpackIdCounter.upsert({
+    const counter = await prisma.workpack_id_counters.upsert({
         where: {
             organization_id_unit_code_discipline_code: {
                 organization_id: orgId,

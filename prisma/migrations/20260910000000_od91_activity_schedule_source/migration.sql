@@ -1,0 +1,13 @@
+-- OD9.1 / Phase 3B — create Activity.schedule_source.
+--
+-- ActivityCreationCommand.ts:486 writes this field on EVERY activity creation path
+-- ('workpack' for native activities, 'imported' for the legacy P6/MPP path, NULL
+-- otherwise), and the R1.0-C1 Time Authority Contract depends on it as the provenance
+-- carrier that distinguishes planner-authored dates from imported ones. The column was
+-- declared in schema.prisma but had never been created physically, so `migrate diff`
+-- proposed adding it and every Prisma INSERT naming it was invalid.
+--
+-- Additive and idempotent. Nullable with no default: NULL is a meaningful third state
+-- in the existing creation contract (neither workpack-native nor imported), so a
+-- fabricated default would destroy information rather than supply it.
+ALTER TABLE "Activity" ADD COLUMN IF NOT EXISTS "schedule_source" TEXT;

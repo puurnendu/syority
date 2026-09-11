@@ -70,16 +70,24 @@ export class ActivityUdfService {
                 value_string = null;
                 value_number = null;
                 udf_option_id = null;
-            } else if (isSelect && typeof value === 'string') {
+            } else if (isSelect) {
+                const strVal = String(value).trim();
                 const option = def.options.find(
-                    (o) => o.code_value === value || o.value === value
+                    (o) => o.id === strVal || o.code_value === strVal || o.value.toLowerCase() === strVal.toLowerCase()
                 );
-                udf_option_id = option?.id ?? null;
-                value_string = option ? null : value;
+                if (!option) {
+                    throw new Error(`INVALID_CONTROLLED_VALUE: "${value}" is not a valid controlled option for UDF "${def.name}" (${def.code}). Free-text classification is prohibited.`);
+                }
+                udf_option_id = option.id;
+                value_string = null;
             } else if (isNumber && typeof value === 'number') {
                 value_number = value;
-            } else if (typeof value === 'number') {
-                value_number = value;
+            } else if (isNumber) {
+                const parsed = Number(value);
+                if (isNaN(parsed)) {
+                    throw new Error(`INVALID_NUMBER_VALUE: "${value}" is not a valid numeric value for UDF "${def.name}" (${def.code}).`);
+                }
+                value_number = parsed;
             } else {
                 value_string = String(value);
             }

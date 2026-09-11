@@ -18,6 +18,19 @@ export const POST = withTenantGuard(async (req: NextRequest, _ctx, session) => {
   }
 
   try {
+    const asDataset = body?.format === 'dataset' || req.nextUrl.searchParams.get('as_dataset') === 'true';
+
+    if (asDataset) {
+      const dataset = await ReportGenerationService.generateDataset({
+        definitionId: definition_id,
+        organizationId: session.user.organization_id,
+        generatedBy: session.user.id,
+        parameters: parameters ?? {},
+        includeAiSummary: include_ai_summary ?? false,
+      });
+      return NextResponse.json({ success: true, dataset });
+    }
+
     const html = await ReportGenerationService.preview({
       definitionId: definition_id,
       organizationId: session.user.organization_id,

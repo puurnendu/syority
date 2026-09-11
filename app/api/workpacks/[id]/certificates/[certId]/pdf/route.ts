@@ -24,7 +24,7 @@ export async function GET(
     if (!cert) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const [template, workpack] = await Promise.all([
-        prisma.certificateTemplate.findFirst({
+        prisma.certificate_templates.findFirst({
             where: { id: cert.template_id },
             select: { cert_name: true, cert_type: true, fields: true },
         }),

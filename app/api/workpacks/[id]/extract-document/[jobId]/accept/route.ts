@@ -35,7 +35,7 @@ async function importParameterToField(
     }
 
     if (section === 'cleaning_instructions' && fieldKey) {
-        const existing = await prisma.cleaningRecord.findFirst({
+        const existing = await prisma.cleaning_records.findFirst({
             where: {
                 workpack_id: workpackId,
                 deleted_at: null,
@@ -59,7 +59,7 @@ async function importParameterToField(
                     (existing.notes ?? '') + `\n${fieldKey}: ${value}`;
             }
             if (Object.keys(updates).length > 0) {
-                await prisma.cleaningRecord.update({
+                await prisma.cleaning_records.update({
                     where: { id: existing.id },
                     data: updates as Record<string, string | number | null>,
                 });
@@ -69,7 +69,7 @@ async function importParameterToField(
                 where: { id: workpackId },
                 select: { site_id: true },
             });
-            await prisma.cleaningRecord.create({
+            await prisma.cleaning_records.create({
                 data: {
                     organization_id: orgId,
                     site_id: wp?.site_id ?? null,
@@ -89,7 +89,7 @@ async function importParameterToField(
     }
 
     if (section === 'preparation' && fieldKey) {
-        const checklist = await prisma.droppingBoxupChecklist.findFirst({
+        const checklist = await prisma.dropping_boxup_checklists.findFirst({
             where: {
                 workpack_id: workpackId,
                 checklist_type: 'dropping',
@@ -104,11 +104,11 @@ async function importParameterToField(
             critical_clearances: 'Critical Clearances',
         };
 
-        const count = await prisma.droppingBoxupChecklistItem.count({
+        const count = await prisma.dropping_boxup_checklist_items.count({
             where: { checklist_id: checklist.id },
         });
 
-        await prisma.droppingBoxupChecklistItem.create({
+        await prisma.dropping_boxup_checklist_items.create({
             data: {
                 organization_id: orgId,
                 checklist_id: checklist.id,

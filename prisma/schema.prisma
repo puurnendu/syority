@@ -22,10 +22,20 @@ model Activity {
   discipline_id              String?                @db.Uuid
   duration_hours             Decimal?               @default(0) @db.Decimal(8, 2)
   window                     String?
-  planned_start              DateTime?              @db.Date
-  planned_end                DateTime?              @db.Date
-  actual_start               DateTime?              @db.Date
-  actual_end                 DateTime?              @db.Date
+  planned_start              DateTime?              @db.Timestamptz(3)
+  planned_end                DateTime?              @db.Timestamptz(3)
+  actual_start               DateTime?              @db.Timestamptz(3)
+  actual_end                 DateTime?              @db.Timestamptz(3)
+  /// Sprint 1b — planned dates are CPM-derived (M11). planned_* is the
+  /// EFFECTIVE value: the CPM derivation, or the planner's audited override
+  /// when one is active. planned_derived_* preserves the CPM value.
+  planned_start_override     DateTime?              @db.Timestamptz(3)
+  planned_end_override       DateTime?              @db.Timestamptz(3)
+  planned_derived_start      DateTime?              @db.Timestamptz(3)
+  planned_derived_end        DateTime?              @db.Timestamptz(3)
+  planned_override_reason    String?
+  planned_override_by        String?                @db.Uuid
+  planned_override_at        DateTime?              @db.Timestamptz(3)
   progress_percent           Int?                   @default(0)
   status                     ActivityStatus?        @default(not_started)
   notes                      String?
@@ -40,6 +50,7 @@ model Activity {
   early_finish               DateTime?
   late_start                 DateTime?
   late_finish                DateTime?
+  /// CPM total float in HOURS (canonical). UI converts to days via ScheduleCalendar.hours_per_day.
   total_float                Decimal?               @db.Decimal(12, 2)
   is_critical                Boolean?               @default(false)
   manpower_count             Int?
@@ -49,6 +60,11 @@ model Activity {
   budgeted_cost              Float?
   actual_cost                Float?
   remaining_duration         Float?
+  /// Provenance: 'workpack' (native) | 'imported' (legacy P6/MPP) | null.
+  /// Created physically by OD9.1 (20260910000000_od91_activity_schedule_source); required
+  /// by the R1.0-C1 Time Authority Contract to distinguish planner-authored dates from
+  /// imported ones. Written on every path by ActivityCreationCommand.
+  schedule_source            String?
   created_by                 String?                @db.Uuid
   updated_by                 String?                @db.Uuid
   created_at                 DateTime               @default(now())
@@ -64,9 +80,22 @@ model Activity {
   ProgressLog                ProgressLog[]
   predecessors               ActivityRelationship[] @relation("activity_as_successor")
   successors                 ActivityRelationship[] @relation("activity_as_predecessor")
+  /// M8.12 — Material Constraints
+  material_constraints       MaterialConstraint[]
+  /// M8.13 — Standard Activity Classification
+  standard_activity_type_id  String?                @db.Uuid
+  standard_activity_type     StandardActivityType?  @relation(fields: [standard_activity_type_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  /// M8.9 — Scenario overrides
+  scenarioOverrides          ScenarioActivityOverride[]
+  /// OD9.1 — live FK from Permit.activity_id
+  permits                    Permit[]
+  /// R0.4 / OD9.1 — the Event this activity belongs to. The column has existed since
+  /// R0.1; OD9.1 added the physical foreign key, so it is now declared as a relation.
+  event                      Event?                 @relation(fields: [event_id], references: [id])
 
   @@unique([organization_id, activity_number], name: "org_activity_number")
   @@index([workpack_id, sequence_number])
+  @@index([organization_id, event_id, deleted_at], name: "Activity_org_event_deleted_idx")
 }
 
 model Workpack {
@@ -93,8 +122,8 @@ model Workpack {
   work_type                      String?
   priority                       String?                      @default("Normal")
   scope_of_work                  String?
-  planned_start_date             DateTime?                    @db.Date
-  planned_end_date               DateTime?                    @db.Date
+  planned_start_date             DateTime?                    @db.Timestamptz(3)
+  planned_end_date               DateTime?                    @db.Timestamptz(3)
   estimated_manhours             Int?                         @default(0)
   status                         WorkpackStatus               @default(draft)
   overall_progress               Int?                         @default(0)
@@ -119,6 +148,10 @@ model Workpack {
   approved_by_email              String?
   approval_notes                 String?
   project_id                     String?
+  /// OD9.3 — optional Project/STO WBS placement. Ownership is on the WBS node
+  /// (exactly one of event_id / project_id). This is an association, not a second
+  /// activity hierarchy and not Activity.project_id.
+  wbs_node_id                    String?                      @db.Uuid
   /// M7.4 — Workpack Intelligence fields
   scope_item_id                  String?                      @db.Uuid
   readiness_score                Int?                         @default(0)
@@ -133,6 +166,7 @@ model Workpack {
   organization                   Organization                 @relation(fields: [organization_id], references: [id])
   plant                          Plant?                       @relation(fields: [plant_id], references: [id])
   project                        Project?                     @relation(fields: [project_id], references: [id])
+  wbs_node                       WbsNode?                     @relation(fields: [wbs_node_id], references: [id], onDelete: SetNull)
   site                           Site                         @relation(fields: [site_id], references: [id])
   system                         System?                      @relation(fields: [system_id], references: [id])
   unit                           Unit?                        @relation(fields: [unit_id], references: [id])
@@ -159,10 +193,42 @@ model Workpack {
   clearance_for_boxup            clearance_for_boxup?
   job_completion_certificate     job_completion_certificates?
   scope_items                    ScopeItem[]
+  identity_review                WorkpackIdentityReview?
+  /// M8.6 — asset snapshots taken when assets are attached (declared in OD9.1)
+  asset_snapshots                workpack_asset_snapshots[]
+  /// OD9.1 — live FK from Permit.workpack_id
+  permits                        Permit[]
 
   @@unique([organization_id, workpack_number])
   @@index([organization_id, site_id, status])
   @@index([organization_id, status])
+  /// OD9.1 — Event-scoped workpack reads
+  @@index([event_id])
+  @@index([wbs_node_id])
+}
+
+/// R0.4-D — identity review disposition. Not Workpack.status (operational).
+/// Quarantine is a review state, not deletion.
+model WorkpackIdentityReview {
+  id                 String   @id @default(uuid()) @db.Uuid
+  organization_id    String   @db.Uuid
+  workpack_id        String   @unique @db.Uuid
+  review_state       String   @default("UNREVIEWED")
+  classification     String?
+  confirmed_event_id String?  @db.Uuid
+  previous_event_id  String?  @db.Uuid
+  reason             String?
+  evidence           Json     @default("{}")
+  reviewer_id        String?  @db.Uuid
+  approver_id        String?  @db.Uuid
+  conflict_accepted  Boolean  @default(false)
+  version            Int      @default(0)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  workpack           Workpack @relation(fields: [workpack_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id, review_state])
+  @@map("workpack_identity_reviews")
 }
 
 model ProgressLog {
@@ -180,6 +246,13 @@ model ProgressLog {
   percent_complete Float?
   actual_cost      Float?
   recorded_by      String?   @db.Uuid
+  /// M12-R0.1: Execution shift context (day/night)
+  shift            String?   @default("day")
+  /// M8.13 quantity-based progress inputs. Present in the database since the
+  /// resource planning migration; previously undeclared.
+  quantity_actual   Decimal? @db.Decimal(10, 2)
+  quantity_unit     String?
+  udf_definition_id String?  @db.Uuid
   Activity         Activity  @relation(fields: [activity_id], references: [id])
 }
 
@@ -201,6 +274,9 @@ model ActivityLibrary {
   work_category          String?
   phase                  String?
   level_code             String?
+  /// PLATFORM | TENANT — separates the seeded platform library from tenant-authored
+  /// entries. Populated on all rows; previously undeclared.
+  library_scope          String      @default("TENANT")
   discipline             Discipline? @relation(fields: [discipline_id], references: [id])
 }
 
@@ -212,7 +288,7 @@ model ActivityLibraryUdfDefault {
   udf_option_id       String?   @db.Uuid
   value_string        String?
   value_number        Decimal?  @db.Decimal(10, 2)
-  value_date          DateTime? @db.Date
+  value_date          DateTime? @db.Timestamptz(3)
   value_boolean       Boolean?
   created_at          DateTime  @default(now())
   updated_at          DateTime
@@ -224,7 +300,11 @@ model ActivityRelationship {
   predecessor_id    String            @db.Uuid
   successor_id      String            @db.Uuid
   relationship_type RelationshipType? @default(FS)
+  /// Legacy whole-day lag. Retained for read fallback; new writes use lag_minutes.
   lag_days          Int?              @default(0)
+  /// Sprint 1a — canonical lag in working minutes (sub-day capable).
+  /// Engines convert via the calendar's hours_per_day. Backfilled lag_days × 480.
+  lag_minutes       Int?
   created_by        String?           @db.Uuid
   created_at        DateTime          @default(now())
   updated_at        DateTime
@@ -245,7 +325,7 @@ model ActivityResource {
   planned_hours    Decimal?      @default(0) @db.Decimal(8, 2)
   actual_hours     Decimal?      @default(0) @db.Decimal(8, 2)
   headcount        Int?          @default(1)
-  assigned_date    DateTime?     @db.Date
+  assigned_date    DateTime?     @db.Timestamptz(3)
   notes            String?
   created_by       String?       @db.Uuid
   created_at       DateTime      @default(now())
@@ -273,6 +353,19 @@ model ActivityUdfDefinition {
   is_contractor_editable  Boolean             @default(false)
   contractor_edit_label   String?             /// Optional label shown to contractor
   sort_order              Int?
+  /// M8.13 — UDF rollup metadata. Present in the database since the resource
+  /// planning migration; previously undeclared.
+  is_exportable           Boolean             @default(false)
+  is_progress_driving     Boolean             @default(false)
+  unit                    String?
+  /// M12-V1 — Dimension Registry metadata (enables unified filter/sort/group/export)
+  is_filterable           Boolean             @default(true)
+  is_sortable             Boolean             @default(true)
+  is_groupable            Boolean             @default(true)
+  is_bulk_editable        Boolean             @default(false)
+  validation_rules        String?             /// JSON validation rules (optional)
+  display_order           Int                 @default(0)
+  width                   Int                 @default(150)
   created_by              String?             @db.Uuid
   created_at              DateTime            @default(now())
   updated_at              DateTime
@@ -310,7 +403,7 @@ model ActivityUdfValue {
   udf_option_id     String?               @db.Uuid
   value_string      String?
   value_number      Decimal?              @db.Decimal(10, 2)
-  value_date        DateTime?             @db.Date
+  value_date        DateTime?             @db.Timestamptz(3)
   value_boolean     Boolean?
   created_at        DateTime              @default(now())
   updated_at        DateTime
@@ -439,13 +532,22 @@ model Asset {
   tag_number                                 String
   name                                       String
   asset_type                                 String?
+  /// M8.13 — Normalized equipment type FK (supplements free-text asset_type)
+  equipment_type_id                          String?
+  equipment_type_rel                         EquipmentType? @relation(fields: [equipment_type_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   sap_equipment_number                       String?
   description                                String?
   is_active                                  Boolean?        @default(true)
+  /// M8.14-R1 — Controlled lifecycle status (replaces boolean is_active for new code)
+  status                                     AssetStatus     @default(draft)
   created_by                                 String?         @db.Uuid
   created_at                                 DateTime        @default(now())
   updated_at                                 DateTime        @updatedAt
+  /// M8.14-R1 — Track who last modified this equipment record
+  updated_by                                 String?         @db.Uuid
   deleted_at                                 DateTime?
+  /// M8.14-R1 — Provenance: manual | excel_import | ai_extraction | p_and_id
+  data_source                                String?         @default("manual")
   manufacturer                               String?
   model_number                               String?
   serial_number                              String?
@@ -459,7 +561,8 @@ model Asset {
   weight_operating_kg                        Float?
   service_description                        String?
   fluid_service                              String?
-  criticality                                String?
+  /// M8.14-R1 — Controlled criticality (was free-text String?)
+  criticality                                AssetCriticality?
   p_and_id_numbers                           String[]        @default([])
   ga_drawing_number                          String?
   isometric_drawing_numbers                  String[]        @default([])
@@ -468,6 +571,16 @@ model Asset {
   train                                      String?
   sap_functional_location                    String?
   extracted_from_document_id                 String?         @db.Uuid
+  /// M8.14-R1 — Parent/child self-relation for equipment hierarchy
+  parent_id                                  String?         @db.Uuid
+  /// OD9.1: earlier, redundant hierarchy column. Physically present with its own FK
+  /// and index; unpopulated. Declared to preserve the live constraint. `parent_id` is
+  /// the column application code uses — see OD9-033.
+  parent_asset_id                            String?         @db.Uuid
+  /// OD9.1: live columns from the asset register SQL, previously undeclared. All empty.
+  area_id                                    String?         @db.Uuid
+  corrosion_loop_id                          String?
+  design_code                                String?
   extraction_confidence                      Float?
   User                                       User?           @relation(fields: [created_by], references: [id])
   Organization                               Organization    @relation(fields: [organization_id], references: [id])
@@ -484,11 +597,26 @@ model Asset {
   asset_document_links                       AssetDocumentLink[]
   engineering_issues                         EngineeringIssue[]
   scope_items                                ScopeItem[]         @relation("ScopeItemAsset")
+  /// M8.14-R1 — EAV attribute values
+  attribute_values                           AssetAttributeValue[]
+  /// M8.14-R1 — Parent/child self-relation
+  parent                                     Asset?          @relation("AssetHierarchy", fields: [parent_id], references: [id])
+  children                                   Asset[]         @relation("AssetHierarchy")
+  /// OD9.1 — preserves the live Asset_parent_asset_id_fkey constraint (see parent_asset_id).
+  legacyParent                               Asset?          @relation("AssetLegacyHierarchy", fields: [parent_asset_id], references: [id])
+  legacyChildren                             Asset[]         @relation("AssetLegacyHierarchy")
+  /// M8.14-R1 — append-only attribute history (FK exists in the database)
+  attribute_history                          AssetAttributeHistory[]
+  /// M8.6 — live tables declared in OD9.1
+  asset_relationships_source                 asset_relationships[] @relation("asset_relationships_source_asset_idToAsset")
+  asset_relationships_target                 asset_relationships[] @relation("asset_relationships_target_asset_idToAsset")
+  workpack_asset_snapshots                   workpack_asset_snapshots[]
 
   @@unique([organization_id, tag_number])
   @@index([plant_id])
   @@index([unit_id])
   @@index([system_id])
+  @@index([parent_asset_id])
 }
 
 model Attachment {
@@ -541,13 +669,31 @@ model AuditLog {
 }
 
 model BaselineActivity {
-  id             String   @id @db.Uuid
-  baseline_id    String   @db.Uuid
-  activity_id    String   @db.Uuid
-  planned_start  DateTime
-  planned_finish DateTime
-  duration       Float
-  budgeted_cost  Float?
+  id               String            @id @db.Uuid
+  baseline_id      String            @db.Uuid
+  activity_id      String            @db.Uuid
+  /// OD9.1: NOT NULL in the database and populated on all 28 rows. Declaring it
+  /// optional would have made `migrate diff` propose dropping the constraint.
+  organization_id  String            @db.Uuid
+  planned_start    DateTime
+  planned_finish   DateTime
+  duration         Float
+  budgeted_cost    Float?
+  /// CPM snapshot fields (captured at baseline creation)
+  early_start      DateTime?
+  early_finish     DateTime?
+  late_start       DateTime?
+  late_finish      DateTime?
+  total_float      Decimal?          @db.Decimal(12, 2)
+  free_float       Float?
+  is_critical      Boolean?          @default(false)
+  status           String?
+  progress_percent Int?              @default(0)
+  baseline         ScheduleBaseline  @relation(fields: [baseline_id], references: [id], onDelete: Cascade)
+
+  @@index([baseline_id])
+  @@index([activity_id])
+  @@index([organization_id])
 }
 
 model Blind {
@@ -605,8 +751,8 @@ model Constraint {
   constraint_type        ConstraintType?
   priority               Priority?         @default(high)
   owner_id               String?           @db.Uuid
-  target_resolution_date DateTime?         @db.Date
-  actual_resolution_date DateTime?         @db.Date
+  target_resolution_date DateTime?         @db.Timestamptz(3)
+  actual_resolution_date DateTime?         @db.Timestamptz(3)
   status                 ConstraintStatus? @default(open)
   resolution_notes       String?
   raised_by              String?           @db.Uuid
@@ -644,6 +790,7 @@ model Contractor {
   Site            Site?        @relation(fields: [site_id], references: [id])
   Resource        Resource[]
   Workpack        Workpack[]
+  ResourceCapacity ResourceCapacity[]
 }
 
 model Discipline {
@@ -743,6 +890,10 @@ model EquipmentType {
   description String?
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
+  /// M8.13 — Standard activity types for this equipment type
+  standard_activity_types StandardActivityType[]
+  /// M8.13 — Assets of this equipment type
+  assets                  Asset[]
 }
 
 model FormEntry {
@@ -960,6 +1111,11 @@ model Organization {
   deployment_model       String?                 @default("shared")
   vps_hostname           String?
   vps_region             String?
+  /// Tenant lifecycle state, distinct from `status`. Populated on all rows;
+  /// previously undeclared.
+  lifecycle_status       String?                 @default("active")
+  lifecycle_changed_at   DateTime?
+  lifecycle_changed_by   String?                 @db.Uuid
   Asset                  Asset[]
   Area                   Area[]
   Contractor             Contractor[]
@@ -978,6 +1134,8 @@ model Organization {
   WorkpackMaterial       WorkpackMaterial[]
   billing_logs           BillingLog[]
   events                 Event[]
+  portfolios             Portfolio[]
+  project_communications ProjectCommunication[]
   joint_masters          joint_masters[]
   line_lists             line_lists[]
   nozzles                nozzles[]
@@ -1003,6 +1161,18 @@ model Organization {
   recommendations        bre_recommendations[]
   license                platform_licenses?
   org_modules            organization_modules[]
+  /// M8.11 — Scope Change & Discovery
+  discoveryWork          DiscoveryWork[]
+  scopeChanges           ScheduleScopeChange[]
+  /// M8.12 — Material Supply Chain
+  materialConstraints    MaterialConstraint[]
+  materialSupplyRecords  MaterialSupplyRecord[]
+  /// M8.9 resource planning + enterprise provisioning — live tables that were
+  /// missing from this schema until OD9.1.
+  ResourceCapacity       ResourceCapacity[]
+  ShiftDefinition        ShiftDefinition[]
+  provisioning_jobs      provisioning_jobs[]
+  permits                Permit[]
 
   @@index([is_active])
 }
@@ -1031,27 +1201,46 @@ model OrganizationDocumentSetting {
   updated_at          DateTime
 }
 
+/// OD9.1: realigned with the physical table. The previous declaration used TEXT
+/// identifiers, omitted site_id and declared no relations, so `migrate diff` proposed
+/// retyping six UUID columns to TEXT, rebuilding the primary key, dropping site_id and
+/// dropping all four foreign keys plus the permit-number unique constraint. The table is
+/// empty, so nothing was lost — but the declaration is now the catalogue.
 model Permit {
-  id               String    @id
-  project_id       String?
-  workpack_id      String?
-  activity_id      String?
+  id               String    @id @db.Uuid
+  /// M12-R0.1: Tenant isolation. NOT NULL in the database.
+  organization_id  String    @db.Uuid
+  site_id          String    @db.Uuid
+  project_id       String?   @db.Uuid
+  workpack_id      String?   @db.Uuid
+  activity_id      String?   @db.Uuid
   permit_number    String
   permit_type      String
   work_description String?
   location         String?
-  issued_by        String?
+  issued_by        String?   @db.Uuid
   issued_at        DateTime?
   valid_until      DateTime?
   extended_until   DateTime?
-  status           String    @default("Draft")
+  status           String    @default("draft")
   precautions      String?
   gas_test_result  String?
-  closed_by        String?
+  closed_by        String?   @db.Uuid
   closed_at        DateTime?
   remarks          String?
   created_at       DateTime  @default(now())
   updated_at       DateTime
+
+  organization     Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  site             Site         @relation(fields: [site_id], references: [id])
+  workpack         Workpack?    @relation(fields: [workpack_id], references: [id])
+  activity         Activity?    @relation(fields: [activity_id], references: [id])
+
+  @@unique([organization_id, permit_number])
+  @@index([organization_id, status])
+  @@index([organization_id, site_id])
+  @@index([workpack_id])
+  @@index([activity_id])
 }
 
 model Plant {
@@ -1103,6 +1292,31 @@ model Area {
   @@index([site_id, plant_id])
 }
 
+/// OD9.3 — general-purpose Portfolio. Independent of STO Event.
+/// Workpack.portfolio_id / ConstraintLog.portfolio_id / LessonLearned.portfolio_id
+/// are leftover UUID columns with no model and are NOT this entity.
+model Portfolio {
+  id              String    @id @db.Uuid
+  organization_id String    @db.Uuid
+  name            String
+  code            String
+  description     String?
+  status          String    @default("active")
+  owner_user_id   String?   @db.Uuid
+  category        String?
+  start_date      DateTime?
+  finish_date     DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime
+  archived_at     DateTime?
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  projects        Project[]
+
+  @@unique([organization_id, code])
+  @@index([organization_id])
+  @@map("portfolios")
+}
+
 model Project {
   id               String     @id
   org_id           String     @db.Uuid
@@ -1122,7 +1336,30 @@ model Project {
   created_by       String?
   created_at       DateTime   @default(now())
   updated_at       DateTime
+  portfolio_id     String?    @db.Uuid
   Workpack         Workpack[]
+  portfolio        Portfolio? @relation(fields: [portfolio_id], references: [id], onDelete: SetNull)
+  wbsNodes         WbsNode[]
+  communications   ProjectCommunication[]
+
+  @@index([portfolio_id])
+}
+
+/// OD9.3 — Project-scoped notes / distribution log. Not STO WhatsApp / M16.
+model ProjectCommunication {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  project_id      String
+  type            String   @default("note")
+  subject         String
+  body            String?
+  created_by      String?
+  created_at      DateTime @default(now())
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  project         Project      @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id, project_id])
+  @@map("project_communications")
 }
 
 model PunchListItem {
@@ -1141,7 +1378,7 @@ model PunchListItem {
   location          String?
   drawing_reference String?
   assigned_to       String?        @db.Uuid
-  target_close_date DateTime?      @db.Date
+  target_close_date DateTime?      @db.Timestamptz(3)
   status            PunchStatus?   @default(open)
   closed_by         String?        @db.Uuid
   closed_at         DateTime?
@@ -1195,6 +1432,67 @@ model ResourceType {
   User            User?        @relation(fields: [created_by], references: [id])
   Discipline      Discipline?  @relation(fields: [discipline_id], references: [id])
   Organization    Organization @relation(fields: [organization_id], references: [id])
+  ResourceCapacity ResourceCapacity[]
+}
+
+/// M8.9 — Event-scoped shift calendar consumed by the resource planning workspace.
+/// Physically created by 20260829000000_add_resource_planning; declared here in OD9.1
+/// so that the schema stops proposing to drop it. Transcribed from the live catalogue.
+model ShiftDefinition {
+  id               String             @id @db.Uuid
+  organization_id  String             @db.Uuid
+  event_id         String             @db.Uuid
+  shift_name       String
+  start_time       String
+  end_time         String
+  is_active        Boolean?           @default(true)
+  created_by       String?            @db.Uuid
+  updated_by       String?            @db.Uuid
+  created_at       DateTime           @default(now())
+  /// NOT NULL with no database default; @updatedAt supplies it from the client, which is
+  /// what ResourcePlanningService.createShift relies on.
+  updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
+  /// Field names below match ResourcePlanningService's include/select shape.
+  resource_capacities ResourceCapacity[]
+  event            Event              @relation(fields: [event_id], references: [id])
+  organization     Organization       @relation(fields: [organization_id], references: [id])
+
+  @@unique([event_id, shift_name])
+  @@index([event_id])
+  @@index([organization_id])
+}
+
+/// M8.9 — Per-day resource capacity ceiling used by resource levelling.
+/// Physically created by 20260829000000_add_resource_planning; declared here in OD9.1.
+model ResourceCapacity {
+  id               String           @id @db.Uuid
+  organization_id  String           @db.Uuid
+  event_id         String           @db.Uuid
+  resource_type_id String           @db.Uuid
+  contractor_id    String?          @db.Uuid
+  shift_id         String?          @db.Uuid
+  target_date      DateTime         @db.Timestamptz(3)
+  capacity_limit   Decimal          @db.Decimal(10, 2)
+  notes            String?
+  created_by       String?          @db.Uuid
+  updated_by       String?          @db.Uuid
+  created_at       DateTime         @default(now())
+  /// NOT NULL with no database default; supplied by @updatedAt, which is what
+  /// ResourcePlanningService.upsertCapacity relies on.
+  updated_at       DateTime         @updatedAt
+  deleted_at       DateTime?
+  /// Field names below match ResourcePlanningService's include/select shape.
+  contractor       Contractor?      @relation(fields: [contractor_id], references: [id])
+  event            Event            @relation(fields: [event_id], references: [id])
+  organization     Organization     @relation(fields: [organization_id], references: [id])
+  resource_type    ResourceType     @relation(fields: [resource_type_id], references: [id])
+  shift            ShiftDefinition? @relation(fields: [shift_id], references: [id])
+
+  @@unique([event_id, resource_type_id, contractor_id, shift_id, target_date])
+  @@index([event_id])
+  @@index([organization_id])
+  @@index([resource_type_id])
 }
 
 model Role {
@@ -1237,8 +1535,8 @@ model SafetyIncident {
   preventive_actions    String?
   lesson_learned        String?
   action_owner          String?
-  action_due_date       DateTime?     @db.Date
-  action_completed_date DateTime?     @db.Date
+  action_due_date       DateTime?     @db.Timestamptz(3)
+  action_completed_date DateTime?     @db.Timestamptz(3)
   status                String        @default("Open")
   investigation_by      String?
   closed_by             String?
@@ -1256,7 +1554,7 @@ model SafetyLog {
   id                   String           @id @db.Uuid
   event_id             String           @db.Uuid
   project_id           String?          @db.Uuid
-  log_date             DateTime         @db.Date
+  log_date             DateTime         @db.Timestamptz(3)
   shift                String           @default("day")
   manpower_planned     Int              @default(0)
   manpower_actual      Int              @default(0)
@@ -1311,13 +1609,24 @@ model SafetyPhoto {
 }
 
 model ScheduleBaseline {
-  id              String   @id @db.Uuid
-  organization_id String   @db.Uuid
-  project_id      String   @db.Uuid
-  name            String
-  created_at      DateTime @default(now())
-  created_by      String   @db.Uuid
-  is_current      Boolean  @default(false)
+  id                 String             @id @db.Uuid
+  organization_id    String             @db.Uuid
+  project_id         String?            @db.Uuid
+  /// M8.8 — Event association for baseline (authoritative scope)
+  event_id           String?            @db.Uuid
+  name               String
+  description        String?
+  snapshot_metadata  Json?              @default("{}")
+  created_at         DateTime           @default(now())
+  created_by         String             @db.Uuid
+  is_current         Boolean            @default(false)
+  event              Event?             @relation(fields: [event_id], references: [id], onDelete: SetNull)
+  baselineActivities BaselineActivity[]
+  scenarios          ScheduleScenario[]
+
+  @@index([organization_id])
+  @@index([event_id, is_current])
+  @@index([project_id])
 }
 
 model ScheduleCalendar {
@@ -1378,6 +1687,8 @@ model Site {
   line_lists                 line_lists[]
   activities                 Activity[]
   digital_plant_projects     DigitalPlantProject[]
+  /// OD9.1 — live FK from Permit.site_id
+  permits                    Permit[]
 
   @@unique([organization_id, code])
 }
@@ -1615,7 +1926,7 @@ model WorkpackMaterial {
   quantity_returned Decimal?        @default(0) @db.Decimal(12, 3)
   unit_cost         Decimal?        @db.Decimal(12, 2)
   status            MaterialStatus? @default(pending)
-  required_date     DateTime?       @db.Date
+  required_date     DateTime?       @db.Timestamptz(3)
   issue_reference   String?
   is_critical       Boolean?        @default(false)
   notes             String?
@@ -1905,10 +2216,10 @@ model Event {
   name             String
   code             String
   event_type       String           @default("turnaround")
-  planned_start    DateTime?        @db.Date
-  planned_end      DateTime?        @db.Date
-  actual_start     DateTime?        @db.Date
-  actual_end       DateTime?        @db.Date
+  planned_start    DateTime?        @db.Timestamptz(3)
+  planned_end      DateTime?        @db.Timestamptz(3)
+  actual_start     DateTime?        @db.Timestamptz(3)
+  actual_end       DateTime?        @db.Timestamptz(3)
   status           String           @default("planning")
   scope_notes      String?
   description      String?
@@ -1936,6 +2247,22 @@ model Event {
   discipline       Discipline?      @relation(fields: [discipline_id], references: [id])
   wbsNodes         WbsNode[]
   shutdown_scope   ShutdownScope?
+  /// M8.11 — Scope Change & Discovery
+  discoveryWork    DiscoveryWork[]
+  scopeChanges     ScheduleScopeChange[]
+  /// M8.12 — Material Constraints
+  materialConstraints MaterialConstraint[]
+  /// M8.8 — Schedule Baselines
+  scheduleBaselines   ScheduleBaseline[]
+  /// M8.9 — Schedule Scenarios
+  scheduleScenarios   ScheduleScenario[]
+  /// M8.9 — Resource planning (live tables declared in OD9.1)
+  shiftDefinitions    ShiftDefinition[]
+  resourceCapacities  ResourceCapacity[]
+  /// M8.8 — schedule change requests (live FK declared in OD9.1)
+  scheduleChangeRequests ScheduleChangeRequest[]
+  /// R0.4 / OD9.1 — activities scoped to this event (FK created in OD9.1)
+  activities             Activity[]
 
   @@index([organization_id, status])
   @@index([site_id])
@@ -1951,8 +2278,8 @@ model EventMilestone {
   name            String
   code            String?
   milestone_type  String    @default("planning")
-  planned_date    DateTime? @db.Date
-  actual_date     DateTime? @db.Date
+  planned_date    DateTime? @db.Timestamptz(3)
+  actual_date     DateTime? @db.Timestamptz(3)
   status          String    @default("pending")
   sort_order      Int       @default(0)
   notes           String?
@@ -2548,7 +2875,11 @@ model unit_shift_report_recipients {
 model WbsNode {
   id                 String       @id @db.Uuid
   organization_id    String       @db.Uuid
-  event_id           String       @db.Uuid
+  /// OD9.3 — exactly one of event_id / project_id is populated (DB CHECK).
+  /// Event WBS remains Event-owned. Project WBS is Project-owned. Neither
+  /// domain resolves the other.
+  event_id           String?      @db.Uuid
+  project_id         String?
   system_id          String?      @db.Uuid
   parent_id          String?      @db.Uuid
   code               String
@@ -2560,13 +2891,16 @@ model WbsNode {
   linked_entity_type String?
   created_at         DateTime     @default(now())
   updated_at         DateTime
-  event              Event        @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  event              Event?       @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  project            Project?     @relation(fields: [project_id], references: [id], onDelete: Cascade)
   organization       Organization @relation(fields: [organization_id], references: [id])
   parent             WbsNode?     @relation("WbsNodeToWbsNode", fields: [parent_id], references: [id])
   children           WbsNode[]    @relation("WbsNodeToWbsNode")
   system             System?      @relation(fields: [system_id], references: [id])
+  workpacks          Workpack[]
 
   @@index([organization_id, event_id])
+  @@index([organization_id, project_id])
   @@index([parent_id])
   @@index([system_id])
   @@map("wbs_nodes")
@@ -2574,23 +2908,29 @@ model WbsNode {
 
 model whatsapp_sessions {
   id                String   @id @db.Uuid
-  organization_id   String?  @db.Uuid
+  organization_id   String   @db.Uuid
   phone_number      String   @unique
   user_id           String?  @unique @db.Uuid
+  /// M16-R1: Event context for WhatsApp session continuity
+  event_id          String?  @db.Uuid
   state             String   @default("idle")
   pending_data      Json?
   detected_language String?  @default("en")
   expires_at        DateTime
   created_at        DateTime @default(now())
   updated_at        DateTime
+
+  @@index([organization_id])
 }
 
 model whatsapp_updates {
   id                    String    @id @db.Uuid
-  organization_id       String?   @db.Uuid
+  organization_id       String    @db.Uuid
   user_id               String?   @db.Uuid
   phone_number          String
   meta_message_id       String?   @unique
+  /// M16-R1: Event context for this update
+  event_id              String?   @db.Uuid
   message_type          String
   raw_message_text      String?
   detected_language     String?
@@ -2623,6 +2963,55 @@ model whatsapp_updates {
   @@index([matched_workpack_id])
   @@index([organization_id, status])
   @@index([phone_number, created_at])
+}
+
+/// M16-R1: Interaction audit log for all M16 governed interactions
+model m16_interaction_logs {
+  id                String   @id @default(uuid()) @db.Uuid
+  organization_id   String   @db.Uuid
+  user_id           String   @db.Uuid
+  event_id          String?  @db.Uuid
+  channel           String   /// web | whatsapp | voice | mobile | api
+  conversation_id   String?
+  message_id        String?  /// Channel-specific message ID
+  intent            String?  /// M16Intent enum value
+  intent_category   String?  /// QUERY | NAVIGATION | EXECUTION | GOVERNANCE
+  raw_message       String?  /// Original user text (for audit, NOT for re-processing)
+  resolved_entity   Json?    /// { assetId?, workpackId?, activityId?, entityType? }
+  action_risk_level String?  /// READ | LOW_RISK_WRITE | HIGH_RISK_WRITE | DESTRUCTIVE | GOVERNANCE
+  authorization     String   @default("pending") /// authorized | denied | not_required
+  denied_reason     String?
+  confirmation      String?  /// not_required | pending | confirmed | rejected
+  result            String   @default("pending") /// success | failure | ambiguous | rejected
+  result_detail     String?
+  identity_source   String?  /// session_cookie | phone_number | oauth_token | api_key
+  source_channel    String?  /// Adapter-specific source info
+  created_at        DateTime @default(now())
+
+  @@index([organization_id, created_at])
+  @@index([user_id, created_at])
+  @@index([event_id])
+  @@index([channel, created_at])
+}
+
+/// M15-R4 — Append-only management decision journal (not execution, not BRE)
+model m15_management_decisions {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String   @db.Uuid
+  event_id            String   @db.Uuid
+  recommendation_id   String
+  decided_by          String   @db.Uuid
+  decision            String   /// ACCEPT | REJECT | DEFER | REQUEST_MORE_INFORMATION
+  rationale           String?
+  source_channel      String   /// web | whatsapp | voice | mobile | api
+  related_scenario_id String?  @db.Uuid
+  evidence_snapshot   Json?
+  status              String   @default("RECORDED")
+  created_at          DateTime @default(now())
+
+  @@index([organization_id, event_id, created_at])
+  @@index([recommendation_id])
+  @@index([decided_by])
 }
 
 model workpack_id_counters {
@@ -2669,6 +3058,15 @@ model workpack_material_lines {
   included_in_pdf     Boolean   @default(true)
   planner_notes       String?
   custom_name         String?
+  /// M8.12 — Supply Chain Extension
+  quantity_available  Float     @default(0)
+  quantity_on_order   Float     @default(0)
+  expected_eta        DateTime? @db.Timestamptz(3)
+  supplier_name       String?
+  po_number           String?
+  material_readiness  String    @default("not_assessed")
+  /// Readiness: not_assessed, ready, partial, not_ready, blocked
+  supply_records      MaterialSupplyRecord[]
   deleted_at          DateTime?
   created_at          DateTime  @default(now())
   updated_at          DateTime
@@ -2731,6 +3129,10 @@ model workpack_template_activities {
   hold_point_description String?
   udf_defaults           Json?
   predecessor_sequences  Int[]    @default([])
+  /// OD9.1: live columns from the resource planning migration, previously undeclared.
+  /// Both empty.
+  condition_expression   String?
+  conditionality         String   @default("MANDATORY")
   created_at             DateTime @default(now())
   updated_at             DateTime
 }
@@ -2829,11 +3231,29 @@ model workpack_tools {
   @@index([workpack_id])
 }
 
+/// M8.14-R1 — Controlled equipment criticality
+enum AssetCriticality {
+  low
+  medium
+  high
+  critical
+}
+
+/// M8.14-R1 — Equipment lifecycle status
+enum AssetStatus {
+  draft
+  active
+  retired
+}
+
 enum ActivityStatus {
   not_started
+  released
   in_progress
   completed
   on_hold
+  verified
+  closed
   cancelled
 }
 
@@ -2843,6 +3263,8 @@ enum WorkpackStatus {
   under_review
   approved
   issued
+  in_execution
+  completed
   closed
   cancelled
 }
@@ -3268,7 +3690,7 @@ model PlantDocument {
   drawing_number      String?
   title               String
   revision            String?             @default("0")
-  issue_date          DateTime?           @db.Date
+  issue_date          DateTime?           @db.Timestamptz(3)
   discipline          String?             /// Mechanical, Piping, Electrical, Instrumentation, Civil, Process
   status              String              @default("uploaded") /// uploaded, extracting, extracted, reviewed
   unit_id             String?             @db.Uuid
@@ -3445,8 +3867,8 @@ model EngineeringIssue {
   status              IssueStatus         @default(draft)
   target_ta           String?             /// Target turnaround / event name (free text for now)
   originator          String?             /// Person who raised the issue
-  raised_date         DateTime?           @db.Date
-  due_date            DateTime?           @db.Date
+  raised_date         DateTime?           @db.Timestamptz(3)
+  due_date            DateTime?           @db.Timestamptz(3)
   comments            String?
   /// AI enrichment
   ai_discipline       String?             /// AI-suggested discipline
@@ -3603,7 +4025,7 @@ model ShutdownScope {
   objectives          String?             /// Scope objectives / goals
   status              ScopeStatus         @default(draft)
   /// Planning dates
-  freeze_date         DateTime?           @db.Date
+  freeze_date         DateTime?           @db.Timestamptz(3)
   frozen_at           DateTime?
   frozen_by           String?             @db.Uuid
   approved_at         DateTime?
@@ -4404,6 +4826,10 @@ model report_generations {
   started_at        DateTime?
   completed_at      DateTime?
   duration_ms       Int?
+  /// Data Provenance & Snapshotting
+  dataset_hash      String?                   /// Hash of the immutable ReportDataset
+  dataset_path      String?                   /// Path/URI to the snapshot JSON dataset
+  filters_applied   Json?      @default("{}") /// The precise filters applied during generation
   /// Delivery tracking (links to notification_queue)
   notification_queue_ids Json? @default("[]") /// UUIDs of notification_queue items created
   /// Audit
@@ -5402,7 +5828,7 @@ model platform_usage {
   organization_id   String    @db.Uuid
   metric_key        String                                    /// ai_tokens | emails | reports | dashboards | storage_mb | documents | api_calls | bg_jobs | provider_calls
   period            String    @default("daily")               /// daily | monthly
-  period_date       DateTime  @db.Date                        /// Date for this period
+  period_date       DateTime  @db.Timestamptz(3)                        /// Date for this period
   value             Int       @default(0)                     /// Consumed amount
   limit_value       Int?                                      /// License limit at time of recording
   created_at        DateTime  @default(now())
@@ -5550,4 +5976,600 @@ model platform_restores {
 
   @@index([backup_id])
   @@index([status])
+}
+
+/// ──────────────────────────────────────────────────────────────────────────────
+/// M8.10 — Enterprise EVM & Cost Intelligence
+/// ──────────────────────────────────────────────────────────────────────────────
+
+model EvmSnapshot {
+  id              String   @id @db.Uuid
+  organization_id String   @db.Uuid
+  event_id        String   @db.Uuid
+  /// OD9.1: microsecond precision and the JSONB defaults below are what the table
+  /// physically has. Declared as-is so no conversion is proposed outside R1.0-C2.
+  snapshot_date   DateTime @db.Timestamp(6)
+  snapshot_type   String   /// 'daily' | 'manual' | 'baseline_change'
+  curve_data      Json     @default("{}") /// { dates: string[], pv: number[], ev: number[], ac: number[] }
+  summary         Json     @default("{}") /// { bac, pv, ev, ac, cv, sv, cpi, spi, eac, etc, vac, tcpi }
+  created_at      DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([event_id, snapshot_date])
+  @@index([organization_id])
+}
+
+/// ──────────────────────────────────────────────────────────────────────────────
+/// M8.11 — Enterprise Scope Change & Discovery Work Workflow
+/// ──────────────────────────────────────────────────────────────────────────────
+
+/// Formalize the existing schedule_change_requests table (created in M8.8 migration).
+model ScheduleChangeRequest {
+  id                   String    @id @db.Uuid
+  organization_id      String    @db.Uuid
+  event_id             String    @db.Uuid
+  change_type          String
+  title                String
+  description          String?
+  scenario_id          String?   @db.Uuid
+  simulation_data      Json?
+  activities_affected  Int       @default(0)
+  float_consumed       Float?    @default(0)
+  project_finish_delta Float?    @default(0)
+  constraints_resolved Int       @default(0)
+  status               String    @default("proposed")
+  submitted_by         String    @db.Uuid
+  submitted_at         DateTime  @default(now())
+  reviewed_by          String?   @db.Uuid
+  reviewed_at          DateTime?
+  review_notes         String?
+  applied_at           DateTime?
+  applied_by           String?   @db.Uuid
+  source_scenario_id   String?            @db.Uuid
+  created_at           DateTime           @default(now())
+  updated_at           DateTime           @updatedAt
+  scenario             ScheduleScenario?  @relation("ChangeRequestScenario", fields: [scenario_id], references: [id], onDelete: SetNull)
+  sourceScenario       ScheduleScenario?  @relation("ChangeRequestSourceScenario", fields: [source_scenario_id], references: [id], onDelete: SetNull)
+  /// OD9.1: the event foreign key exists physically but was undeclared, so `migrate diff`
+  /// proposed dropping it. R0.4 requires change requests to stay bound to their Event.
+  event                Event              @relation(fields: [event_id], references: [id])
+
+  @@index([event_id, status])
+  @@index([organization_id])
+  @@map("schedule_change_requests")
+}
+
+/// M8.8/M8.9 — Schedule Scenario for what-if analysis
+model ScheduleScenario {
+  id                    String                    @id @db.Uuid
+  organization_id       String                    @db.Uuid
+  event_id              String                    @db.Uuid
+  name                  String
+  description           String?
+  source_type           String                    @default("leveling")
+  snapshot_json         Json
+  activities_affected   Int                       @default(0)
+  float_consumed        Float?                    @default(0)
+  project_finish_delta  Float?                    @default(0)
+  constraints_resolved  Int                       @default(0)
+  status                String                    @default("draft")
+  base_baseline_id      String?                   @db.Uuid
+  created_by            String                    @db.Uuid
+  created_at            DateTime                  @default(now())
+  updated_at            DateTime                  @updatedAt
+  event                 Event                     @relation(fields: [event_id], references: [id], onDelete: Restrict)
+  baseBaseline          ScheduleBaseline?         @relation(fields: [base_baseline_id], references: [id], onDelete: SetNull)
+  overrides             ScenarioActivityOverride[]
+  changeRequests        ScheduleChangeRequest[]   @relation("ChangeRequestScenario")
+  sourceChangeRequests  ScheduleChangeRequest[]   @relation("ChangeRequestSourceScenario")
+
+  @@index([event_id, status])
+  @@index([organization_id])
+  @@map("schedule_scenarios")
+}
+
+/// M8.9 — Activity overrides within a scenario (what-if adjustments)
+model ScenarioActivityOverride {
+  id                     String            @id @db.Uuid
+  scenario_id            String            @db.Uuid
+  activity_id            String            @db.Uuid
+  duration_hours         Decimal?          @db.Decimal(8, 2)
+  planned_start          DateTime?         @db.Timestamptz(3)
+  planned_end            DateTime?         @db.Timestamptz(3)
+  is_active              Boolean           @default(true)
+  early_start_constraint DateTime?
+  scenario               ScheduleScenario  @relation(fields: [scenario_id], references: [id], onDelete: Cascade)
+  activity               Activity          @relation(fields: [activity_id], references: [id], onDelete: Restrict)
+
+  @@unique([scenario_id, activity_id])
+}
+
+/// Discovery record — newly found work during turnaround execution.
+model DiscoveryWork {
+  id               String    @id @default(uuid()) @db.Uuid
+  organization_id  String    @db.Uuid
+  event_id         String    @db.Uuid
+  title            String
+  description      String?
+  discovery_type   String    @default("field_discovery")
+  /// Types: field_discovery, inspection_finding, emergency, opportunity, engineering_change, regulatory
+  source           String?
+  location         String?
+  asset_id         String?   @db.Uuid
+  discipline       String?
+  priority         String    @default("medium")
+  estimated_hours  Int       @default(0)
+  estimated_cost   Float     @default(0)
+  attachments      Json      @default("[]")
+  status           String    @default("discovered")
+  /// Lifecycle: discovered → assessed → converted → closed / rejected
+  assessed_by      String?   @db.Uuid
+  assessed_at      DateTime?
+  assessment_notes String?
+  scope_change_id  String?   @db.Uuid
+  discovered_by    String    @db.Uuid
+  discovered_at    DateTime  @default(now())
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  event            Event          @relation(fields: [event_id], references: [id])
+  organization     Organization   @relation(fields: [organization_id], references: [id])
+  scopeChanges     ScheduleScopeChange[]
+
+  @@index([event_id, status])
+  @@index([organization_id])
+  @@map("discovery_work")
+}
+
+/// Scope change proposal — bridges discovery with schedule change control.
+model ScheduleScopeChange {
+  id                     String    @id @default(uuid()) @db.Uuid
+  organization_id        String    @db.Uuid
+  event_id               String    @db.Uuid
+  discovery_id           String?   @db.Uuid
+  change_number          String
+  title                  String
+  description            String?
+  change_category        String    @default("scope_addition")
+  /// Categories: scope_addition, scope_removal, scope_modification, activity_addition, duration_change, resource_change
+  justification          String?
+  status                 String    @default("draft")
+  /// Lifecycle: draft → analyzing → proposed → approved → applying → applied / rejected
+  priority               String    @default("medium")
+  discipline             String?
+  schedule_impact_days   Float     @default(0)
+  cost_impact            Float     @default(0)
+  resource_impact_hours  Float     @default(0)
+  critical_path_affected Boolean   @default(false)
+  impact_analysis        Json      @default("{}")
+  submitted_by           String?   @db.Uuid
+  submitted_at           DateTime?
+  reviewed_by            String?   @db.Uuid
+  reviewed_at            DateTime?
+  review_notes           String?
+  approved_by            String?   @db.Uuid
+  approved_at            DateTime?
+  applied_at             DateTime?
+  applied_by             String?   @db.Uuid
+  change_request_id      String?   @db.Uuid
+  result_workpack_id     String?   @db.Uuid
+  result_summary         Json      @default("{}")
+  created_by             String    @db.Uuid
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+
+  items                  ScheduleScopeChangeItem[]
+  event                  Event          @relation(fields: [event_id], references: [id])
+  organization           Organization   @relation(fields: [organization_id], references: [id])
+  discovery              DiscoveryWork? @relation(fields: [discovery_id], references: [id])
+
+  @@unique([organization_id, change_number])
+  @@index([event_id, status])
+  @@index([organization_id])
+  @@map("schedule_scope_changes")
+}
+
+/// Individual line item within a scope change proposal.
+model ScheduleScopeChangeItem {
+  id              String    @id @default(uuid()) @db.Uuid
+  scope_change_id String    @db.Uuid
+  item_type       String    @default("new_activity")
+  /// Types: new_activity, new_workpack, modify_activity, remove_activity
+  description     String
+  workpack_id     String?   @db.Uuid
+  activity_id     String?   @db.Uuid
+  discipline      String?
+  estimated_hours Float     @default(0)
+  estimated_cost  Float     @default(0)
+  resource_type   String?
+  crew_size       Int       @default(1)
+  planned_start   DateTime? @db.Timestamptz(3)
+  planned_end     DateTime? @db.Timestamptz(3)
+  predecessor_ids String[]  @default([]) @db.Uuid
+  notes           String?
+  sort_order      Int       @default(0)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  scopeChange     ScheduleScopeChange @relation(fields: [scope_change_id], references: [id], onDelete: Cascade)
+
+  @@index([scope_change_id])
+  @@map("schedule_scope_change_items")
+}
+
+/// M8.12 — Material Supply Record: tracks PO/delivery per material line.
+model MaterialSupplyRecord {
+  id                  String    @id @default(uuid()) @db.Uuid
+  organization_id     String    @db.Uuid
+  material_line_id    String    @db.Uuid
+  supplier_name       String?
+  po_number           String?
+  po_line_number      String?
+  quantity_ordered    Float     @default(0)
+  quantity_received   Float     @default(0)
+  expected_delivery   DateTime? @db.Timestamptz(3)
+  actual_delivery     DateTime? @db.Timestamptz(3)
+  delivery_status     String    @default("pending")
+  /// Status: pending, confirmed, in_transit, partial, received, delayed, cancelled
+  unit_cost           Float?
+  total_cost          Float?
+  notes               String?
+  created_by          String?   @db.Uuid
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  materialLine        workpack_material_lines @relation(fields: [material_line_id], references: [id])
+  organization        Organization @relation(fields: [organization_id], references: [id])
+
+  @@index([material_line_id])
+  @@index([organization_id])
+  @@index([delivery_status])
+  @@map("material_supply_records")
+}
+
+/// M8.12 — Material Constraint: computed record linking material readiness to activity scheduling.
+model MaterialConstraint {
+  id                    String    @id @default(uuid()) @db.Uuid
+  organization_id       String    @db.Uuid
+  event_id              String    @db.Uuid
+  activity_id           String    @db.Uuid
+  workpack_id           String?   @db.Uuid
+  material_line_id      String?   @db.Uuid
+  constraint_type       String    @default("material_eta")
+  /// Types: material_eta, material_shortage, material_critical
+  constraint_date       DateTime? @db.Timestamptz(3)
+  readiness_status      String    @default("not_ready")
+  /// Status: ready, partial, not_ready, at_risk, blocked
+  readiness_percent     Float     @default(0)
+  quantity_required     Float     @default(0)
+  quantity_available    Float     @default(0)
+  quantity_on_order     Float     @default(0)
+  earliest_eta          DateTime? @db.Timestamptz(3)
+  is_binding            Boolean   @default(false)
+  is_critical_material  Boolean   @default(false)
+  impact_days           Float     @default(0)
+  last_calculated_at    DateTime  @default(now())
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  activity              Activity     @relation(fields: [activity_id], references: [id])
+  event                 Event        @relation(fields: [event_id], references: [id])
+  organization          Organization @relation(fields: [organization_id], references: [id])
+
+  @@unique([activity_id, material_line_id])
+  @@index([event_id, readiness_status])
+  @@index([activity_id])
+  @@index([organization_id])
+  @@map("material_constraints")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M8.13 — Enterprise Turnaround Progress Intelligence
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Standard Activity Type — canonical activity types for a given equipment type.
+/// e.g., "Blinding", "Bundle Pullout", "Inspection" for Heat Exchangers.
+/// Enables identical-activity analysis across the turnaround scope.
+model StandardActivityType {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String?  @db.Uuid  /// null = platform-level
+  equipment_type_id   String             /// FK to EquipmentType.id (String, not UUID)
+  name                String             /// "Blinding", "Bundle Pullout", "Inspection"
+  code                String             /// "BLIND", "BPULL", "INSP"
+  description         String?
+  is_mandatory        Boolean  @default(true)  /// Is this activity always required for the equipment type?
+  typical_duration_hrs Float?   /// Typical duration for planning reference
+  sort_order          Int      @default(0)
+  is_active           Boolean  @default(true)
+  /// OD9.1: these two columns are timestamptz in the database, unlike the rest of the
+  /// schema. Declared as-is so no conversion is proposed outside R1.0-C2.
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  equipment_type      EquipmentType @relation(fields: [equipment_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  /// Activities classified as this standard type
+  activities          Activity[]
+
+  @@unique([equipment_type_id, code], name: "sat_equip_code", map: "sat_equip_code")
+  @@index([organization_id, equipment_type_id])
+  @@map("standard_activity_types")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// M8.14-R1 — Asset Attribute EAV Models (P0-1 fix)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Attribute definition — defines what attributes exist per equipment type.
+/// organization_id = null means PLATFORM scope (shared across all tenants).
+model AssetAttributeDefinition {
+  id                String    @id @default(uuid()) @db.Uuid
+  /// null = PLATFORM scope, non-null = TENANT scope
+  organization_id   String?   @db.Uuid
+  code              String
+  name              String
+  description       String?
+  /// string | number | boolean | date | select
+  data_type         String
+  unit              String?
+  /// Empty array = applies to all equipment types
+  equipment_types   String[]  @default([])
+  group_name        String?
+  group_sort_order  Int       @default(0)
+  sort_order        Int       @default(0)
+  is_required       Boolean   @default(false)
+  is_design_basis   Boolean   @default(false)
+  is_active         Boolean   @default(true)
+  validation_rule   Json?
+  select_options    Json?
+  /// PLATFORM or TENANT
+  scope             String    @default("PLATFORM")
+  created_by        String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  values            AssetAttributeValue[]
+  history           AssetAttributeHistory[]
+
+  @@unique([organization_id, code], name: "attr_def_org_code")
+  @@index([organization_id, is_active])
+  @@map("asset_attribute_definitions")
+}
+
+/// Current attribute value — one row per (asset, definition) pair.
+/// This is the "live" value; history is append-only in AssetAttributeHistory.
+model AssetAttributeValue {
+  id                  String    @id @default(uuid()) @db.Uuid
+  organization_id     String    @db.Uuid
+  asset_id            String    @db.Uuid
+  definition_id       String    @db.Uuid
+  value_string        String?
+  value_number        Float?
+  value_boolean       Boolean?
+  value_date          DateTime? @db.Timestamptz(3)
+  /// manual | ai_extraction | excel_import | p_and_id
+  source_type         String    @default("manual")
+  source_document_id  String?   @db.Uuid
+  source_doc_revision String?
+  source_page         Int?
+  source_region       String?
+  ai_model            String?
+  ai_confidence       Float?
+  extraction_job_id   String?   @db.Uuid
+  /// unverified | ai_candidate | verified
+  status              String    @default("unverified")
+  entered_by          String?   @db.Uuid
+  /// OD9.1: when this value was first entered. Populated on every row with a distinct
+  /// timestamp that exists nowhere else — it cannot be reconstructed if dropped.
+  entered_at          DateTime  @default(now())
+  verified_by         String?   @db.Uuid
+  verified_at         DateTime?
+  verification_notes  String?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  definition          AssetAttributeDefinition @relation(fields: [definition_id], references: [id])
+  asset               Asset                    @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  history             AssetAttributeHistory[]
+
+  @@unique([asset_id, definition_id], name: "asset_attr_unique", map: "asset_attr_unique")
+  @@unique([asset_id, definition_id], map: "asset_attribute_values_asset_id_definition_id_key")
+  @@index([organization_id, asset_id])
+  @@index([asset_id, status])
+  @@index([definition_id])
+  @@map("asset_attribute_values")
+}
+
+/// Append-only attribute history — R2.1 INVARIANT: rows are NEVER updated or deleted.
+/// Every event (AI extraction, planner decision, manual entry, verification,
+/// superseded) is a separate immutable row.
+model AssetAttributeHistory {
+  id                    String    @id @default(uuid()) @db.Uuid
+  organization_id       String    @db.Uuid
+  asset_id              String    @db.Uuid
+  definition_id         String    @db.Uuid
+  value_id              String?   @db.Uuid
+  value_string          String?
+  value_number          Float?
+  value_boolean         Boolean?
+  value_date            DateTime? @db.Timestamptz(3)
+  source_type           String
+  source_document_id    String?   @db.Uuid
+  source_doc_revision   String?
+  source_page           Int?
+  source_region         String?
+  ai_model              String?
+  ai_confidence         Float?
+  extraction_job_id     String?   @db.Uuid
+  /// ai_extracted | ai_accepted | ai_modified | ai_rejected | manual_entered | verified | superseded
+  action                String
+  /// unverified | ai_candidate | verified
+  status_at_time        String
+  /// Links decision rows to the original AI extraction row
+  refers_to_history_id  String?   @db.Uuid
+  performed_by          String    @db.Uuid
+  performed_at          DateTime  @default(now())
+  reason                String?
+  /// OD9.1: row insertion time, distinct from performed_at. Populated on every row with
+  /// a distinct timestamp that exists nowhere else — it cannot be reconstructed.
+  created_at            DateTime  @default(now())
+
+  definition            AssetAttributeDefinition @relation(fields: [definition_id], references: [id])
+  value                 AssetAttributeValue?     @relation(fields: [value_id], references: [id])
+  asset                 Asset                    @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  /// OD9.1: R2.1 provenance chain — links a decision row to the AI extraction it acted on.
+  /// The database carries two identical FKs on this column; Prisma can declare only one,
+  /// so the redundant duplicate is dropped. Enforcement is unchanged — see OD9-034.
+  refers_to             AssetAttributeHistory?   @relation("AssetAttributeHistoryRefersTo", fields: [refers_to_history_id], references: [id], onDelete: Restrict, map: "asset_attribute_history_refers_to_fkey")
+  referred_by           AssetAttributeHistory[]  @relation("AssetAttributeHistoryRefersTo")
+
+  @@index([asset_id, definition_id])
+  @@index([organization_id, asset_id])
+  @@index([refers_to_history_id])
+  @@index([asset_id, definition_id, performed_at])
+  @@index([asset_id, performed_at])
+  @@index([organization_id, performed_at])
+  @@map("asset_attribute_history")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// OD9.1 — LIVE TABLES PREVIOUSLY MISSING FROM THIS SCHEMA
+//
+// Every model below already exists physically in the database and is read or
+// written by shipped application code. They were absent from schema.prisma, so
+// `prisma migrate diff` proposed DROP TABLE for each one. The definitions are
+// transcribed from the live PostgreSQL catalogue (`prisma db pull` against
+// syority), not authored fresh: column types, nullability, defaults, primary
+// keys, unique constraints, indexes and foreign-key actions all mirror what is
+// physically present. See docs/AURIANOA_R1.0_OD9_1_IMPLEMENTATION_RESULT.md §6.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// M8.6 — asset-to-asset / asset-to-line connectivity used by the asset register.
+/// DDL origin: prisma/migrations/add_asset_register_m86.sql (never a Prisma migration).
+model asset_relationships {
+  id                String   @id @db.Uuid
+  organization_id   String   @db.Uuid
+  source_asset_id   String   @db.Uuid
+  target_asset_id   String?  @db.Uuid
+  target_line_id    String?  @db.Uuid
+  relationship_type String
+  description       String?
+  nozzle_id         String?  @db.Uuid
+  is_active         Boolean  @default(true)
+  created_by        String?  @db.Uuid
+  created_at        DateTime @default(now())
+  updated_at        DateTime
+  source_asset      Asset    @relation("asset_relationships_source_asset_idToAsset", fields: [source_asset_id], references: [id])
+  target_asset      Asset?   @relation("asset_relationships_target_asset_idToAsset", fields: [target_asset_id], references: [id])
+
+  @@unique([source_asset_id, target_asset_id, relationship_type])
+  @@index([source_asset_id])
+  @@index([target_asset_id])
+}
+
+/// M8.6 — immutable point-in-time copy of an asset taken when it is attached to a
+/// workpack. DDL origin: prisma/migrations/add_asset_register_m86.sql. There is no
+/// Prisma migration for this table; the definition below is the physical catalogue.
+model workpack_asset_snapshots {
+  id                String   @id @db.Uuid
+  workpack_id       String   @db.Uuid
+  asset_id          String   @db.Uuid
+  snapshot_revision String
+  asset_data_json   Json
+  attributes_json   Json
+  nozzles_json      Json?
+  lines_json        Json?
+  documents_json    Json?
+  snapshotted_by    String   @db.Uuid
+  snapshotted_at    DateTime @default(now())
+  asset             Asset    @relation(fields: [asset_id], references: [id])
+  workpack          Workpack @relation(fields: [workpack_id], references: [id])
+
+  @@unique([workpack_id, snapshot_revision])
+  @@index([workpack_id])
+}
+
+/// Enterprise provisioning — tenant onboarding request captured by the public form.
+model onboarding_requests {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyName   String
+  contactName   String
+  contactEmail  String
+  contactPhone  String?
+  industry      String?
+  country       String?
+  employeeCount String?
+  notes         String?
+  status        String    @default("PENDING")
+  reviewedBy    String?   @db.Uuid
+  reviewedAt    DateTime?
+  reviewNotes   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+/// Enterprise provisioning — reusable tenant blueprint.
+model provisioning_templates {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug              String              @unique
+  name              String
+  industry          String?
+  description       String?
+  is_builtin        Boolean             @default(false)
+  config            Json                @default("{}")
+  created_by        String?             @db.Uuid
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  jobs              provisioning_jobs[]
+
+  @@index([industry])
+  @@index([is_builtin])
+}
+
+/// Enterprise provisioning — one tenant build, executed by ProvisioningWorker.
+model provisioning_jobs {
+  id                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id        String?                 @db.Uuid
+  template_id            String?                 @db.Uuid
+  request                Json                    @default("{}")
+  status                 String                  @default("queued")
+  current_step           String?
+  completed_steps        Json                    @default("[]")
+  failed_step            String?
+  error                  String?
+  stack_trace            String?
+  progress_pct           Int                     @default(0)
+  retries                Int                     @default(0)
+  max_retries            Int                     @default(3)
+  duration_ms            Int?
+  started_at             DateTime?
+  completed_at           DateTime?
+  cancelled_at           DateTime?
+  created_by             String                  @db.Uuid
+  created_at             DateTime                @default(now())
+  /// Field names below match ProvisioningJobService's include shape.
+  logs                   provisioning_job_logs[]
+  organization           Organization?           @relation(fields: [organization_id], references: [id])
+  template               provisioning_templates? @relation(fields: [template_id], references: [id])
+
+  @@index([created_by])
+  @@index([organization_id])
+  @@index([status])
+}
+
+/// Enterprise provisioning — per-step audit trail for a provisioning job.
+model provisioning_job_logs {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_id      String            @db.Uuid
+  step        String
+  status      String            @default("running")
+  message     String?
+  metadata    Json?             @default("{}")
+  duration_ms Int?
+  created_at  DateTime          @default(now())
+  job         provisioning_jobs @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  @@index([job_id])
+  @@index([step])
 }

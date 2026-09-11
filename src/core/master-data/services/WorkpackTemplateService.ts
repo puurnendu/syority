@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/lib/audit';
 import { eventBus } from '@/lib/eventBus';
 import { enqueueKnowledgeCapture } from '@/core/knowledge-engine/capture';
+import { createActivity } from '@/core/activity/ActivityCreationCommand';
 
 export class WorkpackTemplateService {
     // ── CRUD Operations ──────────────────────────────────────────────────────
@@ -19,18 +20,19 @@ export class WorkpackTemplateService {
     }
 
     static async getTemplate(id: string, orgId: string) {
-        return prisma.workpackTemplate.findFirst({
+        const template = await prisma.workpack_templates.findFirst({
             where: {
                 id,
                 OR: [{ organization_id: orgId }, { is_system: true }],
                 deleted_at: null,
             },
-            include: {
-                activities: {
-                    orderBy: { sequence_number: 'asc' }
-                }
-            }
         });
+        if (!template) return null;
+        const activities = await prisma.workpack_template_activities.findMany({
+            where: { template_id: id },
+            orderBy: { sequence_number: 'asc' },
+        });
+        return { ...template, activities };
     }
 
     static async createTemplate(data: {
@@ -42,7 +44,7 @@ export class WorkpackTemplateService {
         discipline_id?: string;
         created_by: string;
     }) {
-        const created = await prisma.workpackTemplate.create({
+        const created = await prisma.workpack_templates.create({
             data: {
                 organization_id: data.organization_id,
                 name: data.name,
@@ -71,7 +73,7 @@ export class WorkpackTemplateService {
     }
 
     static async updateTemplate(id: string, orgId: string, data: any, userId: string) {
-        const updated = await prisma.workpackTemplate.update({
+        const updated = await prisma.workpack_templates.update({
             where: { id, organization_id: orgId },
             data
         });
@@ -100,8 +102,8 @@ export class WorkpackTemplateService {
         const template = await this.getTemplate(templateId, orgId);
         if (!template) throw new Error('Template not found');
 
-        const workpack = await prisma.workpack.findUnique({
-            where: { id: workpackId },
+        const workpack = await prisma.workpack.findFirst({
+            where: { id: workpackId, organization_id: orgId, deleted_at: null },
             include: { activities: { where: { deleted_at: null } } }
         });
         if (!workpack) throw new Error('Workpack not found');
@@ -112,9 +114,8 @@ export class WorkpackTemplateService {
             _max: { sequence_number: true }
         }))._max.sequence_number || 0;
 
-        const templateActivities = 'activities' in template && Array.isArray(template.activities) ? template.activities : [];
+        const templateActivities = Array.isArray(template.activities) ? template.activities : [];
         for (const ta of templateActivities) {
-            // Smart Merge: Check if activity already exists (by description or code)
             const exists = workpack.activities.some((a: { description: string; activity_number?: string | null }) =>
                 (a.description === ta.description) ||
                 (ta.activity_code && a.activity_number === ta.activity_code)
@@ -122,29 +123,28 @@ export class WorkpackTemplateService {
 
             if (!exists) {
                 nextSeq++;
-                const created = await prisma.activity.create({
-                    data: {
-                        organization_id: orgId,
-                        site_id: workpack.site_id,
-                        workpack_id: workpackId,
+                const created = await createActivity(
+                    {
+                        organizationId: orgId,
+                        userId,
+                        sourceChannel: 'template',
+                        eventId: workpack.event_id,
+                    },
+                    {
+                        workpackId,
                         description: ta.description,
-                        activity_number: ta.activity_code ?? null,
-                        duration_hours: ta.duration_hours,
-                        hold_point_type: ta.hold_point_type,
-                        hold_point_description: ta.hold_point_description,
-                        sequence_number: nextSeq,
-                        status: 'not_started',
-                        created_by: userId
+                        activityNumber: ta.activity_code ?? null,
+                        activityCode: ta.activity_code,
+                        durationHours: ta.duration_hours != null ? Number(ta.duration_hours) : undefined,
+                        holdPointType: ta.hold_point_type,
+                        holdPointDescription: ta.hold_point_description,
+                        sequenceNumber: nextSeq,
+                        disciplineId: template.discipline_id,
+                        equipmentType: template.equipment_type || workpack.equipment_type,
+                        templateId,
                     }
-                });
+                );
                 results.push(created);
-
-                // Trigger auto-load of default resources if activity_code is set
-                if (ta.activity_code) {
-                    // This is handled by ActivityService.createActivity, but here we are using prisma.activity.create direct
-                    // We should ideally call ActivityService.createActivity or trigger the same logic.
-                    // Since ActivityService is already updated, we'll keep it consistent.
-                }
             }
         }
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 
@@ -43,12 +44,25 @@ export async function POST(req: NextRequest) {
   if (error) return error;
   const { orgId, userId } = orgScope(session!);
 
+  /**
+   * OD9.2 §6 — the export scope is declared EXPLICITLY per domain.
+   *
+   * `projectId` scopes to the PROJECT domain; `eventId` scopes to the STO domain.
+   * They are never interchangeable. Previously a single `projectId` was looked up as a
+   * Project and then, on miss, silently re-looked-up as an Event — an Event-as-Project
+   * resolver, and the mirror image of the `resolveEventIdFromProject` pattern R0.4
+   * forbade. §31 forbids fabricated Event mappings, so the caller must now say which
+   * domain it means.
+   */
   const body = (await req.json()) as {
-    projectId: string | null;
+    projectId?: string | null;
+    eventId?: string | null;
     workpackIds: string[];
     format: 'csv' | 'excel' | 'msproject_xml' | 'p6_xer' | 'p6_xml';
     udfConfig: UdfConfig;
   };
+  const projectId = body.projectId || null;
+  const eventId = body.eventId || null;
 
   // Diagnostic: log actual Workpack and Activity field names
   try {
@@ -62,37 +76,59 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Simplified query: only confirmed field names; no nested includes (predecessors removed for now)
+    // M8.5: Include predecessors and discipline for relationship export + activity codes
     const workpacks = await prisma.workpack.findMany({
-      where: { id: { in: body.workpackIds } },
-      include: { activities: true },
+      // OD9.2: `organization_id` added. This query was previously scoped only by the
+      // caller-supplied ids, so possession of a Workpack UUID was sufficient to export
+      // another tenant's schedule. UUID possession is not authorization.
+      where: { id: { in: body.workpackIds }, organization_id: orgId },
+      include: {
+        activities: {
+          include: {
+            predecessors: {
+              include: { predecessor: { select: { activity_number: true, id: true } } },
+            },
+            discipline: { select: { name: true, code: true } },
+          },
+        },
+        asset: { select: { tag_number: true, name: true, description: true } },
+        unit: {
+          include: { plant: { select: { name: true } } },
+        },
+        contractor: { select: { name: true } },
+      },
     });
     console.log('[Export] Loaded workpacks:', workpacks.length);
     console.log('[Export] Total activities:', workpacks.reduce((s, w) => s + (w.activities?.length ?? 0), 0));
 
-  let project: { name?: string; code?: string; plannedSdDate?: Date | null } | null = body.projectId
-    ? await prisma.project.findUnique({
-        where: { id: body.projectId, orgId },
-      }).catch(() => null)
-    : null;
+  // Header/title metadata for the exported file. Resolved from whichever domain the
+  // caller explicitly named — never by trying one domain and falling back to the other.
+  // `Project` is tenant-scoped by the non-unique `org_id`, so this must be `findFirst`.
+  let header: { name?: string; code?: string; plannedSdDate?: Date | null } | null = null;
 
-  if (!project && body.projectId) {
-    try {
-      const event = await prisma.event.findUnique({
-        where: { id: body.projectId, organization_id: orgId },
+  if (projectId) {
+    const project = await prisma.project
+      .findFirst({
+        where: { id: projectId, org_id: orgId },
+        select: { name: true, code: true, planned_sd_date: true },
+      })
+      .catch(() => null);
+    if (project) {
+      header = { name: project.name, code: project.code, plannedSdDate: project.planned_sd_date };
+    }
+  } else if (eventId) {
+    const event = await prisma.event
+      .findFirst({
+        where: { id: eventId, organization_id: orgId },
         select: { name: true, code: true, planned_start: true },
-      });
-      if (event) {
-        project = {
-          name: event.name,
-          code: event.code,
-          plannedSdDate: event.planned_start,
-        };
-      }
-    } catch {
-      // ignore
+      })
+      .catch(() => null);
+    if (event) {
+      header = { name: event.name, code: event.code, plannedSdDate: event.planned_start };
     }
   }
+
+  const project = header;
 
   const totalActivities = workpacks.reduce((s, w) => s + (w.activities?.length ?? 0), 0);
   const udf = { ...defaultUdf(), ...body.udfConfig };
@@ -121,20 +157,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await prisma.exportHistory.create({
+    await prisma.export_history.create({
       data: {
-        orgId,
-        projectId: body.projectId || null,
+        // `export_history.id` has no database default, so it must be supplied. It was
+        // previously omitted, which made every write throw into the catch below — the
+        // audit trail has therefore never recorded an export.
+        id: randomUUID(),
+        org_id: orgId,
+        // OD9.2 §31: only a genuine Project id is recorded here. `export_history` has no
+        // `event_id` column, so an STO-scoped export records null rather than writing an
+        // Event id into a Project column and fabricating a cross-domain mapping.
+        // Adding `export_history.event_id` is logged as an OD9.4 migration candidate.
+        project_id: projectId,
         format: body.format,
         filename,
-        workpackCount: workpacks.length,
-        activityCount: totalActivities,
-        fileSizeBytes: Buffer.byteLength(content, 'utf8'),
-        exportedBy: userId,
+        workpack_count: workpacks.length,
+        activity_count: totalActivities,
+        file_size_bytes: Buffer.byteLength(content, 'utf8'),
+        exported_by: userId,
       },
     });
-  } catch {
-    // ExportHistory table may not exist yet
+  } catch (err) {
+    // Non-fatal: the export itself already succeeded. Log so a failure here is visible
+    // instead of silently discarded.
+    console.error('[Export] Failed to record export_history:', err);
   }
 
   return new Response(content, {
@@ -300,6 +346,7 @@ function buildMSProjectXML(
           `<ExtendedAttribute><FieldID>188743737</FieldID><Value>${escXml(plant)}</Value></ExtendedAttribute>`,
         udf.unit &&
           `<ExtendedAttribute><FieldID>188743738</FieldID><Value>${escXml(unit)}</Value></ExtendedAttribute>`,
+        `<ExtendedAttribute><FieldID>188743739</FieldID><Value>${escXml(act.activity_number ?? '')}</Value></ExtendedAttribute>`,
       ]
         .filter(Boolean)
         .join('\n  ');
@@ -330,6 +377,7 @@ function buildMSProjectXML(
     <ExtendedAttribute><FieldID>188743736</FieldID><Alias>SY_ACTIVITY_ID</Alias></ExtendedAttribute>
     <ExtendedAttribute><FieldID>188743737</FieldID><Alias>SY_PLANT</Alias></ExtendedAttribute>
     <ExtendedAttribute><FieldID>188743738</FieldID><Alias>SY_UNIT</Alias></ExtendedAttribute>
+    <ExtendedAttribute><FieldID>188743739</FieldID><Alias>SY_ACTIVITY_CODE</Alias></ExtendedAttribute>
   </ExtendedAttributes>
   <Tasks>
 ${tasks.join('\n')}
@@ -439,6 +487,7 @@ function buildP6XER(
     [6, 'TASK', 'SY_PLANT', 'Plant', 'LT_Text'],
     [7, 'TASK', 'SY_UNIT', 'Unit', 'LT_Text'],
     [8, 'TASK', 'SY_PRIORITY', 'Priority', 'LT_Text'],
+    [9, 'TASK', 'SY_ACTIVITY_CODE', 'Activity Code', 'LT_Text'],
   ];
   udfDefs.forEach((d) => lines.push(`%R\t${(d as any[]).join('\t')}`));
   lines.push('%E');
@@ -460,6 +509,7 @@ function buildP6XER(
         [6, plant],
         [7, unit],
         [8, wp.priority ?? ''],
+        [9, act.activity_number ?? ''],
       ];
       vals
         .filter(([, v]) => v)
@@ -484,7 +534,8 @@ function buildP6XER(
             { FS: 'PR_FS', SS: 'PR_SS', FF: 'PR_FF', SF: 'PR_SF' }[
               String(rel.relationship_type ?? 'FS')
             ] ?? 'PR_FS';
-          const lagHrs = Number(rel.lag_days ?? 0) * 24;
+          // Sprint 1a — canonical lag_minutes → hours; legacy lag_days × 24 fallback.
+          const lagHrs = rel.lag_minutes != null ? Number(rel.lag_minutes) / 60 : Number(rel.lag_days ?? 0) * 24;
           lines.push(`%R\t${predId++}\t${tid}\t${predTid}\t1\t${relType}\t${lagHrs}`);
         }
       }
@@ -523,6 +574,7 @@ function buildP6XML(
   ${udf.plant ? `<UDF name="SY_PLANT">${escXml(plant)}</UDF>` : ''}
   ${udf.unit ? `<UDF name="SY_UNIT">${escXml(unit)}</UDF>` : ''}
   ${udf.priority ? `<UDF name="SY_PRIORITY">${escXml(wp.priority)}</UDF>` : ''}
+  <UDF name="SY_ACTIVITY_CODE">${escXml(act.activity_number)}</UDF>
 </Activity>`;
     })
   );

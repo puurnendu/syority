@@ -21,9 +21,9 @@ export async function POST(
   if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const todaySafety = await prisma.safetyLog.findFirst({
-    where: { eventId },
-    orderBy: { logDate: 'desc' },
-    include: { incidents: { where: { status: { not: 'Closed' } } } },
+    where: { event_id: eventId },
+    orderBy: { log_date: 'desc' },
+    include: { SafetyIncident: { where: { status: { not: 'Closed' } } } },
   });
 
   const workpackIds = (
@@ -71,12 +71,12 @@ export async function POST(
 
   const safetyBlock = todaySafety
     ? `═══ SAFETY (ALWAYS FIRST) ═══
-LTI: ${todaySafety.lti ?? 0} | Near Miss: ${todaySafety.nearMiss ?? 0} | First Aid: ${todaySafety.firstAid ?? 0}
-Manpower: ${todaySafety.manpowerActual ?? 0} on site | Manhours: ${Number(todaySafety.manhoursWorked ?? 0)}
-PTW: ${todaySafety.ptwIssued ?? 0} issued / ${todaySafety.ptwClosed ?? 0} closed
-Toolbox Talks: ${todaySafety.toolboxTalks ?? 0}
-Open Incidents: ${todaySafety.incidents?.length ?? 0}
-${todaySafety.safetyNotes ? `Safety Notes: ${todaySafety.safetyNotes}` : ''}
+LTI: ${todaySafety.lti ?? 0} | Near Miss: ${todaySafety.near_miss ?? 0} | First Aid: ${todaySafety.first_aid ?? 0}
+Manpower: ${todaySafety.manpower_actual ?? 0} on site | Manhours: ${Number(todaySafety.manhours_worked ?? 0)}
+PTW: ${todaySafety.ptw_issued ?? 0} issued / ${todaySafety.ptw_closed ?? 0} closed
+Toolbox Talks: ${todaySafety.toolbox_talks ?? 0}
+Open Incidents: ${(todaySafety as any).SafetyIncident?.length ?? 0}
+${todaySafety.safety_notes ? `Safety Notes: ${todaySafety.safety_notes}` : ''}
 
 `
     : '';

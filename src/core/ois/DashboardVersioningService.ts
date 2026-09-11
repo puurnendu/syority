@@ -30,27 +30,27 @@ export class DashboardVersioningService {
     changeDescription: string,
   ): Promise<DashboardVersion> {
     // Get current dashboard with widgets
-    const dashboard = await prisma.oIS_Dashboard.findUniqueOrThrow({
+    const dashboard = await prisma.ois_dashboard_definitions.findUniqueOrThrow({
       where: { id: dashboardId },
-      include: { widget_instances: true },
+      include: { widgets: true },
     });
 
     // Get next version number
-    const lastVersion = await prisma.oIS_DashboardVersion.findFirst({
+    const lastVersion = await prisma.ois_dashboard_versions.findFirst({
       where: { dashboard_id: dashboardId },
       orderBy: { version_number: 'desc' },
     });
     const nextVersion = (lastVersion?.version_number ?? 0) + 1;
 
     // Create version record
-    const version = await prisma.oIS_DashboardVersion.create({
+    const version = await prisma.ois_dashboard_versions.create({
       data: {
         dashboard_id: dashboardId,
         version_number: nextVersion,
         label: `v${nextVersion}`,
         created_by: createdBy,
         layout_snapshot: dashboard.layout_config ?? {},
-        widget_snapshot: dashboard.widget_instances.map((w: any) => ({
+        widget_snapshot: dashboard.widgets.map((w: any) => ({
           id: w.id,
           widget_definition_id: w.widget_definition_id,
           grid_x: w.grid_x,
@@ -84,7 +84,7 @@ export class DashboardVersioningService {
    * Get version history for a dashboard.
    */
   static async getHistory(dashboardId: string): Promise<DashboardVersion[]> {
-    const versions = await prisma.oIS_DashboardVersion.findMany({
+    const versions = await prisma.ois_dashboard_versions.findMany({
       where: { dashboard_id: dashboardId },
       orderBy: { version_number: 'desc' },
       take: 50,
@@ -108,7 +108,7 @@ export class DashboardVersioningService {
    * Revert a dashboard to a specific version.
    */
   static async revert(dashboardId: string, versionId: string, revertedBy: string): Promise<void> {
-    const version = await prisma.oIS_DashboardVersion.findUniqueOrThrow({
+    const version = await prisma.ois_dashboard_versions.findUniqueOrThrow({
       where: { id: versionId },
     });
 
@@ -120,19 +120,19 @@ export class DashboardVersioningService {
     );
 
     // Update dashboard layout
-    await prisma.oIS_Dashboard.update({
+    await prisma.ois_dashboard_definitions.update({
       where: { id: dashboardId },
       data: { layout_config: version.layout_snapshot },
     });
 
     // Delete current widgets and recreate from snapshot
-    await prisma.oIS_WidgetInstance.deleteMany({
+    await prisma.ois_dashboard_widgets.deleteMany({
       where: { dashboard_id: dashboardId },
     });
 
     const widgetSnapshot = (version.widget_snapshot as any[]) ?? [];
     for (const ws of widgetSnapshot) {
-      await prisma.oIS_WidgetInstance.create({
+      await prisma.ois_dashboard_widgets.create({
         data: {
           dashboard_id: dashboardId,
           widget_definition_id: ws.widget_definition_id,
@@ -153,19 +153,19 @@ export class DashboardVersioningService {
    */
   static async publish(dashboardId: string, versionId: string): Promise<void> {
     // Unpublish all previous
-    await prisma.oIS_DashboardVersion.updateMany({
+    await prisma.ois_dashboard_versions.updateMany({
       where: { dashboard_id: dashboardId, is_published: true },
       data: { is_published: false },
     });
 
     // Publish the specified version
-    await prisma.oIS_DashboardVersion.update({
+    await prisma.ois_dashboard_versions.update({
       where: { id: versionId },
       data: { is_published: true },
     });
 
     // Update dashboard status
-    await prisma.oIS_Dashboard.update({
+    await prisma.ois_dashboard_definitions.update({
       where: { id: dashboardId },
       data: { status: 'published', published_at: new Date() },
     });
@@ -181,8 +181,8 @@ export class DashboardVersioningService {
     configChanges: string[];
   }> {
     const [vA, vB] = await Promise.all([
-      prisma.oIS_DashboardVersion.findUniqueOrThrow({ where: { id: versionIdA } }),
-      prisma.oIS_DashboardVersion.findUniqueOrThrow({ where: { id: versionIdB } }),
+      prisma.ois_dashboard_versions.findUniqueOrThrow({ where: { id: versionIdA } }),
+      prisma.ois_dashboard_versions.findUniqueOrThrow({ where: { id: versionIdB } }),
     ]);
 
     const widgetsA = (vA.widget_snapshot as any[]) ?? [];

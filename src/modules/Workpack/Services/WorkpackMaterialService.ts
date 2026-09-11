@@ -15,7 +15,7 @@ export class WorkpackMaterialService {
         material_category?: string;
         created_by: string;
     }) {
-        const item = await prisma.itemCatalog.findFirst({
+        const item = await prisma.item_catalog.findFirst({
             where: { id: data.item_catalog_id, organization_id: data.organization_id, deleted_at: null },
         });
         if (!item) throw new Error('Item not found in catalog');

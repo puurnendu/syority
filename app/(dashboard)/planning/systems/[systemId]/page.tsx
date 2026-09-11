@@ -19,7 +19,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ s
     include: {
       site: { select: { id: true, name: true, code: true } },
       unit: { select: { id: true, name: true, code: true } },
-      _count: { select: { blinds: true, gaskets: true, drawings: true, procedures: true, workpacks: true, line_lists: true, assets: true } },
+      _count: { select: { system_blinds: true, system_gaskets: true, system_drawings: true, system_procedures: true, workpacks: true, line_lists: true, assets: true } },
     },
   });
 

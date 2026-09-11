@@ -8,7 +8,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
     const data = await req.json();
-    const party = await prisma.orgClearanceParty.update({
+    const party = await prisma.org_clearance_parties.update({
         where: { id, organization_id: session.user.organization_id! },
         data
     });
@@ -19,7 +19,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
-    await prisma.orgClearanceParty.delete({
+    await prisma.org_clearance_parties.delete({
         where: { id, organization_id: session.user.organization_id! }
     });
     return NextResponse.json({ success: true });

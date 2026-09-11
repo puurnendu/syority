@@ -28,7 +28,7 @@ export async function PATCH(
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
 
-  const drawing = await prisma.systemDrawing.findFirst({
+  const drawing = await prisma.system_drawings.findFirst({
     where: { id: drawingId, system_id: systemId },
     select: { id: true },
   });
@@ -53,7 +53,7 @@ export async function PATCH(
   if (data.file_url !== undefined) updateData.file_url = data.file_url;
   if (data.date !== undefined) updateData.date = data.date ? new Date(data.date as string) : null;
 
-  const updated = await prisma.systemDrawing.update({
+  const updated = await prisma.system_drawings.update({
     where: { id: drawingId },
     data: updateData as any,
   });
@@ -75,12 +75,12 @@ export async function DELETE(
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
 
-  const drawing = await prisma.systemDrawing.findFirst({
+  const drawing = await prisma.system_drawings.findFirst({
     where: { id: drawingId, system_id: systemId },
     select: { id: true },
   });
   if (!drawing) return NextResponse.json({ error: 'Drawing not found' }, { status: 404 });
 
-  await prisma.systemDrawing.delete({ where: { id: drawingId } });
+  await prisma.system_drawings.delete({ where: { id: drawingId } });
   return NextResponse.json({ ok: true });
 }

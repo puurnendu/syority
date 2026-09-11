@@ -119,6 +119,26 @@ export class PlantImportService {
     });
     const existingSet = new Set(existingAssets.map((a) => a.tag_number));
 
+    // M8.14-R1: Valid criticality values
+    const VALID_CRITICALITY = new Set(['low', 'medium', 'high', 'critical']);
+    const CRITICALITY_SYNONYMS: Record<string, string> = {
+      l: 'low', med: 'medium', m: 'medium', moderate: 'medium',
+      h: 'high', crit: 'critical', c: 'critical', 'very high': 'critical',
+    };
+    const normalizeCriticality = (raw?: string | null): string | null => {
+      if (!raw) return null;
+      const v = raw.trim().toLowerCase();
+      if (VALID_CRITICALITY.has(v)) return v;
+      return CRITICALITY_SYNONYMS[v] ?? null;
+    };
+
+    // M8.14-R1: Known asset types (for warnings, not hard reject)
+    const KNOWN_ASSET_TYPES = new Set([
+      'equipment', 'vessel', 'heat_exchanger', 'pump', 'compressor', 'column',
+      'tank', 'reactor', 'drum', 'heater', 'filter', 'motor', 'turbine',
+      'fan', 'air_cooler', 'valve', 'instrument', 'pipeline',
+    ]);
+
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       const mapped: Record<string, unknown> = {};
@@ -131,7 +151,7 @@ export class PlantImportService {
 
       const tagNumber = mapped.tag_number as string;
 
-      // Validation
+      // Validation: tag_number required
       if (!tagNumber) {
         errors.push({ row: i + 2, field: 'tag_number', message: 'Tag number is required' });
         preview.push({
@@ -146,13 +166,56 @@ export class PlantImportService {
         continue;
       }
 
+      // M8.14-R1: Validate mandatory name/description
+      const name = (mapped.name as string) || (mapped.description as string);
+      if (!name) {
+        errors.push({ row: i + 2, field: 'name', message: 'Name or description is required' });
+        preview.push({
+          row_number: i + 2,
+          tag_number: tagNumber,
+          description: null,
+          asset_type: (mapped.asset_type as string) || this.inferAssetType(tagNumber, importType),
+          status: 'error',
+          error_message: 'Missing name/description',
+          attributes: mapped,
+        });
+        continue;
+      }
+
+      // M8.14-R1: Validate criticality (if provided)
+      const rawCrit = mapped.criticality as string | undefined;
+      if (rawCrit) {
+        const normalizedCrit = normalizeCriticality(rawCrit);
+        if (!normalizedCrit) {
+          errors.push({ row: i + 2, field: 'criticality', message: `Invalid criticality "${rawCrit}" — must be: low, medium, high, critical` });
+          preview.push({
+            row_number: i + 2,
+            tag_number: tagNumber,
+            description: name,
+            asset_type: (mapped.asset_type as string) || this.inferAssetType(tagNumber, importType),
+            status: 'error',
+            error_message: `Invalid criticality: ${rawCrit}`,
+            attributes: mapped,
+          });
+          continue;
+        }
+        mapped.criticality = normalizedCrit;
+      }
+
+      // M8.14-R1: Warn on unrecognized asset type (not a hard reject)
+      const assetType = (mapped.asset_type as string) || this.inferAssetType(tagNumber, importType);
+      if (mapped.asset_type && !KNOWN_ASSET_TYPES.has(assetType.toLowerCase().replace(/\s+/g, '_'))) {
+        errors.push({ row: i + 2, field: 'asset_type', message: `Unrecognized asset type "${mapped.asset_type}" — will import as-is` });
+        // Note: this is a warning, not a rejection — the row still imports
+      }
+
       const isUpdate = existingSet.has(tagNumber);
 
       preview.push({
         row_number: i + 2,
         tag_number: tagNumber,
-        description: (mapped.description as string) || null,
-        asset_type: (mapped.asset_type as string) || this.inferAssetType(tagNumber, importType),
+        description: name,
+        asset_type: assetType,
         status: isUpdate ? 'update' : 'new',
         attributes: mapped,
       });

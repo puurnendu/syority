@@ -143,7 +143,7 @@ async function main() {
     console.log(`Seeding ${TEMPLATES.length} certificate templates...`);
 
     for (const t of TEMPLATES) {
-        const existing = await prisma.certificateTemplate.findFirst({
+        const existing = await prisma.certificate_templates.findFirst({
             where: {
                 cert_type: t.cert_type,
                 organization_id: null,
@@ -152,7 +152,7 @@ async function main() {
         });
 
         if (existing) {
-            await prisma.certificateTemplate.update({
+            await prisma.certificate_templates.update({
                 where: { id: existing.id },
                 data: {
                     cert_name: t.cert_name,
@@ -164,7 +164,7 @@ async function main() {
             });
             console.log(`  ↺  Updated: ${t.cert_name}`);
         } else {
-            await prisma.certificateTemplate.create({
+            await prisma.certificate_templates.create({
                 data: {
                     organization_id: null,
                     cert_type: t.cert_type,
@@ -180,7 +180,7 @@ async function main() {
         }
     }
 
-    const count = await prisma.certificateTemplate.count({
+    const count = await prisma.certificate_templates.count({
         where: { is_active: true },
     });
     console.log(`\nDone. ${count} active certificate templates total.`);

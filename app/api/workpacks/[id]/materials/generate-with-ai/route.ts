@@ -247,14 +247,14 @@ export async function POST(
     const regenerate = body.regenerate === true;
     if (autoSave && materials.length > 0) {
       if (regenerate) {
-        await prisma.workpackMaterialLine.deleteMany({
+        await prisma.workpack_material_lines.deleteMany({
           where: { workpack_id: workpackId, organization_id: orgId, ai_generated: true },
         });
       }
       let created = 0;
       for (const m of materials) {
         if (!m.description?.trim()) continue;
-        await prisma.workpackMaterialLine.create({
+        await prisma.workpack_material_lines.create({
           data: {
             organization_id: orgId,
             workpack_id: workpackId,

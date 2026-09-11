@@ -33,9 +33,14 @@ export class ScopeItemService {
     // Get asset hierarchy context
     const asset = await prisma.asset.findFirst({
       where: { id: data.assetId, organization_id: data.organizationId },
-      select: { id: true, plant_id: true, unit_id: true, system_id: true, tag_number: true, name: true },
+      select: { id: true, plant_id: true, unit_id: true, system_id: true, tag_number: true, name: true, status: true },
     });
     if (!asset) throw new Error('Asset not found');
+
+    // M8.14-R1: Only active assets can be added to scope
+    if (asset.status !== 'active') {
+      throw new Error(`Asset "${asset.tag_number}" is in ${asset.status} status — only active assets can be added to scope`);
+    }
 
     const item = await prisma.scopeItem.create({
       data: {

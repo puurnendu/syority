@@ -29,20 +29,20 @@ export async function GET(
   if (latest || dateParam) {
     const log = await prisma.safetyLog.findFirst({
       where: {
-        eventId,
-        ...(dateParam ? { logDate: new Date(dateParam) } : {}),
+        event_id: eventId,
+        ...(dateParam ? { log_date: new Date(dateParam) } : {}),
       },
-      orderBy: { logDate: 'desc' },
+      orderBy: { log_date: 'desc' },
       include: {
-        incidents: {
+        SafetyIncident: {
           include: {
-            photos: { select: { id: true, publicUrl: true, photoType: true } },
+            SafetyPhoto: { select: { id: true, public_url: true, photo_type: true } },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
         },
-        photos: {
-          select: { id: true, publicUrl: true, photoType: true },
-          orderBy: { takenAt: 'desc' },
+        SafetyPhoto: {
+          select: { id: true, public_url: true, photo_type: true },
+          orderBy: { taken_at: 'desc' },
         },
       },
     });
@@ -50,15 +50,15 @@ export async function GET(
   }
 
   const logs = await prisma.safetyLog.findMany({
-    where: { eventId },
-    orderBy: { logDate: 'desc' },
+    where: { event_id: eventId },
+    orderBy: { log_date: 'desc' },
     include: {
-      incidents: { select: { id: true, incidentType: true, severity: true, status: true } },
-      photos: { select: { id: true, photoType: true, publicUrl: true } },
+      SafetyIncident: { select: { id: true, incident_type: true, severity: true, status: true } },
+      SafetyPhoto: { select: { id: true, photo_type: true, public_url: true } },
     },
   });
 
-  const totalManhours = logs.reduce((s, l) => s + Number(l.manhoursWorked ?? 0), 0);
+  const totalManhours = logs.reduce((s, l) => s + Number(l.manhours_worked ?? 0), 0);
   const totalLTI = logs.reduce((s, l) => s + (l.lti ?? 0), 0);
   const ltiRate = totalManhours > 0 ? (totalLTI * 1_000_000) / totalManhours : 0;
 
@@ -83,51 +83,54 @@ export async function POST(
   logDate.setHours(0, 0, 0, 0);
 
   const prevLogs = await prisma.safetyLog.findMany({
-    where: { eventId, logDate: { lt: logDate } },
-    orderBy: { logDate: 'asc' },
+    where: { event_id: eventId, log_date: { lt: logDate } },
+    orderBy: { log_date: 'asc' },
   });
-  const prevManhours = prevLogs.reduce((s, l) => s + Number(l.manhoursWorked ?? 0), 0);
+  const prevManhours = prevLogs.reduce((s, l) => s + Number(l.manhours_worked ?? 0), 0);
   const prevLTI = prevLogs.reduce((s, l) => s + (l.lti ?? 0), 0);
   const cumManhours = prevManhours + Number(body.manhours_worked ?? 0);
   const cumLTI = prevLTI + Number(body.lti ?? 0);
   const ltiRate = cumManhours > 0 ? (cumLTI * 1_000_000) / cumManhours : 0;
 
   const data = {
-    manpowerPlanned: body.manpower_planned ?? 0,
-    manpowerActual: body.manpower_actual ?? 0,
+    manpower_planned: body.manpower_planned ?? 0,
+    manpower_actual: body.manpower_actual ?? 0,
     lti: body.lti ?? 0,
-    ltiDaysLost: body.lti_days_lost ?? 0,
-    nearMiss: body.near_miss ?? 0,
-    firstAid: body.first_aid ?? 0,
-    medicalTreatment: body.medical_treatment ?? 0,
-    dangerousOccurrence: body.dangerous_occurrence ?? 0,
-    ptwIssued: body.ptw_issued ?? 0,
-    ptwClosed: body.ptw_closed ?? 0,
-    ptwSuspended: body.ptw_suspended ?? 0,
-    toolboxTalks: body.toolbox_talks ?? 0,
-    manhoursWorked: body.manhours_worked ?? 0,
-    manhoursPlanned: body.manhours_planned ?? 0,
-    cumulativeManhours: cumManhours,
-    cumulativeLti: cumLTI,
-    ltiFrequencyRate: ltiRate,
-    safetyNotes: body.safety_notes ?? null,
+    lti_days_lost: body.lti_days_lost ?? 0,
+    near_miss: body.near_miss ?? 0,
+    first_aid: body.first_aid ?? 0,
+    medical_treatment: body.medical_treatment ?? 0,
+    dangerous_occurrence: body.dangerous_occurrence ?? 0,
+    ptw_issued: body.ptw_issued ?? 0,
+    ptw_closed: body.ptw_closed ?? 0,
+    ptw_suspended: body.ptw_suspended ?? 0,
+    toolbox_talks: body.toolbox_talks ?? 0,
+    manhours_worked: body.manhours_worked ?? 0,
+    manhours_planned: body.manhours_planned ?? 0,
+    cumulative_manhours: cumManhours,
+    cumulative_lti: cumLTI,
+    lti_frequency_rate: ltiRate,
+    safety_notes: body.safety_notes ?? null,
   };
 
   const log = await prisma.safetyLog.upsert({
     where: {
-      eventId_logDate: { eventId, logDate },
+      event_id_log_date: { event_id: eventId, log_date: logDate },
     },
     create: {
-      eventId,
-      logDate,
+      id: crypto.randomUUID(),
+      event_id: eventId,
+      log_date: logDate,
       ...data,
-      submittedBy: userId ?? user.id ?? null,
-      submittedByName: user.name ?? user.email ?? null,
+      submitted_by: userId ?? user.id ?? null,
+      submitted_by_name: user.name ?? user.email ?? null,
+      updated_at: new Date(),
     },
     update: {
       ...data,
-      lastUpdatedBy: userId ?? user.id ?? null,
-      lastUpdatedByName: user.name ?? user.email ?? null,
+      last_updated_by: userId ?? user.id ?? null,
+      last_updated_by_name: user.name ?? user.email ?? null,
+      updated_at: new Date(),
     },
   });
 

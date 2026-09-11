@@ -13,7 +13,7 @@ export async function GET(
   const { orgId } = orgScope(session!);
   const { updateId } = await context.params;
 
-  const update = await prisma.whatsappUpdate.findFirst({
+  const update = await prisma.whatsapp_updates.findFirst({
     where: { id: updateId, organization_id: orgId },
     select: { audio_storage_path: true },
   });

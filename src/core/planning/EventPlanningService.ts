@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { isUuid, normalizeUuid } from '@/lib/uuid';
 
 /**
  * Project / Event refinement for Planner Core (no execution modules).
@@ -56,7 +57,40 @@ export class EventPlanningService {
     discipline_id?: string | null;
     parent_event_id?: string | null;
   }) {
-    // Enforce tenant-scoped uniqueness on event code
+    // [TRACE-3] Service Entry
+    console.log('[TRACE-3][EventPlanningService.create] params.site =', (data as any).site, '| params.site_id =', data.site_id, '| isUuid:', isUuid(String(data.site_id ?? '')));
+
+    // 1. Resolve site_id: verify UUID or resolve Site Code (e.g., "PPU")
+    let resolvedSiteId = data.site_id ? String(data.site_id).trim() : '';
+    if (!isUuid(resolvedSiteId)) {
+      const siteByCode = await prisma.site.findFirst({
+        where: { organization_id: organizationId, code: resolvedSiteId, deleted_at: null },
+        select: { id: true },
+      });
+      if (siteByCode) {
+        resolvedSiteId = siteByCode.id;
+      } else {
+        const siteByName = await prisma.site.findFirst({
+          where: { organization_id: organizationId, name: { contains: resolvedSiteId, mode: 'insensitive' }, deleted_at: null },
+          select: { id: true },
+        });
+        if (siteByName) {
+          resolvedSiteId = siteByName.id;
+        } else {
+          const firstSite = await prisma.site.findFirst({
+            where: { organization_id: organizationId, deleted_at: null },
+            select: { id: true },
+          });
+          if (firstSite) {
+            resolvedSiteId = firstSite.id;
+          } else {
+            throw new Error(`Site "${data.site_id}" not found. Please create a valid Site before creating events.`);
+          }
+        }
+      }
+    }
+
+    // 2. Enforce tenant-scoped uniqueness on event code
     const existing = await prisma.event.findFirst({
       where: { organization_id: organizationId, code: data.code, deleted_at: null },
       select: { id: true },
@@ -65,27 +99,37 @@ export class EventPlanningService {
       throw new Error(`Event code "${data.code}" already exists in this organization`);
     }
 
+    // 3. Normalize optional UUID FKs (convert empty string to null, verify UUIDs)
+    const calendarId = normalizeUuid(data.calendar_id);
+    const disciplineId = normalizeUuid(data.discipline_id);
+    const parentEventId = normalizeUuid(data.parent_event_id);
+    const createdBy = normalizeUuid(userId);
+
+    // [TRACE-4] Full data object passed to Prisma
+    const prismaData = {
+      id: randomUUID(),
+      organization_id: organizationId,
+      site_id: resolvedSiteId,
+      name: data.name,
+      code: data.code,
+      event_type: data.event_type || 'turnaround',
+      planned_start: data.planned_start ? new Date(data.planned_start) : null,
+      planned_end: data.planned_end ? new Date(data.planned_end) : null,
+      status: data.status || 'planning',
+      scope_notes: data.scope_notes ?? null,
+      description: data.description ?? null,
+      budget_manhours: data.budget_manhours ?? null,
+      budget_cost: data.budget_cost ?? null,
+      calendar_id: calendarId && isUuid(calendarId) ? calendarId : null,
+      discipline_id: disciplineId && isUuid(disciplineId) ? disciplineId : null,
+      parent_event_id: parentEventId && isUuid(parentEventId) ? parentEventId : null,
+      created_by: createdBy && isUuid(createdBy) ? createdBy : null,
+      updated_at: new Date(),
+    };
+    console.log('[TRACE-4][EventPlanningService] FULL DATA TO PRISMA:', JSON.stringify(prismaData, null, 2));
+
     return prisma.event.create({
-      data: {
-        id: randomUUID(),
-        organization_id: organizationId,
-        site_id: data.site_id,
-        name: data.name,
-        code: data.code,
-        event_type: data.event_type || 'turnaround',
-        planned_start: data.planned_start ? new Date(data.planned_start) : null,
-        planned_end: data.planned_end ? new Date(data.planned_end) : null,
-        status: data.status || 'planning',
-        scope_notes: data.scope_notes ?? null,
-        description: data.description ?? null,
-        budget_manhours: data.budget_manhours ?? null,
-        budget_cost: data.budget_cost ?? null,
-        calendar_id: data.calendar_id ?? null,
-        discipline_id: data.discipline_id ?? null,
-        parent_event_id: data.parent_event_id ?? null,
-        created_by: userId,
-        updated_at: new Date(),
-      },
+      data: prismaData,
     });
   }
 
@@ -94,6 +138,24 @@ export class EventPlanningService {
       where: { id: eventId, organization_id: organizationId, deleted_at: null },
     });
     if (!existing) throw new Error('Event not found');
+
+    const calendarId = data.calendar_id !== undefined ? normalizeUuid(data.calendar_id as string) : undefined;
+    const disciplineId = data.discipline_id !== undefined ? normalizeUuid(data.discipline_id as string) : undefined;
+    const parentEventId = data.parent_event_id !== undefined ? normalizeUuid(data.parent_event_id as string) : undefined;
+
+    let siteId: string | undefined = undefined;
+    if (data.site_id !== undefined) {
+      const s = String(data.site_id).trim();
+      if (isUuid(s)) {
+        siteId = s;
+      } else {
+        const siteByCode = await prisma.site.findFirst({
+          where: { organization_id: organizationId, code: s, deleted_at: null },
+          select: { id: true },
+        });
+        if (siteByCode) siteId = siteByCode.id;
+      }
+    }
 
     return prisma.event.update({
       where: { id: eventId },
@@ -104,9 +166,10 @@ export class EventPlanningService {
         ...(data.status !== undefined && { status: String(data.status) }),
         ...(data.scope_notes !== undefined && { scope_notes: data.scope_notes as string | null }),
         ...(data.description !== undefined && { description: data.description as string | null }),
-        ...(data.calendar_id !== undefined && { calendar_id: data.calendar_id as string | null }),
-        ...(data.discipline_id !== undefined && { discipline_id: data.discipline_id as string | null }),
-        ...(data.parent_event_id !== undefined && { parent_event_id: data.parent_event_id as string | null }),
+        ...(siteId !== undefined && { site_id: siteId }),
+        ...(calendarId !== undefined && { calendar_id: calendarId && isUuid(calendarId) ? calendarId : null }),
+        ...(disciplineId !== undefined && { discipline_id: disciplineId && isUuid(disciplineId) ? disciplineId : null }),
+        ...(parentEventId !== undefined && { parent_event_id: parentEventId && isUuid(parentEventId) ? parentEventId : null }),
         ...(data.planned_start !== undefined && {
           planned_start: data.planned_start ? new Date(String(data.planned_start)) : null,
         }),

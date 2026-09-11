@@ -3,6 +3,8 @@ import { AuditService } from '@/lib/audit';
 import { eventBus } from '@/lib/eventBus';
 import { isUuid, normalizeUuid, normalizeUuidFromSegment } from '@/lib/uuid';
 import type { WorkpackStatus } from '@prisma/client';
+import { createActivity } from '@/core/activity/ActivityCreationCommand';
+import { WorkpackIdentityError } from '../WorkpackIdentityError';
 
 export class WorkpackService {
     // ── Generate workpack number ─────────────────────────────────────────────
@@ -57,7 +59,31 @@ export class WorkpackService {
         portfolio_id?: string | null;
         equipment_type?: string | null;
         project_id?: string | null;
+        workpack_id_code?: string | null;
+        event_id?: string | null;
     }) {
+        const eventId = normalizeUuid(data.event_id);
+        if (!eventId) {
+            throw new WorkpackIdentityError(
+                'EVENT_REQUIRED',
+                'STO Workpack create requires Event context. Do not guess Event from Project, dates, plant, or UUID.'
+            );
+        }
+        const event = await prisma.event.findFirst({
+            where: { id: eventId, organization_id: data.organization_id, deleted_at: null },
+            select: { id: true },
+        });
+        if (!event) {
+            const existsElsewhere = await prisma.event.findFirst({
+                where: { id: eventId, deleted_at: null },
+                select: { id: true },
+            });
+            if (existsElsewhere) {
+                throw new WorkpackIdentityError('CROSS_TENANT_EVENT', 'Event not found');
+            }
+            throw new WorkpackIdentityError('INVALID_EVENT', 'Event not found');
+        }
+
         // Retry a couple times to avoid collisions with concurrent AI generations.
         let created: Awaited<ReturnType<typeof prisma.workpack.create>> | null = null;
         const maxAttempts = 3;
@@ -88,24 +114,29 @@ export class WorkpackService {
             try {
                 created = await prisma.workpack.create({
                     data: {
+                        id: crypto.randomUUID(),
                         organization_id: data.organization_id,
                         site_id: data.site_id,
                         title: data.title,
                         created_by: data.created_by,
                         workpack_number,
+                        workpack_id_code: data.workpack_id_code ?? null,
+                        event_id: eventId,
                         revision: 'R0',
                         status: data.status ?? 'draft',
                         sap_work_order: data.sap_work_order ?? null,
                         sap_notification: data.sap_notification ?? null,
                         asset_id: normalizeUuid(data.asset_id),
                         unit_id: normalizeUuid(data.unit_id),
+                        plant_id: normalizeUuid((data as any).plant_id),
+                        system_id: normalizeUuid((data as any).system_id),
                         discipline_id: normalizeUuid(data.discipline_id),
                         contractor_id: normalizeUuid(data.contractor_id),
                         work_type: data.work_type ?? null,
                         priority: data.priority ?? null,
-                        scope_of_work: data.scope_of_work ?? null,
-                        planned_start_date: data.planned_start_date ?? null,
-                        planned_end_date: data.planned_end_date ?? null,
+                        scope_of_work: data.scope_of_work ?? (data as any).description ?? null,
+                        planned_start_date: data.planned_start_date ? new Date(data.planned_start_date) : null,
+                        planned_end_date: data.planned_end_date ? new Date(data.planned_end_date) : null,
                         estimated_manhours: data.estimated_manhours ?? null,
                         unit_code: data.unit_code ?? null,
                         portfolio_id: data.portfolio_id ?? null,
@@ -172,7 +203,7 @@ export class WorkpackService {
                 },
                 workpack_materials: {
                     where: { deleted_at: null },
-                    include: { organization: true },
+                    include: { Organization: true },
                     orderBy: { created_at: 'asc' },
                 },
                 workpack_documents: {
@@ -201,6 +232,7 @@ export class WorkpackService {
         site_id?: string;
         system_id?: string;
         project_id?: string;
+        event_id?: string;
         status?: WorkpackStatus;
         search?: string;
     }) {
@@ -211,6 +243,7 @@ export class WorkpackService {
                 ...(filters?.site_id && { site_id: filters.site_id }),
                 ...(filters?.system_id && { system_id: filters.system_id }),
                 ...(filters?.project_id && { project_id: filters.project_id }),
+                ...(filters?.event_id && { event_id: filters.event_id }),
                 ...(filters?.status && { status: filters.status }),
                 ...(filters?.search && {
                     OR: [
@@ -295,7 +328,7 @@ export class WorkpackService {
         if (!source) throw new Error('Source workpack not found');
 
         // Tools have no @relation on Workpack model — fetch separately
-        const tools = await prisma.workpackTool.findMany({
+        const tools = await prisma.workpack_tools.findMany({
             where: { workpack_id: sourceId },
         });
 
@@ -324,25 +357,41 @@ export class WorkpackService {
                     unit_code: source.unit_code,
                     portfolio_id: source.portfolio_id,
                     equipment_type: source.equipment_type,
+                    event_id: source.event_id,
+                    plant_id: source.plant_id,
+                    system_id: source.system_id,
                     // deliberately omit: sap_work_order, sap_notification, planned dates, is_locked
                 },
             });
 
-            // Copy activities
             if (source.activities?.length) {
-                await tx.activity.createMany({
-                    data: source.activities.map((a) => ({
-                        organization_id: cloned.organization_id,
-                        site_id: cloned.site_id,
-                        workpack_id: cloned.id,
-                        activity_code: (a as any).activity_code,
-                        description: a.description,
-                        sequence_number: a.sequence_number,
-                        planned_duration_hours: (a as any).planned_duration_hours,
-                        discipline_id: a.discipline_id,
-                        status: 'not_started' as any,
-                    })),
-                });
+                for (const a of source.activities) {
+                    await createActivity(
+                        {
+                            organizationId: cloned.organization_id,
+                            userId: clonedBy,
+                            sourceChannel: 'clone',
+                            eventId: cloned.event_id,
+                        },
+                        {
+                            workpackId: cloned.id,
+                            description: a.description,
+                            sequenceNumber: a.sequence_number,
+                            durationHours: a.duration_hours != null ? Number(a.duration_hours) : undefined,
+                            disciplineId: a.discipline_id,
+                            activityLibraryId: a.activity_library_id,
+                            standardActivityTypeId: a.standard_activity_type_id,
+                            holdPointType: a.hold_point_type,
+                            holdPointDescription: a.hold_point_description,
+                            workCategory: a.work_category,
+                            wbsCode: a.wbs_code,
+                            notes: a.notes,
+                            isOptional: a.is_optional,
+                            loadDefaultResources: false,
+                        },
+                        tx
+                    );
+                }
             }
 
             // Copy materials (match WorkpackMaterial schema field names)
@@ -368,7 +417,7 @@ export class WorkpackService {
 
             // Copy tools (match WorkpackTool schema field names)
             if (tools.length) {
-                await tx.workpackTool.createMany({
+                await tx.workpack_tools.createMany({
                     data: tools.map((t) => ({
                         organization_id: cloned.organization_id,
                         workpack_id: cloned.id,

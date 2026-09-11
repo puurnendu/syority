@@ -3,7 +3,7 @@ import { WorkflowService } from '@/modules/Workpack/Services/WorkflowService';
 import { withTenantGuard } from '@/lib/withTenantGuard';
 import { assertTenantAccess } from '@/lib/tenantGuard';
 
-const VALID_ACTIONS = ['submit', 'approve', 'reject', 'issue', 'close', 'cancel', 'reopen'];
+const VALID_ACTIONS = ['submit', 'approve', 'reject', 'issue', 'start_execution', 'complete', 'close', 'cancel', 'reopen'];
 
 export const POST = withTenantGuard(async (req, { params }, session) => {
     try {
@@ -32,8 +32,20 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
             case 'issue':
                 await WorkflowService.issue(id, userId, orgId);
                 break;
+            case 'start_execution':
+                await WorkflowService.startExecution(id, userId, orgId);
+                break;
+            case 'complete':
+                await WorkflowService.complete(id, userId, orgId);
+                break;
             case 'close':
                 await WorkflowService.close(id, userId, orgId);
+                break;
+            case 'cancel':
+                await WorkflowService.cancel(id, userId, orgId, comment);
+                break;
+            case 'reopen':
+                await WorkflowService.reopen(id, userId, orgId);
                 break;
             default:
                 return NextResponse.json({ error: `Action '${action}' not implemented yet` }, { status: 400 });

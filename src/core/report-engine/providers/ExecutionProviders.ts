@@ -75,6 +75,44 @@ export class DailyProgressProvider extends BaseProvider {
   }
 }
 
+// ─── Field Execution Authority Integration (M12) ─────────────────────────────────
+// M14 R2: Rewired delay calculations to the authoritative Field Execution engine.
+import { FieldExecutionService } from '@/core/execution/FieldExecutionService';
+
+async function fetchAuthoritativeDelays(orgId: string, params: Record<string, any>) {
+  let eventIds = params.event ? [params.event] : [];
+  
+  if (eventIds.length === 0) {
+    const where: any = { organization_id: orgId, deleted_at: null };
+    if (params.site) where.site_id = params.site;
+    const events = await prisma.event.findMany({ where, select: { id: true } });
+    eventIds = events.map(e => e.id);
+  }
+
+  const allDelays: any[] = [];
+  
+  for (const eventId of eventIds) {
+    const pva = await FieldExecutionService.getPlanVsActual(orgId, eventId);
+    
+    // Filter for delayed items using M12 logic
+    const delays = pva.filter(item => item.is_delayed);
+    
+    for (const d of delays) {
+      allDelays.push({
+        activity: d.activity_number ?? d.id,
+        description: d.description,
+        workpack: d.workpack_number ?? '—',
+        late_finish: d.planned_end ?? '—',
+        status: d.status,
+        days_late: d.finish_variance_hours !== null ? Math.ceil(d.finish_variance_hours / 24) : '—',
+        severity: d.is_critical ? 'P1' : 'P3', // Map criticality to severity for sorting
+      });
+    }
+  }
+
+  return allDelays;
+}
+
 export class DelayRegisterProvider extends BaseProvider {
   readonly key = 'execution.delay_register';
   readonly category = 'execution';
@@ -84,19 +122,17 @@ export class DelayRegisterProvider extends BaseProvider {
   readonly maxRows = 100;
 
   async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
-    const activities = await prisma.activity.findMany({
-      where: { organization_id: ctx.organizationId, deleted_at: null, actual_end: null, late_finish: { lt: new Date() }, ...scopeFilters(params) },
-      select: { activity_number: true, description: true, late_finish: true, early_finish: true, status: true, workpack: { select: { workpack_number: true } } },
-      orderBy: { late_finish: 'asc' }, take: this.maxRows,
-    });
+    const delayedItems = await fetchAuthoritativeDelays(ctx.organizationId, params);
+    
+    // Sort by severity (P1 -> P4)
+    delayedItems.sort((a, b) => a.severity.localeCompare(b.severity));
+    
+    const rows = delayedItems.slice(0, this.maxRows);
+
     return {
-      rows: activities.map((a) => ({
-        activity: a.activity_number, description: a.description, workpack: a.workpack?.workpack_number ?? '—',
-        late_finish: a.late_finish?.toISOString().split('T')[0] ?? '—', status: a.status,
-        days_late: a.late_finish ? Math.ceil((Date.now() - a.late_finish.getTime()) / 86400_000) : '—',
-      })),
-      kpis: [{ label: 'Delayed Activities', value: activities.length, color: '#DC2626' }],
-      metadata: { recordCount: activities.length },
+      rows,
+      kpis: [{ label: 'Delayed Activities', value: delayedItems.length, color: '#DC2626' }],
+      metadata: { recordCount: delayedItems.length },
     };
   }
 }
@@ -182,10 +218,78 @@ export class PunchRegisterProvider extends BaseProvider {
   }
 }
 
+export class HoldsAndDelaysProvider extends BaseProvider {
+  readonly key = 'execution.holds_and_delays';
+  readonly category = 'execution';
+  readonly name = 'Holds & Delays Report';
+  readonly description = 'Activities currently on hold or actively delayed past their finish date from M12 execution facts.';
+  readonly requiredParams = ['event'];
+  readonly optionalParams = ['site', 'unit', 'contractor', 'discipline', 'status'];
+
+  async fetch(ctx: ProviderContext, params: Record<string, any>): Promise<DataFetcherResult> {
+    const [pva, board] = await Promise.all([
+      FieldExecutionService.getPlanVsActual(ctx.organizationId, params.event),
+      FieldExecutionService.getExecutionBoard(ctx.organizationId, params.event).catch(() => []),
+    ]);
+
+    const boardMap = new Map<string, any>();
+    for (const b of board) {
+      boardMap.set(b.id, b);
+    }
+
+    // Filter items that are either delayed OR on hold
+    const holdOrDelayed = pva.filter((item) => {
+      const b = boardMap.get(item.id);
+      const isHold = b ? (b.has_hold_point && !b.hold_point_cleared) || item.status === 'on_hold' : item.status === 'on_hold';
+      return item.is_delayed || isHold;
+    });
+
+    const rows = holdOrDelayed.map((item) => {
+      const b = boardMap.get(item.id);
+      const isHold = b ? (b.has_hold_point && !b.hold_point_cleared) || item.status === 'on_hold' : item.status === 'on_hold';
+      const holdCategory = isHold ? (b?.hold_point_type ?? 'Execution Hold') : 'None';
+      const delayCategory = item.is_delayed ? (b?.delay_reason ?? 'Finish Variance') : 'None';
+      const impactStr = item.finish_variance_hours !== null
+        ? `${Math.round(item.finish_variance_hours)}h (${Math.ceil(item.finish_variance_hours / 24)}d)`
+        : isHold ? 'Hold Point Blocking' : 'Minimal';
+
+      return {
+        activity: item.activity_number ?? item.id,
+        description: item.description,
+        equipment: b?.unit_code ?? '—',
+        workpack: item.workpack_number ?? '—',
+        hold_reason_category: holdCategory,
+        delay_reason_category: delayCategory,
+        start: item.actual_start ?? item.planned_start ?? '—',
+        duration: `${item.duration_hours}h`,
+        current_status: item.status,
+        responsible_party: b?.responsible ?? '—',
+        impact: impactStr,
+        remarks: b?.blocking_reasons?.join('; ') ?? (isHold ? 'Hold point pending clearance' : item.is_delayed ? 'Delayed past plan' : '—'),
+      };
+    });
+
+    const delayedCount = holdOrDelayed.filter(i => i.is_delayed).length;
+    const holdCount = holdOrDelayed.length - delayedCount;
+
+    return {
+      summary: `Holds & Delays for event: ${holdOrDelayed.length} total exceptions identified from M12 execution facts.`,
+      rows,
+      kpis: [
+        { label: 'Total Exceptions', value: holdOrDelayed.length, color: holdOrDelayed.length > 0 ? '#DC2626' : '#10B981' },
+        { label: 'Delayed Activities', value: delayedCount, color: '#DC2626' },
+        { label: 'Hold Points Active', value: holdCount, color: '#F59E0B' },
+      ],
+      metadata: { recordCount: rows.length },
+    };
+  }
+}
+
 export const executionProviders = [
   new ShiftProgressProvider(),
   new DailyProgressProvider(),
   new DelayRegisterProvider(),
+  new HoldsAndDelaysProvider(),
   new QaPendingProvider(),
   new CertificateStatusProvider(),
   new PunchRegisterProvider(),

@@ -69,21 +69,21 @@ export async function GET(
             })
             .catch(() => 0),
         prisma.jointIntegrityItem.count({ where: { workpack_id: id, deleted_at: null, ai_generated: true } }).catch(() => 0),
-        prisma.workpackMaterialLine.count({ where: { workpack_id: id, deleted_at: null, ai_generated: true } }).catch(() => 0),
-        prisma.workpackTool.count({ where: { workpack_id: id, ai_generated: true } }).catch(() => 0),
+        prisma.workpack_material_lines.count({ where: { workpack_id: id, deleted_at: null, ai_generated: true } }).catch(() => 0),
+        prisma.workpack_tools.count({ where: { workpack_id: id, ai_generated: true } }).catch(() => 0),
         prisma.constraintLog.count({ where: { workpack_id: id, deleted_at: null, ai_generated: true } }).catch(() => 0),
         prisma.activity.count({ where: { workpack_id: id, deleted_at: null } }).catch(() => 0),
-        prisma.workpackMaterialLine.count({ where: { workpack_id: id, deleted_at: null } }).catch(() => 0),
-        prisma.droppingBoxupChecklist.count({ where: { workpack_id: id } }).catch(() => 0),
-        prisma.cleaningRecord.count({ where: { workpack_id: id } }).catch(() => 0),
+        prisma.workpack_material_lines.count({ where: { workpack_id: id, deleted_at: null } }).catch(() => 0),
+        prisma.dropping_boxup_checklists.count({ where: { workpack_id: id } }).catch(() => 0),
+        prisma.cleaning_records.count({ where: { workpack_id: id } }).catch(() => 0),
         prisma.constraintLog.count({ where: { workpack_id: id, deleted_at: null } }).catch(() => 0),
         prisma.jointIntegrityItem.count({ where: { workpack_id: id, deleted_at: null } }).catch(() => 0),
         prisma.blind.count({ where: { workpack_id: id } }).catch(() => 0),
-        prisma.qaClearanceRecord.count({ where: { workpack_id: id } }).catch(() => 0),
+        prisma.qa_clearance_records.count({ where: { workpack_id: id } }).catch(() => 0),
         prisma.certificateInstance.count({ where: { workpack_id: id, deleted_at: null } }).catch(() => 0),
         prisma.workpackDocument.count({ where: { workpack_id: id, deleted_at: null } }).catch(() => 0),
         prisma.lessonLearned.count({ where: { workpack_id: id } }).catch(() => 0),
-        prisma.workpackTool.count({ where: { workpack_id: id } }).catch(() => 0),
+        prisma.workpack_tools.count({ where: { workpack_id: id } }).catch(() => 0),
     ]);
 
     return NextResponse.json({

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SystemProgressGrid } from './SystemProgressGrid';
-import { SCurveChart } from './SCurveChart';
+import { SCurveChart } from '@/components/Schedule/SCurveChart';
 import ConstraintHeatmap from './ConstraintHeatmap';
 import type { SystemProgressItem } from './SystemProgressCard';
 
@@ -299,7 +299,7 @@ export function PortfolioDashboard() {
             {eventId && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-2">
-                        <SCurveChart projectId={eventId} />
+                        <SCurveChart eventId={eventId} />
                     </div>
                     <div>
                         <ConstraintHeatmap />

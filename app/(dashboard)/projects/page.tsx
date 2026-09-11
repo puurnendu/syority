@@ -3,16 +3,22 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+/**
+ * OD9.2 §15 — This shape now matches what `/api/projects` actually returns. It previously
+ * used pre-OD9 camelCase aliases (`plannedSdDate`, `plantName`, `_count.workpacks`), so
+ * dates, plant and workpack counts silently rendered as blank/zero, and the create form
+ * posted keys the route never read — planned dates were never saved.
+ */
 interface Project {
   id: string;
   name: string;
   code: string;
   status: string;
-  plannedSdDate: string | null;
-  plannedSuDate: string | null;
+  planned_sd_date: string | null;
+  planned_su_date: string | null;
   client: string | null;
-  plantName: string | null;
-  _count: { workpacks: number };
+  plant_name: string | null;
+  _count: { Workpack: number };
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -30,9 +36,9 @@ export default function ProjectsPage() {
     name: '',
     code: '',
     client: '',
-    plantName: '',
-    plannedSdDate: '',
-    plannedSuDate: '',
+    plant_name: '',
+    planned_sd_date: '',
+    planned_su_date: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -66,9 +72,9 @@ export default function ProjectsPage() {
       name: '',
       code: '',
       client: '',
-      plantName: '',
-      plannedSdDate: '',
-      plannedSuDate: '',
+      plant_name: '',
+      planned_sd_date: '',
+      planned_su_date: '',
     });
     load();
   };
@@ -79,7 +85,7 @@ export default function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            All turnaround / shutdown projects
+            Portfolio &amp; project management
           </p>
         </div>
         <button
@@ -99,7 +105,7 @@ export default function ProjectsPage() {
           <p className="text-4xl mb-3">🏭</p>
           <p className="font-semibold text-gray-700">No projects yet</p>
           <p className="text-sm text-gray-400 mt-1">
-            Create your first turnaround project to get started
+            Create your first project to get started
           </p>
           <button
             onClick={() => setShowCreate(true)}
@@ -135,16 +141,16 @@ export default function ProjectsPage() {
               </div>
               <div className="text-xs text-gray-500 space-y-1">
                 {p.client && <p>Client: {p.client}</p>}
-                {p.plantName && <p>Plant: {p.plantName}</p>}
-                {p.plannedSdDate && (
+                {p.plant_name && <p>Plant: {p.plant_name}</p>}
+                {p.planned_sd_date && (
                   <p>
-                    SD:{' '}
-                    {new Date(p.plannedSdDate).toLocaleDateString('en-IN')}
+                    Start:{' '}
+                    {new Date(p.planned_sd_date).toLocaleDateString('en-IN')}
                   </p>
                 )}
               </div>
               <div className="flex items-center gap-4 mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
-                <span>📦 {p._count?.workpacks || 0} workpacks</span>
+                <span>📦 {p._count?.Workpack || 0} workpacks</span>
               </div>
             </Link>
           ))}
@@ -176,20 +182,22 @@ export default function ProjectsPage() {
                   placeholder: 'HMEL / IOCL / BPCL',
                 },
                 {
-                  key: 'plantName',
-                  label: 'Plant / Refinery',
+                  key: 'plant_name',
+                  label: 'Site / Location',
                   type: 'text',
                   placeholder: 'Guru Gobind Singh Refinery',
                 },
+                // OD9.2 §5/§28: Project is a general-purpose portfolio/project domain, so
+                // its own fields are not labelled in shutdown terms.
                 {
-                  key: 'plannedSdDate',
-                  label: 'Planned Shutdown',
+                  key: 'planned_sd_date',
+                  label: 'Planned Start',
                   type: 'date',
                   placeholder: '',
                 },
                 {
-                  key: 'plannedSuDate',
-                  label: 'Planned Startup',
+                  key: 'planned_su_date',
+                  label: 'Planned Finish',
                   type: 'date',
                   placeholder: '',
                 },

@@ -5,6 +5,7 @@ import { guardApi } from '@/lib/apiGuard';
 import { withTenantGuard } from '@/lib/withTenantGuard';
 import { assertTenantAccess } from '@/lib/tenantGuard';
 import { extractPdfText } from '@/lib/ai/aiHelpers';
+import { AssetRegisterService, AssetExtractionMapper } from '@/core/asset-register';
 import path from 'path';
 import { existsSync } from 'fs';
 
@@ -39,81 +40,8 @@ Output format: VALID JSON OBJECT ONLY. No markdown, no prefixes, no backticks.`;
  * Normalizes common AI naming variations to match the system field names.
  * Example: shell_id -> shell_id_mm
  */
-function mapAiResponseToSystemFields(raw: any): any {
-    if (!raw || typeof raw !== 'object') return raw;
-
-    const mapped = JSON.parse(JSON.stringify(raw)); // Clone
-
-    const sectionMappings: Record<string, Record<string, string>> = {
-        dimensions: {
-            shell_id: 'shell_id_mm',
-            shellId: 'shell_id_mm',
-            overall_length: 'overall_length_mm',
-            overallLength: 'overall_length_mm',
-            tube_length: 'tube_length_mm',
-            tubeLength: 'tube_length_mm',
-            heat_surface: 'heat_surface_area_m2',
-            heatSurface: 'heat_surface_area_m2',
-            weight_dry: 'weight_dry_kg',
-            weightDry: 'weight_dry_kg',
-            weight_operating: 'weight_operating_kg',
-            weightOperating: 'weight_operating_kg',
-            weight_flooded: 'weight_flooded_kg',
-            weightFlooded: 'weight_flooded_kg',
-        },
-        tube_bundle: {
-            tube_od: 'tube_od_mm',
-            tubeOD: 'tube_od_mm',
-            tube_thickness: 'tube_thickness_mm',
-            tubeThickness: 'tube_thickness_mm',
-        },
-        shell_side: {
-            inlet_temp: 'inlet_temp_c',
-            inletTemp: 'inlet_temp_c',
-            outlet_temp: 'outlet_temp_c',
-            outletTemp: 'outlet_temp_c',
-            design_pressure: 'design_pressure_kg_cm2',
-            designPressure: 'design_pressure_kg_cm2',
-            test_pressure: 'test_pressure_kg_cm2',
-            testPressure: 'test_pressure_kg_cm2',
-            design_temp: 'design_temp_c',
-            designTemp: 'design_temp_c',
-            pressure_drop: 'pressure_drop_kg_cm2',
-            pressureDrop: 'pressure_drop_kg_cm2',
-            velocity: 'velocity_m_s',
-        },
-        tube_side: {
-            inlet_temp: 'inlet_temp_c',
-            inletTemp: 'inlet_temp_c',
-            outlet_temp: 'outlet_temp_c',
-            outletTemp: 'outlet_temp_c',
-            design_pressure: 'design_pressure_kg_cm2',
-            designPressure: 'design_pressure_kg_cm2',
-            test_pressure: 'test_pressure_kg_cm2',
-            testPressure: 'test_pressure_kg_cm2',
-            design_temp: 'design_temp_c',
-            designTemp: 'design_temp_c',
-            pressure_drop: 'pressure_drop_kg_cm2',
-            pressureDrop: 'pressure_drop_kg_cm2',
-            velocity: 'velocity_m_s',
-        }
-    };
-
-    for (const [section, mappings] of Object.entries(sectionMappings)) {
-        if (mapped[section] && typeof mapped[section] === 'object') {
-            const sectionData = mapped[section];
-            for (const [aiKey, systemKey] of Object.entries(mappings)) {
-                if (systemKey in sectionData) continue; // Priority already correct
-                if (aiKey in sectionData) {
-                    sectionData[systemKey] = sectionData[aiKey];
-                    // Keep original for safety if needed, or remove to clean up
-                }
-            }
-        }
-    }
-
-    return mapped;
-}
+// Inline mapper functions removed — now using shared AssetExtractionMapper
+// (AssetExtractionMapper.normalizeAiResponse + AssetExtractionMapper.fromAiResponse)
 
 
 export const POST = withTenantGuard(async (req, { params }, session) => {
@@ -203,7 +131,7 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
         const rawData = parseVisionJson(aiResponse);
         console.log('[ExtractTechnicalData] Parsed result keys:', Object.keys(rawData as object));
 
-        const extractedData = mapAiResponseToSystemFields(rawData);
+        const extractedData = AssetExtractionMapper.normalizeAiResponse(rawData);
         console.log('[ExtractTechnicalData] Mapping applied. Final payload keys:', Object.keys(extractedData as object));
 
         // PERSIST: Save the extracted results to the workpack
@@ -215,7 +143,35 @@ export const POST = withTenantGuard(async (req, { params }, session) => {
             }
         });
 
-        console.log('[ExtractTechnicalData] Success. Data saved to DB.');
+        console.log('[ExtractTechnicalData] Success. Data saved to DB (legacy JSON).');
+
+        // ─────────────────────────────────────────────────────────────────────
+        // M8.6 PARALLEL WRITE — Asset Register EAV Layer
+        // Write extracted values to AssetAttributeValue + AssetAttributeHistory.
+        // AI protection rule: verified values are NEVER overwritten (R2.1).
+        // ─────────────────────────────────────────────────────────────────────
+        if (workpack.asset_id) {
+          try {
+            const flatValues = AssetExtractionMapper.flattenExtractedData(extractedData);
+            if (flatValues.length > 0) {
+              await AssetRegisterService.batchSetAttributeValues(
+                workpack.asset_id,
+                flatValues,
+                {
+                  organization_id: workpack.organization_id,
+                  user_id: session.user.id,
+                  source_type: 'ai_extraction',
+                  ai_model: 'gemini-2.5-pro',
+                  reason: `AI extraction from workpack ${workpackId}`,
+                }
+              );
+              console.log(`[ExtractTechnicalData] M8.6 parallel write: ${flatValues.length} attribute values written to Asset Register.`);
+            }
+          } catch (regErr: any) {
+            // Asset Register write failure should NOT break the extraction
+            console.error('[ExtractTechnicalData] M8.6 parallel write failed (non-fatal):', regErr.message);
+          }
+        }
 
         return NextResponse.json({ data: extractedData });
     } catch (err: any) {

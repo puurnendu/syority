@@ -4,10 +4,14 @@ import { prisma } from '@/lib/prisma';
 
 type RelationshipType = 'FS' | 'SS' | 'FF' | 'SF';
 
-/** Convert lag hours to lag_days (1 day = 8 hrs) */
-function lagHoursToDays(hours: number | null | undefined): number {
+/**
+ * Sprint 1a — lag is stored as canonical working MINUTES (lag_minutes).
+ * The previous boundary divided hours by a hardcoded 8 into whole-day
+ * lag_days, destroying sub-day lag. lag_days is no longer written here.
+ */
+function lagHoursToMinutes(hours: number | null | undefined): number {
     if (hours == null || Number.isNaN(hours)) return 0;
-    return Math.round((Number(hours) / 8) * 100) / 100;
+    return Math.round(Number(hours) * 60);
 }
 
 // POST — Add one predecessor with optional type and lag
@@ -26,8 +30,21 @@ export async function POST(
 
         const activity = await prisma.activity.findFirst({
             where: { id: activityId, organization_id: orgId, deleted_at: null },
+            select: { id: true, event_id: true },
         });
         if (!activity) return NextResponse.json({ error: 'Activity not found' }, { status: 404 });
+
+        // M11-R0: Cross-event relationship validation
+        const predecessorActivity = await prisma.activity.findFirst({
+            where: { id: predecessorId, organization_id: orgId, deleted_at: null },
+            select: { id: true, event_id: true },
+        });
+        if (!predecessorActivity) return NextResponse.json({ error: 'Predecessor activity not found' }, { status: 404 });
+        if (activity.event_id && predecessorActivity.event_id && activity.event_id !== predecessorActivity.event_id) {
+            return NextResponse.json({
+                error: 'Cross-event relationships are not allowed. Predecessor and successor must belong to the same shutdown event.',
+            }, { status: 400 });
+        }
 
         const type: RelationshipType = body.type ?? 'FS';
         const lagHours = body.lagHours ?? 0;
@@ -38,7 +55,7 @@ export async function POST(
                 predecessor_id: predecessorId,
                 successor_id: activityId,
                 relationship_type: type,
-                lag_days: lagHoursToDays(lagHours),
+                lag_minutes: lagHoursToMinutes(lagHours),
                 created_by: userId,
             },
             include: { predecessor: { select: { id: true, sequence_number: true, description: true, activity_number: true } } },
@@ -64,6 +81,7 @@ export async function PUT(
 
         const activity = await prisma.activity.findFirst({
             where: { id: activityId, organization_id: orgId, deleted_at: null },
+            select: { id: true, event_id: true },
         });
         if (!activity) return NextResponse.json({ error: 'Activity not found' }, { status: 404 });
 
@@ -81,6 +99,20 @@ export async function PUT(
         for (const item of toCreate) {
             const predId = item.predecessorId ?? (typeof item === 'string' ? item : null);
             if (!predId) continue;
+
+            // M11-R0: Cross-event relationship validation
+            if (activity.event_id) {
+                const predActivity = await prisma.activity.findFirst({
+                    where: { id: predId, organization_id: orgId, deleted_at: null },
+                    select: { event_id: true },
+                });
+                if (predActivity?.event_id && predActivity.event_id !== activity.event_id) {
+                    return NextResponse.json({
+                        error: `Cross-event relationship not allowed for predecessor ${predId}.`,
+                    }, { status: 400 });
+                }
+            }
+
             const type = (item as { type?: RelationshipType }).type ?? 'FS';
             const lagHours = (item as { lagHours?: number }).lagHours ?? 0;
             await prisma.activityRelationship.create({
@@ -89,7 +121,7 @@ export async function PUT(
                     predecessor_id: predId,
                     successor_id: activityId,
                     relationship_type: type,
-                    lag_days: lagHoursToDays(lagHours),
+                    lag_minutes: lagHoursToMinutes(lagHours),
                     created_by: userId,
                 },
             });

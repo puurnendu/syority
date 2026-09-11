@@ -35,10 +35,14 @@ export function WorkpackListTableBody({
     workpacks,
     userRole,
     onRequestDelete,
+    selected,
+    onToggle,
 }: {
     workpacks: WorkpackListItem[];
     userRole: string | undefined;
     onRequestDelete: (wp: WorkpackListItem) => void;
+    selected?: Set<string>;
+    onToggle?: (id: string) => void;
 }) {
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const canDelete = userRole ? ROLES_CAN_DELETE.includes(userRole) : false;
@@ -49,6 +53,16 @@ export function WorkpackListTableBody({
                     const showMenu = menuOpenId === wp.id;
                     return (
                         <tr key={wp.id} className="hover:bg-gray-50 transition-colors">
+                            {onToggle && (
+                                <td className="px-4 py-4">
+                                    <input
+                                        type="checkbox"
+                                        checked={selected?.has(wp.id) ?? false}
+                                        onChange={() => onToggle(wp.id)}
+                                        aria-label={`Select ${wp.title}`}
+                                    />
+                                </td>
+                            )}
                             <td className="px-6 py-4">
                                 {wp.workpack_id_code ? (
                                     <Link

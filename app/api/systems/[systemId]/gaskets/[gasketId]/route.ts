@@ -31,7 +31,7 @@ export async function PATCH(
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
 
-  const gasket = await prisma.systemGasket.findFirst({
+  const gasket = await prisma.system_gaskets.findFirst({
     where: { id: gasketId, system_id: systemId },
     select: { id: true },
   });
@@ -59,7 +59,7 @@ export async function PATCH(
   if (data.status !== undefined) updateData.status = data.status;
   if (data.workpack_id !== undefined) updateData.workpack_id = data.workpack_id;
 
-  const updated = await prisma.systemGasket.update({
+  const updated = await prisma.system_gaskets.update({
     where: { id: gasketId },
     data: updateData as any,
   });
@@ -81,12 +81,12 @@ export async function DELETE(
   });
   if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
 
-  const gasket = await prisma.systemGasket.findFirst({
+  const gasket = await prisma.system_gaskets.findFirst({
     where: { id: gasketId, system_id: systemId },
     select: { id: true },
   });
   if (!gasket) return NextResponse.json({ error: 'Gasket not found' }, { status: 404 });
 
-  await prisma.systemGasket.delete({ where: { id: gasketId } });
+  await prisma.system_gaskets.delete({ where: { id: gasketId } });
   return NextResponse.json({ ok: true });
 }

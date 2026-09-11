@@ -18,12 +18,12 @@ export async function GET(
   if (!asset) return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
 
   const [nozzles, lineLists, previousWorkpacks] = await Promise.all([
-    prisma.nozzle.findMany({
+    prisma.nozzles.findMany({
       where: { asset_id: assetId, deleted_at: null },
       orderBy: [{ sequence_number: 'asc' }, { designation: 'asc' }],
       include: { joint_master: { select: { id: true, joint_number: true } } },
     }),
-    prisma.lineList.findMany({
+    prisma.line_lists.findMany({
       where: {
         deleted_at: null,
         OR: [{ from_asset_id: assetId }, { to_asset_id: assetId }],

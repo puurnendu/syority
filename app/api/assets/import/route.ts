@@ -3,6 +3,22 @@ import ExcelJS from 'exceljs';
 import { guardApi, orgScope } from '@/lib/apiGuard';
 import { prisma } from '@/lib/prisma';
 
+/** M8.14-R1: Valid criticality values (matches AssetCriticality enum) */
+const VALID_CRITICALITY = new Set(['low', 'medium', 'high', 'critical']);
+
+/** Normalize free-text criticality to enum value or null */
+function normalizeCriticality(raw?: string | null): string | null {
+  if (!raw) return null;
+  const v = raw.trim().toLowerCase();
+  if (VALID_CRITICALITY.has(v)) return v;
+  // Map common synonyms
+  const synonyms: Record<string, string> = {
+    l: 'low', med: 'medium', m: 'medium', moderate: 'medium',
+    h: 'high', crit: 'critical', c: 'critical', 'very high': 'critical',
+  };
+  return synonyms[v] ?? null;
+}
+
 function normalizeHeader(h: string): string {
   const key = h.trim().toLowerCase().replace(/\s+/g, '_');
   const map: Record<string, string> = {
@@ -116,6 +132,13 @@ export async function POST(req: Request) {
       });
 
       if (existing) {
+        // M8.14-R1: Normalize criticality from import
+        const normalizedCrit = normalizeCriticality(data.criticality);
+        if (data.criticality?.trim() && !normalizedCrit) {
+          errors.push({ row: rowIdx, message: `Invalid criticality "${data.criticality}" — must be: low, medium, high, critical` });
+          skipped++;
+          continue;
+        }
         await prisma.asset.update({
           where: { id: existing.id },
           data: {
@@ -126,14 +149,24 @@ export async function POST(req: Request) {
             design_pressure_barg: data.design_pressure_barg ? parseFloat(data.design_pressure_barg) : null,
             design_temp_c: data.design_temp_c ? parseFloat(data.design_temp_c) : null,
             weight_empty_kg: data.weight_empty_kg ? parseFloat(data.weight_empty_kg) : null,
-            criticality: data.criticality?.trim() ?? null,
+            criticality: normalizedCrit as any,
             sap_equipment_number: data.sap_equipment_number?.trim() ?? null,
             sap_functional_location: data.sap_functional_location?.trim() ?? null,
             p_and_id_numbers: pAndIdNumbers,
+            // M8.14-R1: Provenance tracking
+            data_source: 'excel_import',
+            updated_by: userId,
           },
         });
         updated++;
       } else {
+        // M8.14-R1: Normalize criticality from import
+        const normalizedCrit = normalizeCriticality(data.criticality);
+        if (data.criticality?.trim() && !normalizedCrit) {
+          errors.push({ row: rowIdx, message: `Invalid criticality "${data.criticality}" — must be: low, medium, high, critical` });
+          skipped++;
+          continue;
+        }
         await prisma.asset.create({
           data: {
             organization_id: orgId,
@@ -146,11 +179,14 @@ export async function POST(req: Request) {
             design_pressure_barg: data.design_pressure_barg ? parseFloat(data.design_pressure_barg) : null,
             design_temp_c: data.design_temp_c ? parseFloat(data.design_temp_c) : null,
             weight_empty_kg: data.weight_empty_kg ? parseFloat(data.weight_empty_kg) : null,
-            criticality: data.criticality?.trim() ?? null,
+            criticality: normalizedCrit as any,
             sap_equipment_number: data.sap_equipment_number?.trim() ?? null,
             sap_functional_location: data.sap_functional_location?.trim() ?? null,
             p_and_id_numbers: pAndIdNumbers,
             created_by: userId,
+            // M8.14-R1: Provenance + lifecycle
+            data_source: 'excel_import',
+            status: 'draft',
           },
         });
         created++;
