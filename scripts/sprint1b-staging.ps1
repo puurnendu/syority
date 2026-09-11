@@ -1,0 +1,16 @@
+$ErrorActionPreference = "Stop"
+$env:PGPASSWORD = "postgres"
+$bin = "C:\Program Files\PostgreSQL\17\bin"
+$psql = "$bin\psql.exe"
+$restore = "$bin\pg_restore.exe"
+$dump = "C:\DEV\STO\backups\sprint1b_pre_20260910T183346Z\syority.dump"
+$db = "syority_sprint1b_staging"
+
+Write-Host "Drop/create $db"
+& $psql -h localhost -U postgres -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$db' AND pid <> pg_backend_pid();"
+& $psql -h localhost -U postgres -d postgres -c "DROP DATABASE IF EXISTS $db;"
+& $psql -h localhost -U postgres -d postgres -c "CREATE DATABASE $db OWNER postgres;"
+Write-Host "Restoring dump..."
+& $restore -h localhost -U postgres -d $db --no-owner --no-acl "$dump"
+if ($LASTEXITCODE -ne 0) { Write-Host "pg_restore exit $LASTEXITCODE (warnings may be ok if objects restored)" }
+Write-Host "STAGING_READY $db"
